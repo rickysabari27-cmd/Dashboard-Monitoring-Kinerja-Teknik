@@ -1,0 +1,233 @@
+import React, { useState } from 'react';
+import { FeederTrip } from '../../types';
+import { 
+  Zap, 
+  Search, 
+  Filter, 
+  Download, 
+  PlusCircle, 
+  Calendar, 
+  Clock, 
+  ShieldAlert, 
+  CheckCircle2, 
+  DollarSign
+} from 'lucide-react';
+
+interface TripLogsViewProps {
+  isDarkMode: boolean;
+  trips: FeederTrip[];
+  onOpenInputGangguan: () => void;
+}
+
+export const TripLogsView: React.FC<TripLogsViewProps> = ({
+  isDarkMode,
+  trips,
+  onOpenInputGangguan
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFeeder, setSelectedFeeder] = useState('ALL');
+  const [selectedRelay, setSelectedRelay] = useState('ALL');
+
+  const filteredTrips = trips.filter(trip => {
+    const matchesSearch = 
+      trip.feederName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.cause.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.locationKm.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFeeder = selectedFeeder === 'ALL' || trip.feederName === selectedFeeder;
+    const matchesRelay = selectedRelay === 'ALL' || trip.relayType.includes(selectedRelay);
+
+    return matchesSearch && matchesFeeder && matchesRelay;
+  });
+
+  const formatRupiah = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Top Header Controls */}
+      <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-4 ${
+        isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="font-extrabold text-base text-slate-900 dark:text-white">
+              Log Matriks Gangguan & Trip Feeder 20kV
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Rekapitulasi Kejadian Trip, Penyebab, Relay Dominan (OCR/GFR), & Estimasi ENS
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              placeholder="Cari lokasi, penyebab..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`pl-9 pr-3 py-1.5 rounded-xl text-xs border font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isDarkMode 
+                  ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' 
+                  : 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400'
+              }`}
+            />
+          </div>
+
+          {/* Feeder Filter */}
+          <select
+            value={selectedFeeder}
+            onChange={(e) => setSelectedFeeder(e.target.value)}
+            className={`px-3 py-1.5 rounded-xl text-xs border font-semibold focus:outline-none ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+            }`}
+          >
+            <option value="ALL">Semua Feeder</option>
+            <option value="LATERI 2">LATERI 2</option>
+            <option value="LATERI 3">LATERI 3</option>
+            <option value="TULEHU">TULEHU</option>
+            <option value="ALLANG">ALLANG</option>
+          </select>
+
+          {/* Add Trip Button */}
+          <button
+            onClick={onOpenInputGangguan}
+            className="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-rose-500/20 active:scale-95 transition-all"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Catat Trip Baru</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Trip Log Table */}
+      <div className={`rounded-2xl border overflow-hidden transition-all ${
+        isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+      }`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className={`border-b ${
+              isDarkMode ? 'bg-slate-950/80 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
+            } uppercase font-bold text-[10px] tracking-wider`}>
+              <tr>
+                <th className="p-3.5">ID & Feeder</th>
+                <th className="p-3.5">Jam Trip & Masuk</th>
+                <th className="p-3.5">Relay & Arus (A)</th>
+                <th className="p-3.5">Kontribusi SAIDI / SAIFI</th>
+                <th className="p-3.5">Lokasi Km & Penyebab</th>
+                <th className="p-3.5">Pelanggan & ENS</th>
+                <th className="p-3.5 text-right">Kerugian & Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {filteredTrips.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                    Tidak ada data trip gangguan yang cocok dengan filter.
+                  </td>
+                </tr>
+              ) : (
+                filteredTrips.map((trip) => {
+                  const durationHours = trip.durationMinutes / 60;
+                  const totalUlp = trip.totalUlpCustomers || 45200;
+                  const saidiHours = trip.saidiHours ?? Number(((durationHours * trip.affectedCustomers) / totalUlp).toFixed(4));
+                  const saidiMins = trip.saidiMinutes ?? Number((saidiHours * 60).toFixed(2));
+                  const saifiVal = trip.saifiCount ?? Number((trip.affectedCustomers / totalUlp).toFixed(4));
+                  const kw = trip.kwPadam || Math.round(1.73205 * 20 * trip.currentAmpere * 0.85);
+
+                  return (
+                    <tr key={trip.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      
+                      {/* Feeder */}
+                      <td className="p-3.5 font-bold">
+                        <div className="text-slate-900 dark:text-white font-extrabold flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 inline-block animate-pulse" />
+                          {trip.feederName}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-normal">{trip.id}</div>
+                      </td>
+
+                      {/* Waktu & Durasi */}
+                      <td className="p-3.5">
+                        <div className="text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-rose-500" />
+                          <span>{trip.tripTime}</span>
+                          <span className="text-slate-400">→</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">{trip.recoveryTime || '11:45'}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {trip.tripDate} • <span className="font-extrabold text-amber-600 dark:text-amber-400">{trip.durationMinutes} m ({durationHours.toFixed(2)} j)</span>
+                        </div>
+                      </td>
+
+                      {/* Relay & Arus */}
+                      <td className="p-3.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 inline-block">
+                          {trip.relayType}
+                        </span>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold mt-1">
+                          {trip.currentAmpere} A <span className="text-slate-400">({kw.toLocaleString()} kW)</span>
+                        </div>
+                      </td>
+
+                      {/* SAIDI / SAIFI Contribution */}
+                      <td className="p-3.5">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 inline-block">
+                            SAIDI: {saidiHours} j ({saidiMins} m)
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 inline-block">
+                            SAIFI: {saifiVal} kali
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Lokasi & Penyebab */}
+                      <td className="p-3.5 max-w-xs">
+                        <div className="font-bold text-slate-800 dark:text-slate-200 truncate" title={trip.locationKm}>
+                          📍 {trip.locationKm}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2" title={trip.cause}>
+                          {trip.cause}
+                        </div>
+                      </td>
+
+                      {/* Pelanggan & ENS */}
+                      <td className="p-3.5 font-bold text-slate-800 dark:text-slate-200">
+                        <div>{trip.affectedCustomers.toLocaleString('id-ID')} <span className="text-[10px] text-slate-400 font-normal">Plg</span></div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">{trip.ensKwh.toLocaleString('id-ID')} kWh</div>
+                      </td>
+
+                      {/* Kerugian & Status */}
+                      <td className="p-3.5 text-right">
+                        <div className="font-black text-rose-600 dark:text-rose-400 text-xs">
+                          {formatRupiah(trip.financialLossIdr)}
+                        </div>
+                        <span className="mt-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {trip.status}
+                        </span>
+                      </td>
+
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};

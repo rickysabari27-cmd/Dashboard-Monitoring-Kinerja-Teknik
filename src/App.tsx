@@ -1,0 +1,397 @@
+import React, { useState } from 'react';
+import { 
+  ViewMode, 
+  FeederTrip, 
+  MonthlySaidiSaifiData,
+  SpkTask,
+  GarduMeasurement,
+  MasterFeeder,
+  MaterialItem,
+  ApdTool,
+  Vehicle,
+  UserAccess,
+  InspectionRecord
+} from './types';
+import { 
+  INITIAL_TRIPS, 
+  MONTHLY_TRIP_DATA, 
+  MONTHLY_SAIDI_SAIFI_2026, 
+  FEEDER_CONTRIBUTION, 
+  FEEDER_HEALTH_LIST, 
+  INSPECTION_LIST, 
+  ROW_TREES,
+  INITIAL_SPK_TASKS,
+  INITIAL_GARDU_MEASUREMENTS,
+  INITIAL_MASTER_FEEDERS,
+  INITIAL_MATERIALS,
+  INITIAL_APD_TOOLS,
+  INITIAL_VEHICLES,
+  INITIAL_USERS
+} from './data/mockData';
+
+import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
+import { KpiCards } from './components/KpiCards';
+import { TripFrequencyChart } from './components/TripFrequencyChart';
+import { SaidiSaifiChart } from './components/SaidiSaifiChart';
+
+import { GisMapView } from './components/views/GisMapView';
+import { TripLogsView } from './components/views/TripLogsView';
+import { HealthIndexView } from './components/views/HealthIndexView';
+import { PemeliharaanView } from './components/views/PemeliharaanView';
+import { SaidiSaifiDetailView } from './components/views/SaidiSaifiDetailView';
+import { MaterialStockView } from './components/views/MaterialStockView';
+
+import { InputGangguanModal } from './components/modals/InputGangguanModal';
+import { InputSaidiModal } from './components/modals/InputSaidiModal';
+import { UniversalInputModal } from './components/modals/UniversalInputModal';
+import { Menu, Sparkles, CheckCircle2 } from 'lucide-react';
+
+export default function App() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
+  const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
+
+  // Core App Datasets with Live State
+  const [trips, setTrips] = useState<FeederTrip[]>(INITIAL_TRIPS);
+  const [monthlySaidiData, setMonthlySaidiData] = useState<MonthlySaidiSaifiData[]>(MONTHLY_SAIDI_SAIFI_2026);
+  const [spkList, setSpkList] = useState<SpkTask[]>(INITIAL_SPK_TASKS);
+  const [garduMeasurements, setGarduMeasurements] = useState<GarduMeasurement[]>(INITIAL_GARDU_MEASUREMENTS);
+  const [masterFeeders, setMasterFeeders] = useState<MasterFeeder[]>(INITIAL_MASTER_FEEDERS);
+  const [materials, setMaterials] = useState<MaterialItem[]>(INITIAL_MATERIALS);
+  const [apdTools, setApdTools] = useState<ApdTool[]>(INITIAL_APD_TOOLS);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
+  const [users, setUsers] = useState<UserAccess[]>(INITIAL_USERS);
+  const [inspections, setInspections] = useState<InspectionRecord[]>(INSPECTION_LIST);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal Control States
+  const [isGangguanModalOpen, setIsGangguanModalOpen] = useState(false);
+  const [isSaidiModalOpen, setIsSaidiModalOpen] = useState(false);
+  const [isUniversalModalOpen, setIsUniversalModalOpen] = useState(false);
+  const [universalModalTab, setUniversalModalTab] = useState<string>('trips');
+
+  // Calculated Metrics
+  const totalTripsCount = trips.length;
+  const totalInspectionsCount = inspections.length;
+  const totalRowPointsCount = ROW_TREES.filter(t => t.status === 'Perlu Pangkas').length;
+  
+  // Ags 2026 SAIDI
+  const currentSaidiObj = monthlySaidiData.find(m => m.month === 'Ags') || monthlySaidiData[7];
+  const saidiVal = currentSaidiObj.saidiReal;
+  const saidiTarget = currentSaidiObj.saidiTarget;
+  const financialLossTotal = trips.reduce((acc, t) => acc + t.financialLossIdr, 0);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4000);
+  };
+
+  const handleOpenUniversalInput = (tab?: string) => {
+    if (tab) {
+      setUniversalModalTab(tab);
+    } else if (currentView !== 'dashboard') {
+      setUniversalModalTab(currentView);
+    } else {
+      setUniversalModalTab('trips');
+    }
+    setIsUniversalModalOpen(true);
+  };
+
+  // Save Handlers
+  const handleSaveTrip = (newTrip: FeederTrip) => {
+    setTrips([newTrip, ...trips]);
+
+    // Automatically accumulate SAIDI and SAIFI into current active month (Ags 2026)
+    if (newTrip.saidiHours !== undefined && newTrip.saidiHours >= 0) {
+      setMonthlySaidiData(prev => prev.map(item => {
+        if (item.month === 'Ags') {
+          const updatedSaidi = Number((item.saidiReal + (newTrip.saidiHours || 0)).toFixed(3));
+          const updatedSaifi = Number((item.saifiReal + (newTrip.saifiCount || 0)).toFixed(3));
+          const updatedEnsLoss = Number((item.ensLossJuta + (newTrip.financialLossIdr / 1000000)).toFixed(2));
+          return { 
+            ...item, 
+            saidiReal: updatedSaidi, 
+            saifiReal: updatedSaifi, 
+            ensLossJuta: updatedEnsLoss 
+          };
+        }
+        return item;
+      }));
+    }
+
+    showToast(`Gangguan ${newTrip.feederName} (${newTrip.id}) berhasil disimpan & terhubung ke SAIDI/SAIFI!`);
+  };
+
+  const handleSaveSpk = (newSpk: SpkTask) => {
+    setSpkList([newSpk, ...spkList]);
+    showToast(`Perintah Kerja SPK ${newSpk.spkNumber} telah diterbitkan!`);
+  };
+
+  const handleSaveInspection = (newInsp: InspectionRecord) => {
+    setInspections([newInsp, ...inspections]);
+    showToast(`Temuan Inspeksi ${newInsp.id} (${newInsp.feederName}) dicatat!`);
+  };
+
+  const handleSaveMeasurement = (newMeas: GarduMeasurement) => {
+    setGarduMeasurements([newMeas, ...garduMeasurements]);
+    showToast(`Pengukuran Gardu ${newMeas.garduCode} (${newMeas.garduName}) disimpan!`);
+  };
+
+  const handleSaveMasterFeeder = (newFeeder: MasterFeeder) => {
+    setMasterFeeders([newFeeder, ...masterFeeders]);
+    showToast(`Master Feeder Baru ${newFeeder.feederName} berhasil ditambahkan!`);
+  };
+
+  const handleUpdateSaidi = (
+    year: number, 
+    month: string, 
+    saidiReal: number, 
+    saifiReal: number, 
+    saidiTarget?: number, 
+    saifiTarget?: number,
+    ensLossJuta?: number
+  ) => {
+    setMonthlySaidiData(prev => prev.map(item => {
+      if ((item.year || 2026) === year && item.month === month) {
+        return { 
+          ...item, 
+          saidiReal, 
+          saifiReal,
+          saidiTarget: saidiTarget !== undefined ? saidiTarget : item.saidiTarget,
+          saifiTarget: saifiTarget !== undefined ? saifiTarget : item.saifiTarget,
+          ensLossJuta: ensLossJuta !== undefined ? ensLossJuta : item.ensLossJuta
+        };
+      }
+      return item;
+    }));
+    showToast(`Kinerja SAIDI/SAIFI ${month} ${year} diperbarui: ${saidiReal.toFixed(3)} Jam/Plg`);
+  };
+
+  const handleUpdateSaidiRow = (updatedRow: MonthlySaidiSaifiData) => {
+    setMonthlySaidiData(prev => prev.map(item => {
+      if ((item.year || 2026) === (updatedRow.year || 2026) && item.month === updatedRow.month) {
+        return updatedRow;
+      }
+      return item;
+    }));
+    showToast(`Target & Realisasi ${updatedRow.month} ${updatedRow.year || 2026} berhasil disimpan!`);
+  };
+
+  const handleSaveMaterial = (newMat: MaterialItem) => {
+    setMaterials([newMat, ...materials]);
+    showToast(`Material ${newMat.name} (${newMat.stockQty} ${newMat.unit}) ditambahkan ke stok!`);
+  };
+
+  const handleSaveApd = (newApd: ApdTool) => {
+    setApdTools([newApd, ...apdTools]);
+    showToast(`Peralatan APD K3 ${newApd.name} berhasil dicatat!`);
+  };
+
+  const handleSaveVehicle = (newVeh: Vehicle) => {
+    setVehicles([newVeh, ...vehicles]);
+    showToast(`Armada ${newVeh.plateNumber} (${newVeh.name}) ditambahkan!`);
+  };
+
+  const handleSaveUser = (newUser: UserAccess) => {
+    setUsers([newUser, ...users]);
+    showToast(`User ${newUser.name} (${newUser.role}) berhasil diberikan akses!`);
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors duration-200 font-sans ${
+      isDarkMode ? 'bg-[#020617] text-slate-100' : 'bg-slate-100/70 text-slate-900'
+    }`}>
+      
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 p-4 rounded-xl bg-slate-900 text-white shadow-2xl border border-cyan-500/50 flex items-center gap-3 text-xs font-bold animate-bounce">
+          <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Top Header */}
+      <Header 
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        onOpenInputGangguan={() => setIsGangguanModalOpen(true)}
+        onOpenSaidiView={() => setCurrentView('saidi_saifi')}
+        onOpenUniversalInput={handleOpenUniversalInput}
+        onOpenGisMap={() => setCurrentView('gis')}
+        systemReliability={98.6}
+      />
+
+      <div className="max-w-[1700px] mx-auto flex">
+        
+        {/* Sidebar Navigation */}
+        <Sidebar 
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          isOpenMobile={isOpenMobileSidebar}
+          setIsOpenMobile={setIsOpenMobileSidebar}
+          isDarkMode={isDarkMode}
+          tripCount={totalTripsCount}
+        />
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-3 sm:p-5 lg:p-6 min-w-0 overflow-x-hidden">
+          
+          {/* Mobile Top Toggle */}
+          <div className="lg:hidden mb-4 flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <button
+              onClick={() => setIsOpenMobileSidebar(true)}
+              className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200"
+            >
+              <Menu className="w-5 h-5 text-blue-600" />
+              <span>Buka Menu System</span>
+            </button>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+              ULP Baguala
+            </span>
+          </div>
+
+          {/* View Content Renderer */}
+          {currentView === 'dashboard' && (
+            <div className="space-y-6">
+              
+              {/* Top Section Header */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Dashboard Kinerja & Keandalan 20kV
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    PLN ULP Baguala • Sistem Keandalan <span className="font-bold text-emerald-600 dark:text-emerald-400">98.6%</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* 4 Summary Cards */}
+              <KpiCards 
+                isDarkMode={isDarkMode}
+                setCurrentView={setCurrentView}
+                totalTrips={totalTripsCount}
+                totalInspections={totalInspectionsCount}
+                totalRowPoints={totalRowPointsCount}
+                saidiVal={saidiVal}
+                saidiTarget={saidiTarget}
+                financialLossTotal={financialLossTotal}
+              />
+
+              {/* Middle Section: Trip Frequency + Reliability Analysis */}
+              <TripFrequencyChart 
+                isDarkMode={isDarkMode}
+                data={MONTHLY_TRIP_DATA}
+                totalTrips={totalTripsCount}
+              />
+
+              {/* Bottom Section: SAIDI/SAIFI Trend + Feeder Donut Contribution */}
+              <SaidiSaifiChart 
+                isDarkMode={isDarkMode}
+                monthlySaidiData={monthlySaidiData}
+                feederContributions={FEEDER_CONTRIBUTION}
+              />
+
+            </div>
+          )}
+
+          {currentView === 'gis' && (
+            <GisMapView 
+              isDarkMode={isDarkMode}
+              feeders={FEEDER_HEALTH_LIST}
+              trips={trips}
+              onOpenInputGangguan={() => setIsGangguanModalOpen(true)}
+            />
+          )}
+
+          {currentView === 'trips' && (
+            <TripLogsView 
+              isDarkMode={isDarkMode}
+              trips={trips}
+              onOpenInputGangguan={() => setIsGangguanModalOpen(true)}
+            />
+          )}
+
+          {currentView === 'health_index' && (
+            <HealthIndexView 
+              isDarkMode={isDarkMode}
+              feeders={FEEDER_HEALTH_LIST}
+            />
+          )}
+
+          {(currentView === 'pemeliharaan' || currentView === 'spk') && (
+            <PemeliharaanView 
+              isDarkMode={isDarkMode}
+              inspections={inspections}
+              rowTrees={ROW_TREES}
+              onOpenUniversalInput={handleOpenUniversalInput}
+            />
+          )}
+
+          {currentView === 'saidi_saifi' && (
+            <SaidiSaifiDetailView 
+              isDarkMode={isDarkMode}
+              data={monthlySaidiData}
+              onOpenInputSaidi={() => setIsSaidiModalOpen(true)}
+              onUpdateSaidiRow={handleUpdateSaidiRow}
+            />
+          )}
+
+          {(currentView === 'material' || currentView === 'apd' || currentView === 'kendaraan' || currentView === 'master_data' || currentView === 'pengukuran' || currentView === 'users') && (
+            <MaterialStockView 
+              isDarkMode={isDarkMode}
+              currentView={currentView}
+              spkList={spkList}
+              garduMeasurements={garduMeasurements}
+              masterFeeders={masterFeeders}
+              materials={materials}
+              apdTools={apdTools}
+              vehicles={vehicles}
+              users={users}
+              onOpenUniversalInput={handleOpenUniversalInput}
+            />
+          )}
+
+        </main>
+
+      </div>
+
+      {/* Input Modals */}
+      <InputGangguanModal 
+        isOpen={isGangguanModalOpen}
+        onClose={() => setIsGangguanModalOpen(false)}
+        onSaveTrip={handleSaveTrip}
+        isDarkMode={isDarkMode}
+      />
+
+      <InputSaidiModal 
+        isOpen={isSaidiModalOpen}
+        onClose={() => setIsSaidiModalOpen(false)}
+        onUpdateSaidi={handleUpdateSaidi}
+        isDarkMode={isDarkMode}
+      />
+
+      <UniversalInputModal 
+        isOpen={isUniversalModalOpen}
+        onClose={() => setIsUniversalModalOpen(false)}
+        defaultTab={universalModalTab}
+        isDarkMode={isDarkMode}
+        onSaveTrip={handleSaveTrip}
+        onSaveSpk={handleSaveSpk}
+        onSaveInspection={handleSaveInspection}
+        onSaveMeasurement={handleSaveMeasurement}
+        onSaveMasterFeeder={handleSaveMasterFeeder}
+        onSaveSaidi={handleUpdateSaidi}
+        onSaveMaterial={handleSaveMaterial}
+        onSaveApd={handleSaveApd}
+        onSaveVehicle={handleSaveVehicle}
+        onSaveUser={handleSaveUser}
+      />
+
+    </div>
+  );
+}
