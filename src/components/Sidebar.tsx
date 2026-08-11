@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewMode } from '../types';
+import { ViewMode, UserAccess } from '../types';
 import { 
   LayoutGrid, 
   MapPin, 
@@ -16,7 +16,10 @@ import {
   Users, 
   Lock,
   ChevronRight,
-  X
+  X,
+  LogOut,
+  LogIn,
+  UserCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -26,6 +29,9 @@ interface SidebarProps {
   setIsOpenMobile: (open: boolean) => void;
   isDarkMode: boolean;
   tripCount: number;
+  currentUser?: UserAccess | null;
+  onOpenLogin?: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,7 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   setIsOpenMobile,
   isDarkMode,
-  tripCount
+  tripCount,
+  currentUser,
+  onOpenLogin,
+  onLogout
 }) => {
 
   const menuItems = [
@@ -50,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'material' as ViewMode, label: 'Stok & Pemakaian Material', icon: Package, badge: null },
     { id: 'apd' as ViewMode, label: 'Alat Kerja & APD', icon: Shield, badge: null },
     { id: 'kendaraan' as ViewMode, label: 'Kendaraan Operasional', icon: Car, badge: null },
-    { id: 'users' as ViewMode, label: 'Kelola User & Hak Akses', icon: Users, badge: null, locked: true },
+    { id: 'users' as ViewMode, label: 'Kelola User & Hak Akses', icon: Users, badge: null, locked: false },
   ];
 
   return (
@@ -142,16 +151,40 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Footer info in sidebar */}
-        <div className="mt-auto pt-3 border-t border-slate-800/80">
-          <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/50 border border-slate-800/60">
-            <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-blue-400">PLN</span>
+        {/* Footer info in sidebar with User Session & Logout */}
+        <div className="mt-auto pt-3 border-t border-slate-800/80 space-y-2">
+          {currentUser ? (
+            <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/40 flex items-center justify-center shrink-0 font-bold text-xs text-cyan-400">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-slate-100 truncate">{currentUser.name}</span>
+                  <span className="text-[10px] text-cyan-400 font-semibold truncate">{currentUser.role}</span>
+                </div>
+              </div>
+              <button
+                onClick={onLogout}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
+                title="Logout dari Sistem"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-slate-200 truncate">ULP Baguala</span>
-              <span className="text-[10px] text-slate-400">Sistem Keandalan 20kV</span>
-            </div>
+          ) : (
+            <button
+              onClick={onOpenLogin}
+              className="w-full py-2 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              <LogIn className="w-4 h-4 text-cyan-400" />
+              <span>Login Akun PLN</span>
+            </button>
+          )}
+
+          <div className="flex items-center justify-between px-1 text-[10px] text-slate-500">
+            <span>PLN ULP Baguala</span>
+            <span>v2.4 Live SCADA</span>
           </div>
         </div>
       </aside>

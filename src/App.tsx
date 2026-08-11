@@ -42,16 +42,22 @@ import { HealthIndexView } from './components/views/HealthIndexView';
 import { PemeliharaanView } from './components/views/PemeliharaanView';
 import { SaidiSaifiDetailView } from './components/views/SaidiSaifiDetailView';
 import { MaterialStockView } from './components/views/MaterialStockView';
+import { UserManagementView } from './components/views/UserManagementView';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
 import { UniversalInputModal } from './components/modals/UniversalInputModal';
+import { LoginModal } from './components/modals/LoginModal';
 import { Menu, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<UserAccess | null>(INITIAL_USERS[0]);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
 
   // Core App Datasets with Live State
   const [trips, setTrips] = useState<FeederTrip[]>(INITIAL_TRIPS);
@@ -121,6 +127,17 @@ export default function App() {
     setTimeout(() => {
       setToastMessage(null);
     }, 4000);
+  };
+
+  // Auth Handlers
+  const handleLoginSuccess = (user: UserAccess) => {
+    setCurrentUser(user);
+    showToast(`Selamat datang kembali, ${user.name} (${user.role})!`);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    showToast('Anda telah logout dari akun PLN.');
   };
 
   const handleOpenUniversalInput = (tab?: string) => {
@@ -272,6 +289,9 @@ export default function App() {
         onOpenUniversalInput={handleOpenUniversalInput}
         onOpenGisMap={() => setCurrentView('gis')}
         systemReliability={98.6}
+        currentUser={currentUser}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       <div className="max-w-[1700px] mx-auto flex">
@@ -284,6 +304,9 @@ export default function App() {
           setIsOpenMobile={setIsOpenMobileSidebar}
           isDarkMode={isDarkMode}
           tripCount={totalTripsCount}
+          currentUser={currentUser}
+          onOpenLogin={() => setIsLoginModalOpen(true)}
+          onLogout={handleLogout}
         />
 
         {/* Main Content Area */}
@@ -390,7 +413,16 @@ export default function App() {
             />
           )}
 
-          {(currentView === 'material' || currentView === 'apd' || currentView === 'kendaraan' || currentView === 'master_data' || currentView === 'pengukuran' || currentView === 'users') && (
+          {currentView === 'users' && (
+            <UserManagementView 
+              isDarkMode={isDarkMode}
+              users={users}
+              onSaveUser={handleSaveUser}
+              currentUser={currentUser}
+            />
+          )}
+
+          {(currentView === 'material' || currentView === 'apd' || currentView === 'kendaraan' || currentView === 'master_data' || currentView === 'pengukuran') && (
             <MaterialStockView 
               isDarkMode={isDarkMode}
               currentView={currentView}
@@ -439,6 +471,14 @@ export default function App() {
         onSaveApd={handleSaveApd}
         onSaveVehicle={handleSaveVehicle}
         onSaveUser={handleSaveUser}
+      />
+
+      <LoginModal 
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        isDarkMode={isDarkMode}
+        usersList={users}
       />
 
     </div>

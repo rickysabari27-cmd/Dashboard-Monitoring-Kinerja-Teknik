@@ -1,4 +1,5 @@
 import React from 'react';
+import { UserAccess } from '../types';
 import { 
   Zap, 
   Globe, 
@@ -9,7 +10,10 @@ import {
   Sun,
   ShieldCheck,
   Activity,
-  BarChart2
+  BarChart2,
+  User,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -20,6 +24,9 @@ interface HeaderProps {
   onOpenUniversalInput: (tab?: string) => void;
   onOpenGisMap: () => void;
   systemReliability: number;
+  currentUser?: UserAccess | null;
+  onOpenLogin?: () => void;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,7 +36,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSaidiView,
   onOpenUniversalInput,
   onOpenGisMap,
-  systemReliability
+  systemReliability,
+  currentUser,
+  onOpenLogin,
+  onLogout
 }) => {
   return (
     <header className={`sticky top-0 z-30 transition-colors border-b ${
@@ -103,6 +113,36 @@ export const Header: React.FC<HeaderProps> = ({
             <span>SAIDI SAIFI</span>
           </button>
 
+          {/* User Profile / Login / Logout Button */}
+          {currentUser ? (
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
+              <div className="hidden xl:flex flex-col text-right">
+                <span className="text-xs font-extrabold text-slate-800 dark:text-white leading-tight">
+                  {currentUser.name}
+                </span>
+                <span className="text-[10px] font-bold text-blue-600 dark:text-cyan-400">
+                  {currentUser.role}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition-all active:scale-95"
+                title="Logout dari Akun PLN"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenLogin}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login</span>
+            </button>
+          )}
+
           {/* Theme Toggle Button */}
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -117,4 +157,5 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
 
