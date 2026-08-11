@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ViewMode, 
   FeederTrip, 
@@ -28,6 +28,7 @@ import {
   INITIAL_VEHICLES,
   INITIAL_USERS
 } from './data/mockData';
+import { syncCollection, saveDocument } from './services/firebaseSync';
 
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -64,6 +65,31 @@ export default function App() {
   const [users, setUsers] = useState<UserAccess[]>(INITIAL_USERS);
   const [inspections, setInspections] = useState<InspectionRecord[]>(INSPECTION_LIST);
 
+  // Firebase Real-time Synchronization
+  useEffect(() => {
+    const unsubTrips = syncCollection<FeederTrip>('trips', INITIAL_TRIPS, (data) => setTrips(data));
+    const unsubSaidi = syncCollection<MonthlySaidiSaifiData>('saidi_saifi', MONTHLY_SAIDI_SAIFI_2026, (data) => setMonthlySaidiData(data));
+    const unsubSpk = syncCollection<SpkTask>('spk_tasks', INITIAL_SPK_TASKS, (data) => setSpkList(data));
+    const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
+    const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => setMasterFeeders(data));
+    const unsubMaterials = syncCollection<MaterialItem>('materials', INITIAL_MATERIALS, (data) => setMaterials(data));
+    const unsubApd = syncCollection<ApdTool>('apd_tools', INITIAL_APD_TOOLS, (data) => setApdTools(data));
+    const unsubVehicles = syncCollection<Vehicle>('vehicles', INITIAL_VEHICLES, (data) => setVehicles(data));
+    const unsubUsers = syncCollection<UserAccess>('users_access', INITIAL_USERS, (data) => setUsers(data));
+
+    return () => {
+      unsubTrips();
+      unsubSaidi();
+      unsubSpk();
+      unsubGardu();
+      unsubFeeders();
+      unsubMaterials();
+      unsubApd();
+      unsubVehicles();
+      unsubUsers();
+    };
+  }, []);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Modal Control States
@@ -78,7 +104,14 @@ export default function App() {
   const totalRowPointsCount = ROW_TREES.filter(t => t.status === 'Perlu Pangkas').length;
   
   // Ags 2026 SAIDI
-  const currentSaidiObj = monthlySaidiData.find(m => m.month === 'Ags') || monthlySaidiData[7];
+  const currentSaidiObj = monthlySaidiData.find(m => m.month === 'Ags') || monthlySaidiData[7] || {
+    month: 'Ags',
+    saidiReal: 0,
+    saidiTarget: 0,
+    saifiReal: 0,
+    saifiTarget: 0,
+    ensLossJuta: 0
+  };
   const saidiVal = currentSaidiObj.saidiReal;
   const saidiTarget = currentSaidiObj.saidiTarget;
   const financialLossTotal = trips.reduce((acc, t) => acc + t.financialLossIdr, 0);
@@ -102,33 +135,38 @@ export default function App() {
   };
 
   // Save Handlers
-  const handleSaveTrip = (newTrip: FeederTrip) => {
+  const handleSaveTrip = async (newTrip: FeederTrip) => {
     setTrips([newTrip, ...trips]);
+    saveDocument('trips', newTrip, newTrip.id);
 
     // Automatically accumulate SAIDI and SAIFI into current active month (Ags 2026)
     if (newTrip.saidiHours !== undefined && newTrip.saidiHours >= 0) {
-      setMonthlySaidiData(prev => prev.map(item => {
+      const updatedSaidiData = monthlySaidiData.map(item => {
         if (item.month === 'Ags') {
           const updatedSaidi = Number((item.saidiReal + (newTrip.saidiHours || 0)).toFixed(3));
           const updatedSaifi = Number((item.saifiReal + (newTrip.saifiCount || 0)).toFixed(3));
           const updatedEnsLoss = Number((item.ensLossJuta + (newTrip.financialLossIdr / 1000000)).toFixed(2));
-          return { 
+          const updatedObj = { 
             ...item, 
             saidiReal: updatedSaidi, 
             saifiReal: updatedSaifi, 
             ensLossJuta: updatedEnsLoss 
           };
+          saveDocument('saidi_saifi', updatedObj, `${item.month}_2026`);
+          return updatedObj;
         }
         return item;
-      }));
+      });
+      setMonthlySaidiData(updatedSaidiData);
     }
 
-    showToast(`Gangguan ${newTrip.feederName} (${newTrip.id}) berhasil disimpan & terhubung ke SAIDI/SAIFI!`);
+    showToast(`Gangguan ${newTrip.feederName} (${newTrip.id}) berhasil disimpan ke Firebase & terhubung ke SAIDI/SAIFI!`);
   };
 
   const handleSaveSpk = (newSpk: SpkTask) => {
     setSpkList([newSpk, ...spkList]);
-    showToast(`Perintah Kerja SPK ${newSpk.spkNumber} telah diterbitkan!`);
+    saveDocument('spk_tasks', newSpk, newSpk.id);
+    showToast(`Perintah Kerja SPK ${newSpk.spkNumber} telah diterbitkan & tersimpan di Firebase!`);
   };
 
   const handleSaveInspection = (newInsp: InspectionRecord) => {
@@ -138,12 +176,14 @@ export default function App() {
 
   const handleSaveMeasurement = (newMeas: GarduMeasurement) => {
     setGarduMeasurements([newMeas, ...garduMeasurements]);
-    showToast(`Pengukuran Gardu ${newMeas.garduCode} (${newMeas.garduName}) disimpan!`);
+    saveDocument('gardu_measurements', newMeas, newMeas.id);
+    showToast(`Pengukuran Gardu ${newMeas.garduCode} (${newMeas.garduName}) disimpan ke Firebase!`);
   };
 
   const handleSaveMasterFeeder = (newFeeder: MasterFeeder) => {
     setMasterFeeders([newFeeder, ...masterFeeders]);
-    showToast(`Master Feeder Baru ${newFeeder.feederName} berhasil ditambahkan!`);
+    saveDocument('master_feeders', newFeeder, newFeeder.id);
+    showToast(`Master Feeder Baru ${newFeeder.feederName} berhasil ditambahkan ke Firebase!`);
   };
 
   const handleUpdateSaidi = (
@@ -157,48 +197,57 @@ export default function App() {
   ) => {
     setMonthlySaidiData(prev => prev.map(item => {
       if ((item.year || 2026) === year && item.month === month) {
-        return { 
+        const updated = { 
           ...item, 
+          year,
+          month,
           saidiReal, 
           saifiReal,
           saidiTarget: saidiTarget !== undefined ? saidiTarget : item.saidiTarget,
           saifiTarget: saifiTarget !== undefined ? saifiTarget : item.saifiTarget,
           ensLossJuta: ensLossJuta !== undefined ? ensLossJuta : item.ensLossJuta
         };
+        saveDocument('saidi_saifi', updated, `${month}_${year}`);
+        return updated;
       }
       return item;
     }));
-    showToast(`Kinerja SAIDI/SAIFI ${month} ${year} diperbarui: ${saidiReal.toFixed(3)} Jam/Plg`);
+    showToast(`Kinerja SAIDI/SAIFI ${month} ${year} diperbarui di Firebase: ${saidiReal.toFixed(3)} Jam/Plg`);
   };
 
   const handleUpdateSaidiRow = (updatedRow: MonthlySaidiSaifiData) => {
     setMonthlySaidiData(prev => prev.map(item => {
       if ((item.year || 2026) === (updatedRow.year || 2026) && item.month === updatedRow.month) {
+        saveDocument('saidi_saifi', updatedRow, `${updatedRow.month}_${updatedRow.year || 2026}`);
         return updatedRow;
       }
       return item;
     }));
-    showToast(`Target & Realisasi ${updatedRow.month} ${updatedRow.year || 2026} berhasil disimpan!`);
+    showToast(`Target & Realisasi ${updatedRow.month} ${updatedRow.year || 2026} berhasil disimpan ke Firebase!`);
   };
 
   const handleSaveMaterial = (newMat: MaterialItem) => {
     setMaterials([newMat, ...materials]);
-    showToast(`Material ${newMat.name} (${newMat.stockQty} ${newMat.unit}) ditambahkan ke stok!`);
+    saveDocument('materials', newMat, newMat.id);
+    showToast(`Material ${newMat.name} (${newMat.stockQty} ${newMat.unit}) ditambahkan ke Firebase!`);
   };
 
   const handleSaveApd = (newApd: ApdTool) => {
     setApdTools([newApd, ...apdTools]);
-    showToast(`Peralatan APD K3 ${newApd.name} berhasil dicatat!`);
+    saveDocument('apd_tools', newApd, newApd.id);
+    showToast(`Peralatan APD K3 ${newApd.name} berhasil dicatat di Firebase!`);
   };
 
   const handleSaveVehicle = (newVeh: Vehicle) => {
     setVehicles([newVeh, ...vehicles]);
-    showToast(`Armada ${newVeh.plateNumber} (${newVeh.name}) ditambahkan!`);
+    saveDocument('vehicles', newVeh, newVeh.id);
+    showToast(`Armada ${newVeh.plateNumber} (${newVeh.name}) ditambahkan ke Firebase!`);
   };
 
   const handleSaveUser = (newUser: UserAccess) => {
     setUsers([newUser, ...users]);
-    showToast(`User ${newUser.name} (${newUser.role}) berhasil diberikan akses!`);
+    saveDocument('users_access', newUser, newUser.id);
+    showToast(`User ${newUser.name} (${newUser.role}) berhasil diberikan akses ke Firebase!`);
   };
 
   return (

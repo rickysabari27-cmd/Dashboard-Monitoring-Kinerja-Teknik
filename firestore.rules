@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Trips collection
+    match /trips/{tripId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Feeder Health collection
+    match /feeder_health/{healthId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // SAIDI / SAIFI collection
+    match /saidi_saifi/{saidiId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // SPK Tasks collection
+    match /spk_tasks/{spkId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Gardu Measurements collection
+    match /gardu_measurements/{garduId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Master Feeders collection
+    match /master_feeders/{feederId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Materials collection
+    match /materials/{materialId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // APD Tools collection
+    match /apd_tools/{apdId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Vehicles collection
+    match /vehicles/{vehicleId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Users Access collection
+    match /users_access/{userId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "entities": {
+    "FeederTrip": {
+      "title": "FeederTrip",
+      "description": "Log data trip/gangguan penyulang PLN ULP Baguala",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "feederName": { "type": "string" },
+        "substation": { "type": "string" },
+        "tripDate": { "type": "string" },
+        "tripTime": { "type": "string" },
+        "recoveryTime": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "relayType": { "type": "string" },
+        "currentAmpere": { "type": "number" },
+        "kwPadam": { "type": "number" },
+        "locationKm": { "type": "string" },
+        "cause": { "type": "string" },
+        "category": { "type": "string" },
+        "affectedCustomers": { "type": "number" },
+        "totalUlpCustomers": { "type": "number" },
+        "saidiHours": { "type": "number" },
+        "saidiMinutes": { "type": "number" },
+        "saifiCount": { "type": "number" },
+        "ensKwh": { "type": "number" },
+        "financialLossIdr": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "feederName", "tripDate", "tripTime", "durationMinutes", "status"]
+    },
+    "FeederHealth": {
+      "title": "FeederHealth",
+      "description": "Indeks kesehatan penyulang",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "substation": { "type": "string" },
+        "lengthKm": { "type": "number" },
+        "customers": { "type": "number" },
+        "healthScore": { "type": "number" },
+        "status": { "type": "string" },
+        "lastInspected": { "type": "string" },
+        "rowRiskPoints": { "type": "number" },
+        "thermoHotspots": { "type": "number" },
+        "groundingResistance": { "type": "number" }
+      },
+      "required": ["id", "name", "healthScore"]
+    },
+    "MonthlySaidiSaifiData": {
+      "title": "MonthlySaidiSaifiData",
+      "description": "Realisasi dan Target SAIDI/SAIFI bulanan",
+      "type": "object",
+      "properties": {
+        "year": { "type": "number" },
+        "month": { "type": "string" },
+        "saidiReal": { "type": "number" },
+        "saidiTarget": { "type": "number" },
+        "saifiReal": { "type": "number" },
+        "saifiTarget": { "type": "number" },
+        "ensLossJuta": { "type": "number" }
+      },
+      "required": ["month", "saidiReal", "saidiTarget", "saifiReal", "saifiTarget"]
+    },
+    "SpkTask": {
+      "title": "SpkTask",
+      "description": "Surat Perintah Kerja (SPK) petugas Yantek",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "spkNumber": { "type": "string" },
+        "date": { "type": "string" },
+        "taskType": { "type": "string" },
+        "feederName": { "type": "string" },
+        "locationSection": { "type": "string" },
+        "teamName": { "type": "string" },
+        "targetQty": { "type": "string" },
+        "status": { "type": "string" },
+        "priority": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["id", "spkNumber", "taskType", "feederName", "status"]
+    },
+    "GarduMeasurement": {
+      "title": "GarduMeasurement",
+      "description": "Pengukuran beban gardu distribusi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "garduCode": { "type": "string" },
+        "garduName": { "type": "string" },
+        "feederName": { "type": "string" },
+        "capacityKva": { "type": "number" },
+        "date": { "type": "string" },
+        "inspectorName": { "type": "string" },
+        "currentR": { "type": "number" },
+        "currentS": { "type": "number" },
+        "currentT": { "type": "number" },
+        "currentN": { "type": "number" },
+        "voltageRN": { "type": "number" },
+        "voltageSN": { "type": "number" },
+        "voltageTN": { "type": "number" },
+        "loadPercentage": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "garduCode", "capacityKva", "loadPercentage", "status"]
+    },
+    "MasterFeeder": {
+      "title": "MasterFeeder",
+      "description": "Master data penyulang ULP Baguala",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "feederCode": { "type": "string" },
+        "feederName": { "type": "string" },
+        "substationName": { "type": "string" },
+        "voltageKv": { "type": "number" },
+        "lengthKms": { "type": "number" },
+        "customerCount": { "type": "number" },
+        "sectionCount": { "type": "number" },
+        "breakerType": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "feederCode", "feederName", "status"]
+    },
+    "MaterialItem": {
+      "title": "MaterialItem",
+      "description": "Stok material pemeliharaan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "itemCode": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "stockQty": { "type": "number" },
+        "unit": { "type": "string" },
+        "minStock": { "type": "number" },
+        "warehouseLocation": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "itemCode", "name", "stockQty"]
+    },
+    "ApdTool": {
+      "title": "ApdTool",
+      "description": "Daftar APD dan Alat Kerja K3",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "qty": { "type": "number" },
+        "condition": { "type": "string" },
+        "lastCalibrated": { "type": "string" },
+        "unitOwner": { "type": "string" },
+        "inspector": { "type": "string" }
+      },
+      "required": ["id", "code", "name", "qty"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Kesiapan armada kendaraan Yantek",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "vehicleType": { "type": "string" },
+        "status": { "type": "string" },
+        "mileageKm": { "type": "number" },
+        "teamAssigned": { "type": "string" },
+        "fuelStatus": { "type": "string" }
+      },
+      "required": ["id", "plateNumber", "name", "status"]
+    },
+    "UserAccess": {
+      "title": "UserAccess",
+      "description": "Hak akses dan akun personel PLN",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nik": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "unitName": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string" },
+        "lastActive": { "type": "string" }
+      },
+      "required": ["id", "nik", "name", "role", "email"]
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "schema": { "$ref": "#/entities/FeederTrip" },
+      "description": "Koleksi data gangguan dan trip penyulang"
+    },
+    "/feeder_health/{healthId}": {
+      "schema": { "$ref": "#/entities/FeederHealth" },
+      "description": "Koleksi indeks kesehatan penyulang"
+    },
+    "/saidi_saifi/{saidiId}": {
+      "schema": { "$ref": "#/entities/MonthlySaidiSaifiData" },
+      "description": "Koleksi pencapaian SAIDI SAIFI bulanan"
+    },
+    "/spk_tasks/{spkId}": {
+      "schema": { "$ref": "#/entities/SpkTask" },
+      "description": "Koleksi SPK tugas petugas"
+    },
+    "/gardu_measurements/{garduId}": {
+      "schema": { "$ref": "#/entities/GarduMeasurement" },
+      "description": "Koleksi pengukuran beban gardu"
+    },
+    "/master_feeders/{feederId}": {
+      "schema": { "$ref": "#/entities/MasterFeeder" },
+      "description": "Master data penyulang"
+    },
+    "/materials/{materialId}": {
+      "schema": { "$ref": "#/entities/MaterialItem" },
+      "description": "Koleksi stok material K3 dan SUTM"
+    },
+    "/apd_tools/{apdId}": {
+      "schema": { "$ref": "#/entities/ApdTool" },
+      "description": "Koleksi peralatan APD dan K3"
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": { "$ref": "#/entities/Vehicle" },
+      "description": "Koleksi armada kendaraan Yantek"
+    },
+    "/users_access/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccess" },
+      "description": "Koleksi pengguna dan hak akses"
+    }
+  }
+}
