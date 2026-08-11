@@ -43,6 +43,7 @@ import { PemeliharaanView } from './components/views/PemeliharaanView';
 import { SaidiSaifiDetailView } from './components/views/SaidiSaifiDetailView';
 import { MaterialStockView } from './components/views/MaterialStockView';
 import { UserManagementView } from './components/views/UserManagementView';
+import { LoginPage } from './components/views/LoginPage';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
@@ -55,8 +56,8 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
 
-  // Authentication State
-  const [currentUser, setCurrentUser] = useState<UserAccess | null>(INITIAL_USERS[0]);
+  // Authentication State - default to null so opening link lands directly on Login Page
+  const [currentUser, setCurrentUser] = useState<UserAccess | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
 
   // Core App Datasets with Live State
@@ -266,6 +267,18 @@ export default function App() {
     saveDocument('users_access', newUser, newUser.id);
     showToast(`User ${newUser.name} (${newUser.role}) berhasil diberikan akses ke Firebase!`);
   };
+
+  // Render standalone Gardu Induk Login Page if user is logged out
+  if (!currentUser) {
+    return (
+      <LoginPage 
+        onLoginSuccess={handleLoginSuccess}
+        usersList={users}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+      />
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-200 font-sans ${
