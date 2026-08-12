@@ -522,10 +522,15 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
   // Download PDF file directly using html2canvas & jsPDF
   const handleDownloadPdf = async () => {
-    if (!printRef.current) return;
+    // Select editor preview if in editor mode, otherwise use the dedicated invisible viewport container
+    const selector = currentMode === 'editor' ? '#printable-spk-editor' : '#printable-spk-monitoring';
+    const element = document.querySelector(selector) as HTMLElement;
+    if (!element) {
+      showToast('Gagal memproses dokumen SPK untuk diunduh.');
+      return;
+    }
     setIsExportingPdf(true);
     try {
-      const element = printRef.current;
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
@@ -560,7 +565,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
       setShowPrintModal(false);
     } catch (err) {
       console.error('Failed to export PDF:', err);
-      showToast('Membuka dialog pencetakan sistem...');
+      showToast('Gagal download otomatis. Membuka dialog pencetakan...');
       setShowPrintModal(false);
       setTimeout(() => {
         window.print();
@@ -704,7 +709,11 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">SPK Dalam Proses</span>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
-                    {allSpks.filter(s => s.statusPekerjaan === 'Dalam Proses').length}
+                    {allSpks.filter(s => 
+                      s.statusPekerjaan === 'Dalam Progres' || 
+                      s.statusPekerjaan === 'Dalam Proses' || 
+                      s.statusPekerjaan === 'Dalam Progres (On Progress)'
+                    ).length}
                   </span>
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">SPK</span>
                 </div>
@@ -721,7 +730,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">SPK Selesai</span>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                    {allSpks.filter(s => s.statusPekerjaan === 'Selesai' || s.statusPekerjaan === 'Selesai dengan catatan').length}
+                    {allSpks.filter(s => 
+                      s.statusPekerjaan === 'Selesai' || 
+                      s.statusPekerjaan === 'Selesai Dengan catatan' || 
+                      s.statusPekerjaan === 'Selesai dengan catatan' ||
+                      s.statusPekerjaan === 'Selesai (Dengan Catatan)'
+                    ).length}
                   </span>
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">SPK</span>
                 </div>
@@ -872,9 +886,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
           </div>
 
           {/* Offscreen Printable Document Container for Monitoring Mode */}
-          <div className="fixed -left-[9999px] top-0 pointer-events-none opacity-0 print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
+          <div className="fixed top-0 left-0 w-[794px] h-[1123px] overflow-hidden pointer-events-none opacity-[0.02] z-[-1000] print:static print:left-0 print:opacity-100 print:w-full">
             <div 
               ref={printRef}
+              id="printable-spk-monitoring"
               className="w-[794px] bg-white text-black p-8 font-sans relative overflow-hidden select-text text-black printable-spk-document"
               style={{ minHeight: '1000px', color: '#000000', backgroundColor: '#ffffff' }}
             >
@@ -1769,6 +1784,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
               {/* Paper Frame Canvas */}
               <div 
                 ref={printRef}
+                id="printable-spk-editor"
                 className="w-full max-w-[720px] bg-white text-black p-6 sm:p-8 rounded-xl shadow-2xl border border-slate-300 font-sans relative overflow-hidden select-text text-black dark:text-black printable-spk-document"
                 style={{
                   minHeight: '920px',
