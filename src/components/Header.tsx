@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg transition-all bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-slate-700"
           >
             <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">Peta GIS Feeder</span>
+            <span className="hidden sm:inline">Peta Penyulang</span>
           </button>
 
           {/* Action Button: + Input Gangguan */}

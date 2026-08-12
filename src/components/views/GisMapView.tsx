@@ -33,394 +33,8 @@ interface GisMapViewProps {
   onOpenInputGangguan?: () => void;
 }
 
-// Initial 23 Feeder Files matching user reference image
-const DEFAULT_IMPORTED_FILES: ImportedFeederFile[] = [
-  {
-    id: 'f-1',
-    name: 'LATERI 2',
-    pointsCount: 198,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.640, 128.220], [-3.642, 128.225], [-3.645, 128.230], [-3.648, 128.235], [-3.652, 128.242]
-    ],
-    poles: [
-      { id: 'lat2-1', poleNumber: 'Tiang #10 LATERI 2', lat: -3.640, lng: 128.220, type: 'Penyulang' },
-      { id: 'lat2-2', poleNumber: 'Tiang #25 LATERI 2', lat: -3.642, lng: 128.225, type: 'Pohon', description: 'Pohon Sagu < 1.2m' },
-      { id: 'lat2-3', poleNumber: 'Tiang #40 LATERI 2', lat: -3.645, lng: 128.230, type: 'Penyulang' },
-      { id: 'lat2-4', poleNumber: 'Tiang #62 LATERI 2', lat: -3.648, lng: 128.235, type: 'Gangguan', description: 'Titik Trip GFR' },
-      { id: 'lat2-5', poleNumber: 'Tiang #88 LATERI 2', lat: -3.652, lng: 128.242, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-2',
-    name: 'ALLANG',
-    pointsCount: 364,
-    importDate: '10/8/2026',
-    color: '#22c55e',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KMZ',
-    pathCoords: [
-      [-3.6420, 128.0420], // Laha / TM 16 / Gardu Esser / Hengky Lewakabessy
-      [-3.6650, 128.0280], // Batu Kapal / Titik Awal / Titik Akhir
-      [-3.7120, 127.9950], // Lilibooi
-      [-3.7410, 127.9540], // Allang / Namakoly (AL 05)
-      [-3.7430, 127.9150], // Dusun Tapi (AL 11)
-      [-3.7380, 127.8820], // Wakasihu / Masjid Caktuarmassalam
-      [-3.7050, 127.8380], // Batu Layar
-      [-3.6380, 127.8380], // Asilulu
-      [-3.5850, 127.8880]  // Lima
-    ],
-    poles: [
-      { id: 'all-1', poleNumber: 'TM 16, Gardu Esser, Hengky Lewakabessy (ALGALG020)', lat: -3.6420, lng: 128.0420, type: 'Gardu' },
-      { id: 'all-2', poleNumber: 'Penanda 55 & TM 5', lat: -3.6350, lng: 128.0510, type: 'Penyulang' },
-      { id: 'all-3', poleNumber: 'Batu kapal / Titik Awal', lat: -3.6650, lng: 128.0280, type: 'Penyulang' },
-      { id: 'all-4', poleNumber: 'Tm1 & gardu allang - namakoly ( AL 05 ) ( ALGALG009 )', lat: -3.7410, lng: 127.9540, type: 'Gardu' },
-      { id: 'all-5', poleNumber: 'Tm1 & gardu dusun tapi ( AL 11 ) ( ALGALG015 )', lat: -3.7430, lng: 127.9150, type: 'Gardu' },
-      { id: 'all-6', poleNumber: 'Masjid Caktuarmassalam Wakasihu', lat: -3.7380, lng: 127.8820, type: 'Penyulang' },
-      { id: 'all-7', poleNumber: 'Asilulu', lat: -3.6380, lng: 127.8380, type: 'Penyulang' }
-    ]
-  },
-  {
-    id: 'f-3',
-    name: 'Passo',
-    pointsCount: 92,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.620, 128.240], [-3.625, 128.248], [-3.630, 128.252], [-3.635, 128.260]
-    ],
-    poles: [
-      { id: 'pas-1', poleNumber: 'Tiang #05 PASSO', lat: -3.620, lng: 128.240, type: 'Penyulang' },
-      { id: 'pas-2', poleNumber: 'Tiang #30 PASSO', lat: -3.625, lng: 128.248, type: 'Pohon', description: 'Pohon mangga dekat SUTM' },
-      { id: 'pas-3', poleNumber: 'Tiang #60 PASSO', lat: -3.630, lng: 128.252, type: 'Penyulang' },
-      { id: 'pas-4', poleNumber: 'Tiang #92 PASSO', lat: -3.635, lng: 128.260, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-4',
-    name: 'Waiheru 1 & Waiheru 3',
-    pointsCount: 391,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.610, 128.200], [-3.615, 128.208], [-3.620, 128.215], [-3.625, 128.220], [-3.630, 128.225]
-    ],
-    poles: [
-      { id: 'wai-1', poleNumber: 'Tiang #12 WAIHERU', lat: -3.610, lng: 128.200, type: 'Penyulang' },
-      { id: 'wai-2', poleNumber: 'Tiang #80 WAIHERU', lat: -3.615, lng: 128.208, type: 'Pohon' },
-      { id: 'wai-3', poleNumber: 'Tiang #150 WAIHERU', lat: -3.620, lng: 128.215, type: 'Penyulang' },
-      { id: 'wai-4', poleNumber: 'Tiang #280 WAIHERU', lat: -3.625, lng: 128.220, type: 'Gangguan', description: 'Overcurrent fault' },
-      { id: 'wai-5', poleNumber: 'Tiang #391 WAIHERU', lat: -3.630, lng: 128.225, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-5',
-    name: 'Hutumuri',
-    pointsCount: 296,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.670, 128.270], [-3.680, 128.280], [-3.690, 128.292], [-3.700, 128.300], [-3.710, 128.310]
-    ],
-    poles: [
-      { id: 'hut-1', poleNumber: 'Tiang #15 HUTUMURI', lat: -3.670, lng: 128.270, type: 'Penyulang' },
-      { id: 'hut-2', poleNumber: 'Tiang #90 HUTUMURI', lat: -3.680, lng: 128.280, type: 'Pohon', description: 'Bambu rawan roboh' },
-      { id: 'hut-3', poleNumber: 'Tiang #180 HUTUMURI', lat: -3.690, lng: 128.292, type: 'Penyulang' },
-      { id: 'hut-4', poleNumber: 'Tiang #296 HUTUMURI', lat: -3.710, lng: 128.310, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-6',
-    name: 'Wayame 1',
-    pointsCount: 327,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.650, 128.180], [-3.655, 128.190], [-3.660, 128.200], [-3.665, 128.210]
-    ],
-    poles: [
-      { id: 'way-1', poleNumber: 'Tiang #08 WAYAME', lat: -3.650, lng: 128.180, type: 'Penyulang' },
-      { id: 'way-2', poleNumber: 'Tiang #110 WAYAME', lat: -3.655, lng: 128.190, type: 'Pohon' },
-      { id: 'way-3', poleNumber: 'Tiang #210 WAYAME', lat: -3.660, lng: 128.200, type: 'Penyulang' },
-      { id: 'way-4', poleNumber: 'Tiang #327 WAYAME', lat: -3.665, lng: 128.210, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-7',
-    name: 'Poka',
-    pointsCount: 215,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.640, 128.190], [-3.645, 128.195], [-3.650, 128.200], [-3.655, 128.205]
-    ],
-    poles: [
-      { id: 'pok-1', poleNumber: 'Tiang #04 POKA', lat: -3.640, lng: 128.190, type: 'Penyulang' },
-      { id: 'pok-2', poleNumber: 'Tiang #95 POKA', lat: -3.645, lng: 128.195, type: 'Pohon' },
-      { id: 'pok-3', poleNumber: 'Tiang #160 POKA', lat: -3.650, lng: 128.200, type: 'Penyulang' },
-      { id: 'pok-4', poleNumber: 'Tiang #215 POKA', lat: -3.655, lng: 128.205, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-8',
-    name: 'Tulehu',
-    pointsCount: 410,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.580, 128.300], [-3.585, 128.312], [-3.590, 128.325], [-3.595, 128.332], [-3.600, 128.340]
-    ],
-    poles: [
-      { id: 'tul-1', poleNumber: 'Tiang #10 TULEHU', lat: -3.580, lng: 128.300, type: 'Penyulang' },
-      { id: 'tul-2', poleNumber: 'Tiang #140 TULEHU', lat: -3.585, lng: 128.312, type: 'Pohon', description: 'Ranting sukun sentuh SUTM' },
-      { id: 'tul-3', poleNumber: 'Tiang #250 TULEHU', lat: -3.590, lng: 128.325, type: 'Gangguan', description: 'Arrester bocor' },
-      { id: 'tul-4', poleNumber: 'Tiang #410 TULEHU', lat: -3.600, lng: 128.340, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-9',
-    name: 'Liang',
-    pointsCount: 310,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.520, 128.330], [-3.530, 128.340], [-3.540, 128.350], [-3.550, 128.360]
-    ],
-    poles: [
-      { id: 'lia-1', poleNumber: 'Tiang #01 LIANG', lat: -3.520, lng: 128.330, type: 'Penyulang' },
-      { id: 'lia-2', poleNumber: 'Tiang #100 LIANG', lat: -3.530, lng: 128.340, type: 'Pohon' },
-      { id: 'lia-3', poleNumber: 'Tiang #310 LIANG', lat: -3.550, lng: 128.360, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-10',
-    name: 'Suli',
-    pointsCount: 185,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [
-      [-3.610, 128.280], [-3.618, 128.290], [-3.625, 128.300], [-3.630, 128.310]
-    ],
-    poles: [
-      { id: 'sul-1', poleNumber: 'Tiang #05 SULI', lat: -3.610, lng: 128.280, type: 'Penyulang' },
-      { id: 'sul-2', poleNumber: 'Tiang #80 SULI', lat: -3.618, lng: 128.290, type: 'Pohon' },
-      { id: 'sul-3', poleNumber: 'Tiang #185 SULI', lat: -3.630, lng: 128.310, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-11',
-    name: 'Lateri 1',
-    pointsCount: 210,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.635, 128.215], [-3.640, 128.225], [-3.645, 128.232]],
-    poles: [
-      { id: 'lat1-1', poleNumber: 'Tiang #02 LATERI 1', lat: -3.635, lng: 128.215, type: 'Penyulang' },
-      { id: 'lat1-2', poleNumber: 'Tiang #120 LATERI 1', lat: -3.640, lng: 128.225, type: 'Pohon' },
-    ]
-  },
-  {
-    id: 'f-12',
-    name: 'Lateri 3',
-    pointsCount: 175,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.642, 128.235], [-3.648, 128.242], [-3.655, 128.250]],
-    poles: [
-      { id: 'lat3-1', poleNumber: 'Tiang #04 LATERI 3', lat: -3.642, lng: 128.235, type: 'Penyulang' },
-      { id: 'lat3-2', poleNumber: 'Tiang #90 LATERI 3', lat: -3.648, lng: 128.242, type: 'Pohon' },
-    ]
-  },
-  {
-    id: 'f-13',
-    name: 'Passo Kota',
-    pointsCount: 140,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.628, 128.245], [-3.632, 128.250], [-3.638, 128.255]],
-    poles: [
-      { id: 'pask-1', poleNumber: 'Tiang #10 PASSO KOTA', lat: -3.628, lng: 128.245, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-14',
-    name: 'Halong',
-    pointsCount: 260,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.655, 128.210], [-3.660, 128.218], [-3.665, 128.225]],
-    poles: [
-      { id: 'hal-1', poleNumber: 'Tiang #15 HALONG', lat: -3.655, lng: 128.210, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-15',
-    name: 'Laha',
-    pointsCount: 380,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.700, 128.080], [-3.708, 128.095], [-3.715, 128.110]],
-    poles: [
-      { id: 'lah-1', poleNumber: 'Tiang #01 LAHA', lat: -3.700, lng: 128.080, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-16',
-    name: 'Tawiri',
-    pointsCount: 205,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.690, 128.100], [-3.695, 128.110], [-3.700, 128.120]],
-    poles: [
-      { id: 'taw-1', poleNumber: 'Tiang #05 TAWIRI', lat: -3.690, lng: 128.100, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-17',
-    name: 'Hitu',
-    pointsCount: 290,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.560, 128.180], [-3.550, 128.190], [-3.540, 128.200]],
-    poles: [
-      { id: 'hit-1', poleNumber: 'Tiang #02 HITU', lat: -3.560, lng: 128.180, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-18',
-    name: 'Mamala',
-    pointsCount: 195,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.540, 128.210], [-3.535, 128.220], [-3.530, 128.230]],
-    poles: [
-      { id: 'mam-1', poleNumber: 'Tiang #10 MAMALA', lat: -3.540, lng: 128.210, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-19',
-    name: 'Morela',
-    pointsCount: 220,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.530, 128.230], [-3.525, 128.240], [-3.520, 128.250]],
-    poles: [
-      { id: 'mor-1', poleNumber: 'Tiang #12 MORELA', lat: -3.530, lng: 128.230, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-20',
-    name: 'Waai',
-    pointsCount: 275,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.560, 128.320], [-3.565, 128.330], [-3.570, 128.340]],
-    poles: [
-      { id: 'waa-1', poleNumber: 'Tiang #08 WAAI', lat: -3.560, lng: 128.320, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-21',
-    name: 'Telaga Kodok',
-    pointsCount: 165,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.600, 128.190], [-3.605, 128.198], [-3.610, 128.205]],
-    poles: [
-      { id: 'tk-1', poleNumber: 'Tiang #05 TELAGA KODOK', lat: -3.600, lng: 128.190, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-22',
-    name: 'Nania',
-    pointsCount: 190,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.615, 128.230], [-3.620, 128.238], [-3.625, 128.245]],
-    poles: [
-      { id: 'nan-1', poleNumber: 'Tiang #01 NANIA', lat: -3.615, lng: 128.230, type: 'Penyulang' },
-    ]
-  },
-  {
-    id: 'f-23',
-    name: 'Rumahtiga',
-    pointsCount: 230,
-    importDate: '10/8/2026',
-    color: '#3b82f6',
-    isVisible: true,
-    isChecked: true,
-    fileType: 'KML',
-    pathCoords: [[-3.645, 128.185], [-3.650, 128.192], [-3.655, 128.200]],
-    poles: [
-      { id: 'rum-1', poleNumber: 'Tiang #10 RUMAHTIGA', lat: -3.645, lng: 128.185, type: 'Penyulang' },
-    ]
-  }
-];
+// Initial Feeder Files (starts empty as requested by user)
+const DEFAULT_IMPORTED_FILES: ImportedFeederFile[] = [];
 
 export const GisMapView: React.FC<GisMapViewProps> = ({
   isDarkMode,
@@ -428,8 +42,32 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
   trips = [],
   onOpenInputGangguan
 }) => {
-  // State for imported feeder files (starts clean or allows importing feeders)
-  const [files, setFiles] = useState<ImportedFeederFile[]>([]);
+  // State for imported feeder files (starts empty, persisted in localStorage)
+  const [files, setFiles] = useState<ImportedFeederFile[]>(() => {
+    try {
+      const saved = localStorage.getItem('gis_uploaded_feeder_files');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Filter out default mock files if present
+          const userOnly = parsed.filter((f: any) => !f.id.startsWith('f-') || isNaN(Number(f.id.replace('f-', ''))));
+          return userOnly;
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat file penyulang dari localStorage:', err);
+    }
+    return DEFAULT_IMPORTED_FILES;
+  });
+
+  // Automatically save files state to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem('gis_uploaded_feeder_files', JSON.stringify(files));
+    } catch (err) {
+      console.warn('Gagal menyimpan file penyulang ke localStorage:', err);
+    }
+  }, [files]);
   const [searchQuery, setSearchQuery] = useState('');
   const [mapMode, setMapMode] = useState<'dark' | 'satelit'>('dark');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -1269,8 +907,13 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
             ))}
 
             {filteredFiles.length === 0 && (
-              <div className="p-8 text-center text-slate-400 text-xs">
-                Tidak ada file feeder yang sesuai dengan pencarian.
+              <div className="p-8 text-center text-slate-400 text-xs space-y-2">
+                <p className="font-extrabold text-slate-300">Belum Ada File Penyulang</p>
+                <p className="text-[11px] text-slate-400">
+                  {searchQuery 
+                    ? `Tidak ada file penyulang yang sesuai dengan "*${searchQuery}"`
+                    : 'Silakan klik tombol "+ Import File" di atas untuk mengunggah file KML atau KMZ Anda.'}
+                </p>
               </div>
             )}
           </div>

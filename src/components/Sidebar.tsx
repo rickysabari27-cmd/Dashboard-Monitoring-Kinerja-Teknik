@@ -48,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const menuItems = [
     { id: 'dashboard' as ViewMode, label: 'Dashboard Utama', icon: LayoutGrid, badge: null },
-    { id: 'gis' as ViewMode, label: 'Peta Penyulang GIS', icon: MapPin, badge: null },
+    { id: 'gis' as ViewMode, label: 'Peta Penyulang', icon: MapPin, badge: null },
     { id: 'health_index' as ViewMode, label: 'Health Index Penyulang', icon: TrendingUp, badge: null },
     { id: 'trips' as ViewMode, label: 'Gangguan & Trip Feeder', icon: Zap, badge: null },
     { id: 'pemeliharaan' as ViewMode, label: 'Pemeliharaan 20kV', icon: Wrench, badge: '4 Sub', hasSub: true },
