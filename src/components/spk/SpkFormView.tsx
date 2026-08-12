@@ -69,7 +69,7 @@ export interface SpkFormData {
   
   // Status Pekerjaan
   catatanStatus?: string;
-  statusPekerjaan: 'Dalam Progres' | 'Selesai' | 'Selesai Dengan catatan' | 'Pending' | string;
+  statusPekerjaan: 'Dalam Progres' | 'Selesai' | 'Selesai (Dengan Catatan)' | 'Pending' | string;
 }
 
 // Registered Penyulang List
@@ -236,7 +236,7 @@ const PRESET_LATERI_THERMO: SpkFormData = {
   tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
-  statusPekerjaan: 'Selesai Dengan catatan'
+  statusPekerjaan: 'Selesai (Dengan Catatan)'
 };
 
 // Helpers for HTML5 date input format (YYYY-MM-DD) <-> SPK Display format (DD-MM-YYYY)
@@ -678,7 +678,14 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
       spk.personnel.some(p => p.toLowerCase().includes(searchQuery.toLowerCase())) ||
       spk.lokasi.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === 'ALL' || spk.statusPekerjaan === statusFilter;
+    const matchesStatus = statusFilter === 'ALL' || (() => {
+      if (statusFilter === 'Selesai (Dengan Catatan)') {
+        return spk.statusPekerjaan === 'Selesai (Dengan Catatan)' || 
+               spk.statusPekerjaan === 'Selesai Dengan catatan' || 
+               spk.statusPekerjaan?.toLowerCase().includes('catatan');
+      }
+      return spk.statusPekerjaan === statusFilter;
+    })();
 
     return matchesSearch && matchesStatus;
   });
@@ -829,7 +836,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <option value="ALL">Semua Status SPK</option>
                 <option value="Dalam Progres">Dalam Progres</option>
                 <option value="Selesai">Selesai</option>
-                <option value="Selesai Dengan catatan">Selesai Dengan catatan</option>
+                <option value="Selesai (Dengan Catatan)">Selesai (Dengan Catatan)</option>
                 <option value="Pending">Pending</option>
               </select>
             </div>
@@ -894,8 +901,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <td className="py-3.5 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold inline-block ${
                           spk.statusPekerjaan === 'Selesai' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-                          spk.statusPekerjaan === 'Selesai dengan catatan' ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
-                          spk.statusPekerjaan === 'Dalam Proses' ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                          (spk.statusPekerjaan === 'Selesai (Dengan Catatan)' || spk.statusPekerjaan === 'Selesai Dengan catatan' || spk.statusPekerjaan?.includes('catatan')) ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
+                          (spk.statusPekerjaan === 'Dalam Proses' || spk.statusPekerjaan === 'Dalam Progres' || spk.statusPekerjaan?.includes('Progres')) ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
                           'bg-slate-500/10 text-slate-600 border border-slate-500/20'
                         }`}>
                           {spk.statusPekerjaan}
@@ -990,49 +997,35 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="w-[33.333%] p-1.5 flex items-center justify-center gap-2 text-center">
-                    {/* High-quality Vector SMK3 Gold Flag Award Logo */}
-                    <svg viewBox="0 0 100 110" className="w-12 h-12 shrink-0" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <linearGradient id="goldGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#FFF2A3" />
-                          <stop offset="30%" stopColor="#FFC81A" />
-                          <stop offset="100%" stopColor="#E08B00" />
-                        </linearGradient>
-                      </defs>
-                      <g transform="rotate(0, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
+                  <div className="w-[33.333%] p-1 flex items-center justify-center">
+                    {/* High-quality Vector SMK3 Indonesian standard OHS Gear & Cross Logo */}
+                    <svg viewBox="0 0 120 120" className="w-[72px] h-[72px] shrink-0" xmlns="http://www.w3.org/2000/svg">
+                      {/* Teeth of the gear (11 teeth) */}
+                      <g transform="translate(60, 42)">
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(0)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(32.73)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(65.45)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(98.18)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(130.91)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(163.64)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(196.36)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(229.09)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(261.82)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(294.55)" />
+                        <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(327.27)" />
                       </g>
-                      <g transform="rotate(60, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
-                      </g>
-                      <g transform="rotate(120, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
-                      </g>
-                      <g transform="rotate(180, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
-                      </g>
-                      <g transform="rotate(240, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
-                      </g>
-                      <g transform="rotate(300, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
-                      </g>
-                      <circle cx="50" cy="45" r="17" fill="#15803D" stroke="#E2E8F0" strokeWidth="1" />
-                      <circle cx="50" cy="45" r="12" fill="#FFFFFF" />
-                      <circle cx="50" cy="45" r="10" stroke="#15803D" strokeWidth="2" fill="none" />
-                      <circle cx="50" cy="45" r="11" stroke="#15803D" strokeWidth="1.5" strokeDasharray="1.5, 2.5" fill="none" />
-                      <rect x="48.5" y="40" width="3" height="10" fill="#15803D" />
-                      <rect x="45" y="43.5" width="10" height="3" fill="#15803D" />
-                      <g transform="translate(0, 5)">
-                        <text x="22" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">S</text>
-                        <path d="M 38,81 L 45,97 L 59,71 L 54,70 L 45,88 L 42,80 Z" fill="#DC2626" />
-                        <text x="59" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">K3</text>
-                      </g>
+                      {/* Main outer rim of the gear wheel */}
+                      <circle cx="60" cy="42" r="26" fill="#009B4F" />
+                      {/* Inner white circle */}
+                      <circle cx="60" cy="42" r="17" fill="white" />
+                      {/* Green cross in the center */}
+                      <rect x="57" y="31" width="6" height="22" rx="1" fill="#009B4F" />
+                      <rect x="49" y="39" width="22" height="6" rx="1" fill="#009B4F" />
+                      {/* Texts below the gear */}
+                      <text x="60" y="82" fontFamily="'Helvetica Neue', 'Arial', sans-serif" fontWeight="900" fontSize="7.5" fill="#009B4F" textAnchor="middle" letterSpacing="0.2">SISTEM MANAJEMEN</text>
+                      <text x="60" y="91" fontFamily="'Helvetica Neue', 'Arial', sans-serif" fontWeight="900" fontSize="6.2" fill="#009B4F" textAnchor="middle" letterSpacing="0.05">KESELAMATAN &amp; KESEHATAN KERJA</text>
+                      <text x="60" y="102" fontFamily="'Helvetica Neue', 'Arial', sans-serif" fontWeight="900" fontSize="9" fill="#009B4F" textAnchor="middle" letterSpacing="0.5">(SMK3)</text>
                     </svg>
-                    <div className="text-[10px] font-extrabold leading-tight text-emerald-800">
-                      Sistem Manajemen K3
-                    </div>
                   </div>
                 </div>
 
@@ -1245,7 +1238,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
                           {(formData.statusPekerjaan === 'Selesai (Dengan Catatan)' || formData.statusPekerjaan === 'Selesai Dengan catatan' || formData.statusPekerjaan?.includes('catatan')) ? '✓' : ''}
                         </span>
-                        <span>Selesai Dengan catatan</span>
+                        <span>Selesai (Dengan Catatan)</span>
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
@@ -1939,7 +1932,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 >
                   <option value="Dalam Progres">Dalam Progres</option>
                   <option value="Selesai">Selesai</option>
-                  <option value="Selesai Dengan catatan">Selesai Dengan catatan</option>
+                  <option value="Selesai (Dengan Catatan)">Selesai (Dengan Catatan)</option>
                   <option value="Pending">Pending</option>
                 </select>
 
@@ -2016,49 +2009,35 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     </div>
 
                     {/* Right SMK3 Logo */}
-                    <div className="w-[33.333%] p-1.5 flex items-center justify-center gap-2 text-center">
-                      {/* High-quality Vector SMK3 Gold Flag Award Logo */}
-                      <svg viewBox="0 0 100 110" className="w-12 h-12 shrink-0" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <linearGradient id="goldGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#FFF2A3" />
-                            <stop offset="30%" stopColor="#FFC81A" />
-                            <stop offset="100%" stopColor="#E08B00" />
-                          </linearGradient>
-                        </defs>
-                        <g transform="rotate(0, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
+                    <div className="w-[33.333%] p-1 flex items-center justify-center">
+                      {/* High-quality Vector SMK3 Indonesian standard OHS Gear & Cross Logo */}
+                      <svg viewBox="0 0 120 120" className="w-[72px] h-[72px] shrink-0" xmlns="http://www.w3.org/2000/svg">
+                        {/* Teeth of the gear (11 teeth) */}
+                        <g transform="translate(60, 42)">
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(0)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(32.73)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(65.45)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(98.18)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(130.91)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(163.64)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(196.36)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(229.09)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(261.82)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(294.55)" />
+                          <rect x="-4" y="-36" width="8" height="15" rx="1.5" fill="#009B4F" transform="rotate(327.27)" />
                         </g>
-                        <g transform="rotate(60, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
-                        </g>
-                        <g transform="rotate(120, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
-                        </g>
-                        <g transform="rotate(180, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
-                        </g>
-                        <g transform="rotate(240, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
-                        </g>
-                        <g transform="rotate(300, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
-                        </g>
-                        <circle cx="50" cy="45" r="17" fill="#15803D" stroke="#E2E8F0" strokeWidth="1" />
-                        <circle cx="50" cy="45" r="12" fill="#FFFFFF" />
-                        <circle cx="50" cy="45" r="10" stroke="#15803D" strokeWidth="2" fill="none" />
-                        <circle cx="50" cy="45" r="11" stroke="#15803D" strokeWidth="1.5" strokeDasharray="1.5, 2.5" fill="none" />
-                        <rect x="48.5" y="40" width="3" height="10" fill="#15803D" />
-                        <rect x="45" y="43.5" width="10" height="3" fill="#15803D" />
-                        <g transform="translate(0, 5)">
-                          <text x="22" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">S</text>
-                          <path d="M 38,81 L 45,97 L 59,71 L 54,70 L 45,88 L 42,80 Z" fill="#DC2626" />
-                          <text x="59" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">K3</text>
-                        </g>
+                        {/* Main outer rim of the gear wheel */}
+                        <circle cx="60" cy="42" r="26" fill="#009B4F" />
+                        {/* Inner white circle */}
+                        <circle cx="60" cy="42" r="17" fill="white" />
+                        {/* Green cross in the center */}
+                        <rect x="57" y="31" width="6" height="22" rx="1" fill="#009B4F" />
+                        <rect x="49" y="39" width="22" height="6" rx="1" fill="#009B4F" />
+                        {/* Texts below the gear */}
+                        <text x="60" y="82" fontFamily="'Helvetica Neue', 'Arial', sans-serif" fontWeight="900" fontSize="7.5" fill="#009B4F" textAnchor="middle" letterSpacing="0.2">SISTEM MANAJEMEN</text>
+                        <text x="60" y="91" fontFamily="'Helvetica Neue', 'Arial', sans-serif" fontWeight="900" fontSize="6.2" fill="#009B4F" textAnchor="middle" letterSpacing="0.05">KESELAMATAN &amp; KESEHATAN KERJA</text>
+                        <text x="60" y="102" fontFamily="'Helvetica Neue', 'Arial', sans-serif" fontWeight="900" fontSize="9" fill="#009B4F" textAnchor="middle" letterSpacing="0.5">(SMK3)</text>
                       </svg>
-                      <div className="text-[10px] font-extrabold leading-tight text-emerald-800">
-                        Sistem Manajemen K3
-                      </div>
                     </div>
                   </div>
 
