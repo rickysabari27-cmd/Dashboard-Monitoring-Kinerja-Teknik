@@ -556,8 +556,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
   // Download PDF file directly using html2canvas & jsPDF
   const handleDownloadPdf = async () => {
-    // Select the correct printable element based on currentMode
-    const elementId = currentMode === 'editor' ? 'printable-spk-editor' : 'printable-spk-monitoring';
+    // ALWAYS use the standard offscreen A4 container to guarantee 100% consistent sizing, margins, and layout on all devices
+    const elementId = 'printable-spk-monitoring';
     const element = document.getElementById(elementId) as HTMLElement;
     if (!element) {
       showToast('Gagal memproses dokumen SPK untuk diunduh.');
@@ -566,9 +566,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
     setIsExportingPdf(true);
     
-    // If we are in monitoring mode, the element is inside a wrapper styled as "fixed -left-[9999px]".
-    // We want to temporarily change the wrapper's style to be positioned properly so html2canvas can measure and render it perfectly.
-    const wrapper = currentMode === 'monitoring' ? document.getElementById('printable-spk-monitoring-wrapper') : null;
+    // The offscreen container is inside 'printable-spk-monitoring-wrapper'
+    const wrapper = document.getElementById('printable-spk-monitoring-wrapper');
     const originalStyle = wrapper ? wrapper.getAttribute('style') : '';
     const originalClassName = wrapper ? wrapper.className : '';
 
@@ -952,8 +951,11 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
             </div>
           </div>
 
-          {/* Offscreen Printable Document Container for Monitoring Mode */}
-          <div id="printable-spk-monitoring-wrapper" className="fixed -left-[9999px] top-0 pointer-events-none print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
+        </div>
+      )}
+
+      {/* Offscreen Printable Document Container (ALWAYS present in DOM, used for high-fidelity PDF download in both modes) */}
+      <div id="printable-spk-monitoring-wrapper" className="fixed -left-[9999px] top-0 pointer-events-none print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
             <div 
               ref={printRef}
               id="printable-spk-monitoring"
@@ -1238,7 +1240,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
                           {(formData.statusPekerjaan === 'Selesai (Dengan Catatan)' || formData.statusPekerjaan === 'Selesai Dengan catatan' || formData.statusPekerjaan?.includes('catatan')) ? '✓' : ''}
                         </span>
-                        <span>Selesai (Dengan Catatan)</span>
+                        <span>
+                          Selesai (Dengan Catatan)
+                          {formData.catatanStatus ? `: ${formData.catatanStatus}` : ''}
+                        </span>
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
@@ -1252,9 +1257,6 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
               </div>
             </div>
           </div>
-
-        </div>
-      )}
 
       {/* VIEW MODE 2: FORM SPK EDITOR & A4 PRINT PREVIEW */}
       {currentMode === 'editor' && (
@@ -1388,7 +1390,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           nextPersonnel = [...DEFAULT_INSPEKSI_PERSONNEL];
                           nextJenisPekerjaan = 'Inspeksi Jaringan Distribusi';
                         } else if (isPemeliharaan) {
-                          nextPersonnel = [];
+                          nextPersonnel = [...DEFAULT_INSPEKSI_PERSONNEL];
                           nextJenisPekerjaan = 'Pemeliharaan Jaringan Distribusi';
                         }
 
@@ -1396,12 +1398,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           ...prev,
                           kategoriHeader: val,
                           nomorSpk: nextNomorSpk,
-                          personnel: isPemeliharaan ? [] : (nextPersonnel.length > 0 ? nextPersonnel : prev.personnel),
+                          personnel: nextPersonnel.length > 0 ? nextPersonnel : prev.personnel,
                           jenisPekerjaan: nextJenisPekerjaan || prev.jenisPekerjaan,
                           checklist: {
                             ...prev.checklist,
                             row: isPerambasan ? true : false,
-                            inspeksi: isInspeksi ? true : false
+                            inspeksi: (isInspeksi || isPemeliharaan) ? true : false
                           }
                         }));
                       }}
@@ -2270,9 +2272,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                         <label className="flex items-center gap-1.5 cursor-pointer">
                           <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
-                            {(formData.statusPekerjaan === 'Dalam Progres (On Progress)' || formData.statusPekerjaan === 'Dalam Proses') ? '✓' : ''}
+                            {(formData.statusPekerjaan === 'Dalam Progres (On Progress)' || formData.statusPekerjaan === 'Dalam Proses' || formData.statusPekerjaan === 'Dalam Progres' || formData.statusPekerjaan?.includes('Progres') || formData.statusPekerjaan?.includes('Progress')) ? '✓' : ''}
                           </span>
-                          <span>Dalam Progres (On Progress)</span>
+                          <span>Dalam Progres</span>
                         </label>
 
                         <label className="flex items-center gap-1.5 cursor-pointer">
@@ -2284,7 +2286,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
                         <label className="flex items-center gap-1.5 cursor-pointer">
                           <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
-                            {(formData.statusPekerjaan === 'Selesai (Dengan Catatan)' || formData.statusPekerjaan?.includes('catatan')) ? '✓' : ''}
+                            {(formData.statusPekerjaan === 'Selesai (Dengan Catatan)' || formData.statusPekerjaan === 'Selesai Dengan catatan' || formData.statusPekerjaan?.includes('catatan')) ? '✓' : ''}
                           </span>
                           <span>
                             Selesai (Dengan Catatan)
