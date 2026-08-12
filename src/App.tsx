@@ -40,6 +40,7 @@ import { GisMapView } from './components/views/GisMapView';
 import { TripLogsView } from './components/views/TripLogsView';
 import { HealthIndexView } from './components/views/HealthIndexView';
 import { PemeliharaanView } from './components/views/PemeliharaanView';
+import { SpkFormView } from './components/spk/SpkFormView';
 import { SaidiSaifiDetailView } from './components/views/SaidiSaifiDetailView';
 import { MaterialStockView } from './components/views/MaterialStockView';
 import { UserManagementView } from './components/views/UserManagementView';
@@ -408,12 +409,20 @@ export default function App() {
             />
           )}
 
-          {(currentView === 'pemeliharaan' || currentView === 'spk') && (
+          {currentView === 'pemeliharaan' && (
             <PemeliharaanView 
               isDarkMode={isDarkMode}
               inspections={inspections}
               rowTrees={ROW_TREES}
               onOpenUniversalInput={handleOpenUniversalInput}
+            />
+          )}
+
+          {currentView === 'spk' && (
+            <SpkFormView 
+              isDarkMode={isDarkMode}
+              spkList={spkList}
+              onSaveSpk={handleSaveSpk}
             />
           )}
 

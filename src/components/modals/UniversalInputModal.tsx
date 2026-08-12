@@ -81,6 +81,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [spkTeam, setSpkTeam] = useState('Tim Yantek 1 Passo');
   const [spkTarget, setSpkTarget] = useState('6 Pohon Sagu / Kelapa');
   const [spkPriority, setSpkPriority] = useState('Urgent');
+  const [spkTlTeknik, setSpkTlTeknik] = useState('Syahrul Kolly (TL TEKNIK ULP BAGUALA)');
 
   // 3. Inspeksi / Pemeliharaan ROW
   const [inspFeeder, setInspFeeder] = useState('LATERI 2');
@@ -460,6 +461,10 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Target Volume Kerja</label>
                   <input type="text" value={spkTarget} onChange={(e) => setSpkTarget(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium" />
                 </div>
+              </div>
+              <div>
+                <label className="font-bold text-blue-600 dark:text-blue-400 block mb-1">Pemberi Perintah (TL Teknik)</label>
+                <input type="text" value={spkTlTeknik} onChange={(e) => setSpkTlTeknik(e.target.value)} className="w-full p-2.5 rounded-xl border bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-slate-900 dark:text-white font-bold" />
               </div>
             </div>
           )}
