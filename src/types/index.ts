@@ -207,5 +207,9 @@ export interface ImportedFeederFile {
     lng: number;
     type: 'Penyulang' | 'Pohon' | 'Gardu' | 'Gangguan';
     description?: string;
+    jenisTiang?: string;
+    tipeKonstruksi?: string;
+    tinggiDaN?: string;
+    keteranganLainnya?: string;
   }>;
 }
