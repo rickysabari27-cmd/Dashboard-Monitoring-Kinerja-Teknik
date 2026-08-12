@@ -849,7 +849,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     <th className="py-3.5 px-4">Kategori & Jenis Pekerjaan</th>
                     <th className="py-3.5 px-4">Penyulang & Lokasi</th>
                     <th className="py-3.5 px-4">Personel Pelaksana</th>
-                    <th className="py-3.5 px-4">Pemberi Perintah</th>
+                    <th className="py-3.5 px-4">Target Pekerjaan</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4 text-center">Aksi / Cetak</th>
                   </tr>
@@ -887,8 +887,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">{spk.tlTeknikName}</div>
-                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{spk.tlTeknikTitle}</div>
+                        <div className="font-extrabold text-slate-900 dark:text-white">🎯 {spk.target || '-'}</div>
+                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Target PK</div>
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -963,8 +963,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
               {/* HEADER BOX */}
               <div className="border-2 border-black w-full mb-3 text-black">
-                <div className="grid grid-cols-12 border-b-2 border-black">
-                  <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-3">
+                <div className="flex border-b-2 border-black w-full">
+                  <div className="w-[66.666%] p-2 border-r-2 border-black flex items-center gap-3">
                     {/* High-quality Vector PLN Logo */}
                     <svg viewBox="0 0 100 135" className="w-10 h-13 shrink-0" xmlns="http://www.w3.org/2000/svg">
                       <rect x="0" y="0" width="100" height="100" fill="#FFE300" />
@@ -990,7 +990,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="col-span-4 p-1.5 flex items-center justify-center gap-2 text-center">
+                  <div className="w-[33.333%] p-1.5 flex items-center justify-center gap-2 text-center">
                     {/* High-quality Vector SMK3 Gold Flag Award Logo */}
                     <svg viewBox="0 0 100 110" className="w-12 h-12 shrink-0" xmlns="http://www.w3.org/2000/svg">
                       <defs>
@@ -1001,22 +1001,22 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         </linearGradient>
                       </defs>
                       <g transform="rotate(0, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
                       </g>
                       <g transform="rotate(60, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
                       </g>
                       <g transform="rotate(120, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
                       </g>
                       <g transform="rotate(180, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
                       </g>
                       <g transform="rotate(240, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
                       </g>
                       <g transform="rotate(300, 50, 45)">
-                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                        <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient1)" />
                       </g>
                       <circle cx="50" cy="45" r="17" fill="#15803D" stroke="#E2E8F0" strokeWidth="1" />
                       <circle cx="50" cy="45" r="12" fill="#FFFFFF" />
@@ -1036,11 +1036,11 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-12 text-black">
-                  <div className="col-span-8 p-2 border-r-2 border-black font-extrabold text-center text-sm uppercase tracking-wider flex items-center justify-center">
+                <div className="flex text-black w-full">
+                  <div className="w-[66.666%] p-2 border-r-2 border-black font-extrabold text-center text-sm uppercase tracking-wider flex items-center justify-center">
                     FORMULIR PERINTAH KERJA
                   </div>
-                  <div className="col-span-4 p-2 text-xs font-bold flex items-center justify-start gap-1">
+                  <div className="w-[33.333%] p-2 text-xs font-bold flex items-center justify-start gap-1">
                     <span>Tanggal</span>
                     <span>:</span>
                     <span className="font-extrabold">{formData.tanggal}</span>
@@ -1077,71 +1077,71 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   </div>
 
                   {/* Checklist 1 - 10 */}
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 py-1 text-xs font-bold">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap w-full py-1 text-xs font-bold">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">1</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.jtm ? '✓' : ''}
                       </span>
                       <span>JTM</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">6</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.tiangTr ? '✓' : ''}
                       </span>
                       <span>Tiang TR & aksesoris</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">2</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.jtr ? '✓' : ''}
                       </span>
                       <span>JTR</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">7</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.row ? '✓' : ''}
                       </span>
                       <span>ROW</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">3</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.garduHubung ? '✓' : ''}
                       </span>
                       <span>Gardu Hubung</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">8</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.inspeksi ? '✓' : ''}
                       </span>
                       <span>INSPEKSI</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">4</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.garduTrafo ? '✓' : ''}
                       </span>
                       <span>Gardu Trafo</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">9</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.survey ? '✓' : ''}
                       </span>
                       <span>SURVEY</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">5</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.tiangTm ? '✓' : ''}
                       </span>
                       <span>Tiang TM & aksesoris</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="w-1/2 flex items-center gap-2 pb-1.5">
                       <span className="w-4 text-right">10</span>
                       <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                         {formData.checklist.customChecked ? '✓' : ''}
@@ -1151,39 +1151,39 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   </div>
 
                   <div className="space-y-1.5 pt-2 font-bold text-xs">
-                    <div className="grid grid-cols-12">
-                      <span className="col-span-3 font-black">Jenis pekerjaan</span>
-                      <span className="col-span-1 text-center font-black">:</span>
-                      <span className="col-span-8 font-extrabold">{formData.jenisPekerjaan}</span>
+                    <div className="flex w-full">
+                      <span className="w-[25%] font-black">Jenis pekerjaan</span>
+                      <span className="w-[5%] text-center font-black">:</span>
+                      <span className="w-[70%] font-extrabold">{formData.jenisPekerjaan}</span>
                     </div>
-                    <div className="grid grid-cols-12">
-                      <span className="col-span-3 font-black">Penyulang</span>
-                      <span className="col-span-1 text-center font-black">:</span>
-                      <span className="col-span-8 font-extrabold">{formData.penyulang}</span>
+                    <div className="flex w-full">
+                      <span className="w-[25%] font-black">Penyulang</span>
+                      <span className="w-[5%] text-center font-black">:</span>
+                      <span className="w-[70%] font-extrabold">{formData.penyulang}</span>
                     </div>
-                    <div className="grid grid-cols-12">
-                      <span className="col-span-3 font-black">Section</span>
-                      <span className="col-span-1 text-center font-black">:</span>
-                      <span className="col-span-8 font-extrabold">{formData.section || '-'}</span>
+                    <div className="flex w-full">
+                      <span className="w-[25%] font-black">Section</span>
+                      <span className="w-[5%] text-center font-black">:</span>
+                      <span className="w-[70%] font-extrabold">{formData.section || '-'}</span>
                     </div>
-                    <div className="grid grid-cols-12">
-                      <span className="col-span-3 font-black">Lokasi</span>
-                      <span className="col-span-1 text-center font-black">:</span>
-                      <span className="col-span-8 font-extrabold whitespace-pre-line leading-relaxed">
+                    <div className="flex w-full">
+                      <span className="w-[25%] font-black">Lokasi</span>
+                      <span className="w-[5%] text-center font-black">:</span>
+                      <span className="w-[70%] font-extrabold whitespace-pre-line leading-relaxed">
                         {formData.lokasi || '-'}
                       </span>
                     </div>
-                    <div className="grid grid-cols-12">
-                      <span className="col-span-3 font-black">Target</span>
-                      <span className="col-span-1 text-center font-black">:</span>
-                      <span className="col-span-8 font-extrabold">{formData.target || '-'}</span>
+                    <div className="flex w-full">
+                      <span className="w-[25%] font-black">Target</span>
+                      <span className="w-[5%] text-center font-black">:</span>
+                      <span className="w-[70%] font-extrabold">{formData.target || '-'}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-center text-xs font-extrabold pt-2">
-                    <div className="flex flex-col items-center justify-between min-h-[110px]">
+                  <div className="flex w-full gap-4 text-center text-xs font-extrabold pt-2">
+                    <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                       <div>
                         <div>Pemberi Perintah</div>
                         <div className="text-[11px] font-black text-blue-900">{formData.tlTeknikTitle}</div>
@@ -1394,13 +1394,16 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         } else if (isInspeksi) {
                           nextPersonnel = [...DEFAULT_INSPEKSI_PERSONNEL];
                           nextJenisPekerjaan = 'Inspeksi Jaringan Distribusi';
+                        } else if (isPemeliharaan) {
+                          nextPersonnel = [];
+                          nextJenisPekerjaan = 'Pemeliharaan Jaringan Distribusi';
                         }
 
                         setFormData(prev => ({
                           ...prev,
                           kategoriHeader: val,
                           nomorSpk: nextNomorSpk,
-                          personnel: nextPersonnel.length > 0 ? nextPersonnel : prev.personnel,
+                          personnel: isPemeliharaan ? [] : (nextPersonnel.length > 0 ? nextPersonnel : prev.personnel),
                           jenisPekerjaan: nextJenisPekerjaan || prev.jenisPekerjaan,
                           checklist: {
                             ...prev.checklist,
@@ -1982,10 +1985,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
                 {/* HEADER BOX - Border Table Layout 1:1 like screenshot */}
                 <div className="border-2 border-black w-full mb-3 text-black">
-                  <div className="grid grid-cols-12 border-b-2 border-black">
+                  <div className="flex border-b-2 border-black w-full">
                     
                     {/* Left Logo & Name */}
-                    <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-3">
+                    <div className="w-[66.666%] p-2 border-r-2 border-black flex items-center gap-3">
                       {/* High-quality Vector PLN Logo */}
                       <svg viewBox="0 0 100 135" className="w-10 h-13 shrink-0" xmlns="http://www.w3.org/2000/svg">
                         <rect x="0" y="0" width="100" height="100" fill="#FFE300" />
@@ -2013,7 +2016,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     </div>
 
                     {/* Right SMK3 Logo */}
-                    <div className="col-span-4 p-1.5 flex items-center justify-center gap-2 text-center">
+                    <div className="w-[33.333%] p-1.5 flex items-center justify-center gap-2 text-center">
                       {/* High-quality Vector SMK3 Gold Flag Award Logo */}
                       <svg viewBox="0 0 100 110" className="w-12 h-12 shrink-0" xmlns="http://www.w3.org/2000/svg">
                         <defs>
@@ -2024,22 +2027,22 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           </linearGradient>
                         </defs>
                         <g transform="rotate(0, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
                         </g>
                         <g transform="rotate(60, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
                         </g>
                         <g transform="rotate(120, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
                         </g>
                         <g transform="rotate(180, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
                         </g>
                         <g transform="rotate(240, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
                         </g>
                         <g transform="rotate(300, 50, 45)">
-                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                          <path d="M 43,23 C 43,10 57,10 57,23 Z" fill="url(#goldGradient2)" />
                         </g>
                         <circle cx="50" cy="45" r="17" fill="#15803D" stroke="#E2E8F0" strokeWidth="1" />
                         <circle cx="50" cy="45" r="12" fill="#FFFFFF" />
@@ -2060,11 +2063,11 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   </div>
 
                   {/* Title & Date Row */}
-                  <div className="grid grid-cols-12 text-black">
-                    <div className="col-span-8 p-2 border-r-2 border-black font-extrabold text-center text-sm uppercase tracking-wider flex items-center justify-center">
+                  <div className="flex text-black w-full">
+                    <div className="w-[66.666%] p-2 border-r-2 border-black font-extrabold text-center text-sm uppercase tracking-wider flex items-center justify-center">
                       FORMULIR PERINTAH KERJA
                     </div>
-                    <div className="col-span-4 p-2 text-xs font-bold flex items-center justify-start gap-1">
+                    <div className="w-[33.333%] p-2 text-xs font-bold flex items-center justify-start gap-1">
                       <span>Tanggal</span>
                       <span>:</span>
                       <span className="font-extrabold">{formData.tanggal}</span>
@@ -2106,8 +2109,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     </div>
 
                     {/* 10 Checklist Grid 1:1 matching screenshot */}
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 py-1 text-xs font-bold">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap w-full py-1 text-xs font-bold">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">1</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.jtm ? '✓' : ''}
@@ -2115,7 +2118,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>JTM</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">6</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.tiangTr ? '✓' : ''}
@@ -2123,7 +2126,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>Tiang TR & aksesoris</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">2</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.jtr ? '✓' : ''}
@@ -2131,7 +2134,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>JTR</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">7</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.row ? '✓' : ''}
@@ -2139,7 +2142,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>ROW</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">3</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.garduHubung ? '✓' : ''}
@@ -2147,7 +2150,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>Gardu Hubung</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">8</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.inspeksi ? '✓' : ''}
@@ -2155,7 +2158,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>INSPEKSI</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">4</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.garduTrafo ? '✓' : ''}
@@ -2163,7 +2166,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>Gardu Trafo</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">9</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.survey ? '✓' : ''}
@@ -2171,7 +2174,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>SURVEY</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">5</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.tiangTm ? '✓' : ''}
@@ -2179,7 +2182,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span>Tiang TM & aksesoris</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="w-1/2 flex items-center gap-2 pb-1.5">
                         <span className="w-4 text-right">10</span>
                         <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
                           {formData.checklist.customChecked ? '✓' : ''}
@@ -2190,36 +2193,36 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
                     {/* Details Key Value List */}
                     <div className="space-y-1.5 pt-2 font-bold text-xs">
-                      <div className="grid grid-cols-12">
-                        <span className="col-span-3 font-black">Jenis pekerjaan</span>
-                        <span className="col-span-1 text-center font-black">:</span>
-                        <span className="col-span-8 font-extrabold">{formData.jenisPekerjaan}</span>
+                      <div className="flex w-full">
+                        <span className="w-[25%] font-black">Jenis pekerjaan</span>
+                        <span className="w-[5%] text-center font-black">:</span>
+                        <span className="w-[70%] font-extrabold">{formData.jenisPekerjaan}</span>
                       </div>
 
-                      <div className="grid grid-cols-12">
-                        <span className="col-span-3 font-black">Penyulang</span>
-                        <span className="col-span-1 text-center font-black">:</span>
-                        <span className="col-span-8 font-extrabold">{formData.penyulang}</span>
+                      <div className="flex w-full">
+                        <span className="w-[25%] font-black">Penyulang</span>
+                        <span className="w-[5%] text-center font-black">:</span>
+                        <span className="w-[70%] font-extrabold">{formData.penyulang}</span>
                       </div>
 
-                      <div className="grid grid-cols-12">
-                        <span className="col-span-3 font-black">Section</span>
-                        <span className="col-span-1 text-center font-black">:</span>
-                        <span className="col-span-8 font-extrabold">{formData.section || '-'}</span>
+                      <div className="flex w-full">
+                        <span className="w-[25%] font-black">Section</span>
+                        <span className="w-[5%] text-center font-black">:</span>
+                        <span className="w-[70%] font-extrabold">{formData.section || '-'}</span>
                       </div>
 
-                      <div className="grid grid-cols-12">
-                        <span className="col-span-3 font-black">Lokasi</span>
-                        <span className="col-span-1 text-center font-black">:</span>
-                        <span className="col-span-8 font-extrabold whitespace-pre-line leading-relaxed">
+                      <div className="flex w-full">
+                        <span className="w-[25%] font-black">Lokasi</span>
+                        <span className="w-[5%] text-center font-black">:</span>
+                        <span className="w-[70%] font-extrabold whitespace-pre-line leading-relaxed">
                           {formData.lokasi}
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-12">
-                        <span className="col-span-3 font-black">Target</span>
-                        <span className="col-span-1 text-center font-black">:</span>
-                        <span className="col-span-8 font-extrabold">{formData.target}</span>
+                      <div className="flex w-full">
+                        <span className="w-[25%] font-black">Target</span>
+                        <span className="w-[5%] text-center font-black">:</span>
+                        <span className="w-[70%] font-extrabold">{formData.target}</span>
                       </div>
                     </div>
                   </div>
@@ -2228,10 +2231,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   <div className="pt-4 space-y-4">
                     
                     {/* SIGNATURE BLOCKS (2 Signatories: TL Teknik Pemberi Perintah + Manager) */}
-                    <div className="grid grid-cols-2 gap-4 text-center text-xs font-extrabold pt-2">
+                    <div className="flex w-full gap-4 text-center text-xs font-extrabold pt-2">
                       
                       {/* Left: Pemberi Perintah TL TEKNIK */}
-                      <div className="flex flex-col items-center justify-between min-h-[110px]">
+                      <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                         <div>
                           <div>Pemberi Perintah</div>
                           <div className="text-[11px] font-black text-blue-900">{formData.tlTeknikTitle}</div>
@@ -2256,7 +2259,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       </div>
 
                       {/* Right: Mengetahui MANAGER ULP BAGUALA */}
-                      <div className="flex flex-col items-center justify-between min-h-[110px]">
+                      <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                         <div>
                           <div>Mengetahui</div>
                           <div className="text-[11px] font-black text-slate-900">{formData.managerTitle}</div>
