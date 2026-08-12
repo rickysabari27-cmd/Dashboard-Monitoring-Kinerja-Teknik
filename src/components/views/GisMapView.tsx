@@ -416,10 +416,10 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
   trips = [],
   onOpenInputGangguan
 }) => {
-  // State for imported feeder files
-  const [files, setFiles] = useState<ImportedFeederFile[]>(DEFAULT_IMPORTED_FILES);
+  // State for imported feeder files (starts clean or allows importing feeders)
+  const [files, setFiles] = useState<ImportedFeederFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mapMode, setMapMode] = useState<'dark' | 'satelit' | 'street'>('dark');
+  const [mapMode, setMapMode] = useState<'dark' | 'satelit'>('dark');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [clickedPole, setClickedPole] = useState<any>(null);
 
@@ -479,8 +479,6 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
       let tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
       if (mapMode === 'satelit') {
         tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      } else if (mapMode === 'street') {
-        tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
       }
 
       const newTileLayer = L.tileLayer(tileUrl, {
@@ -707,36 +705,18 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
             </div>
           </div>
 
-          {/* Top Import Quick Buttons */}
-          <div className="p-3 border-b border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-2">
+          {/* Top Import Quick Button */}
+          <div className="p-3 border-b border-slate-200 dark:border-slate-800">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95"
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Impor</span>
-            </button>
-            <button
-              onClick={() => { setImportFileType('KML'); setIsImportModalOpen(true); }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
-                isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-blue-500" />
-              <span>.KML</span>
-            </button>
-            <button
-              onClick={() => { setImportFileType('KMZ'); setIsImportModalOpen(true); }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
-                isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-cyan-500" />
-              <span>.KMZ</span>
+              <Plus className="w-4 h-4" />
+              <span>+ Impor File</span>
             </button>
           </div>
 
-          {/* Search Bar */}
+          {/* Search Bar - Cari Berdasarkan Nama Penyulang */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-800">
             <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs ${
               isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -746,7 +726,7 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari file feeder import..."
+                placeholder="Cari berdasarkan nama penyulang..."
                 className="w-full bg-transparent focus:outline-none placeholder:text-slate-400 text-xs font-medium"
               />
               {searchQuery && (
@@ -761,14 +741,21 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
           <div className="px-3.5 py-2.5 bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
             <span className="uppercase text-[10px] tracking-wider font-extrabold flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-blue-500" />
-              PETA FEEDER IMPORT ({files.length} FILE)
+              DAFTAR PENYULANG ({files.length} FILE)
             </span>
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="text-blue-600 dark:text-blue-400 hover:underline text-[11px] font-bold"
-            >
-              + Impor KML/KMZ
-            </button>
+            {files.length > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Hapus semua file penyulang yang ada?')) {
+                    setFiles([]);
+                    triggerToast('Semua file penyulang berhasil dihapus.');
+                  }
+                }}
+                className="text-rose-500 hover:text-rose-600 text-[11px] font-bold"
+              >
+                Hapus Semua
+              </button>
+            )}
           </div>
 
           {/* Scrollable Feeder List Cards */}
@@ -865,14 +852,8 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
           {/* Top Floating Map Overlay Toolbar */}
           <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
             
-            {/* Left Pill: Click Pole Instruction + Category Pills */}
+            {/* Left Pill: Category Pills */}
             <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-              {/* Click Pole Badge */}
-              <div className="px-3 py-1.5 rounded-full bg-slate-900/90 text-white border border-slate-700 text-xs font-bold shadow-lg flex items-center gap-1.5 backdrop-blur-md">
-                <MapPin className="w-3.5 h-3.5 text-blue-400" />
-                <span>Klik Tiang di Peta:</span>
-              </div>
-
               {/* Category Pills */}
               <button
                 onClick={() => setSelectedCategory('ALL')}
@@ -949,18 +930,6 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
                 >
                   <Globe className="w-3.5 h-3.5" />
                   <span>Satelit</span>
-                </button>
-
-                <button
-                  onClick={() => setMapMode('street')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-extrabold transition-all ${
-                    mapMode === 'street' 
-                      ? 'bg-blue-600 text-white shadow-xs' 
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>Street Map</span>
                 </button>
               </div>
 
