@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { jsPDF } from 'jspdf';
 import { SpkTask } from '../../types';
 import { 
@@ -263,6 +263,40 @@ const toDisplayDateString = (isoDateStr: string): string => {
   return isoDateStr;
 };
 
+// Helper to split document number into editable segments
+const parseNomorSpk = (fullNomor: string, categoryHeader: string) => {
+  let clean = (fullNomor || '').replace(/^NO\.\s+/i, '').trim();
+  
+  let detectedMiddle = 'PK.TEK/ROW/ULP.BGL';
+  const lowerHeader = (categoryHeader || '').toLowerCase();
+  if (lowerHeader.includes('inspeksi') || lowerHeader.includes('ins')) {
+    detectedMiddle = 'PK.TEK/INS/ULP.BGL';
+  } else if (lowerHeader.includes('pemeliharaan') || lowerHeader.includes('har')) {
+    detectedMiddle = 'PK.TEK/HAR/ULP.BGL';
+  }
+
+  const parts = clean.split('/');
+  if (parts.length >= 4) {
+    const nomorUrut = parts[0].trim();
+    const tahun = parts[parts.length - 1].trim();
+    const bulan = parts[parts.length - 2].trim();
+    const tengah = parts.slice(1, parts.length - 2).join('/').trim();
+    return {
+      nomorUrut,
+      tengah: tengah || detectedMiddle,
+      bulan,
+      tahun
+    };
+  }
+
+  return {
+    nomorUrut: clean || '013',
+    tengah: detectedMiddle,
+    bulan: 'VIII',
+    tahun: '2026'
+  };
+};
+
 export const SpkFormView: React.FC<SpkFormViewProps> = ({
   isDarkMode,
   spkList = [],
@@ -520,13 +554,85 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
     setShowPrintModal(true);
   };
 
-  // Download PDF file directly using native window.print()
-  const handleDownloadPdf = () => {
-    setShowPrintModal(false);
-    showToast('Membuka dialog cetak... Silakan pilih opsi "Simpan sebagai PDF" / "Save as PDF" untuk mengunduh.');
-    setTimeout(() => {
-      window.print();
-    }, 250);
+  // Download PDF file directly using html2canvas & jsPDF
+  const handleDownloadPdf = async () => {
+    // Select the correct printable element based on currentMode
+    const elementId = currentMode === 'editor' ? 'printable-spk-editor' : 'printable-spk-monitoring';
+    const element = document.getElementById(elementId) as HTMLElement;
+    if (!element) {
+      showToast('Gagal memproses dokumen SPK untuk diunduh.');
+      return;
+    }
+
+    setIsExportingPdf(true);
+    
+    // If we are in monitoring mode, the element is inside a wrapper styled as "fixed -left-[9999px]".
+    // We want to temporarily change the wrapper's style to be positioned properly so html2canvas can measure and render it perfectly.
+    const wrapper = currentMode === 'monitoring' ? document.getElementById('printable-spk-monitoring-wrapper') : null;
+    const originalStyle = wrapper ? wrapper.getAttribute('style') : '';
+    const originalClassName = wrapper ? wrapper.className : '';
+
+    if (wrapper) {
+      // Temporarily make it visible to the rendering engine but out of user's interactive view
+      wrapper.className = 'fixed top-0 left-0 w-[794px] h-[1123px] overflow-hidden pointer-events-none opacity-[0.01] z-[9999]';
+      wrapper.setAttribute('style', 'left: 0 !important; top: 0 !important; opacity: 0.01 !important; visibility: visible !important; display: block !important;');
+    }
+
+    try {
+      // Small delay to ensure the DOM updates
+      await new Promise(resolve => setTimeout(resolve, 80));
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+      
+      const spkNo = formData.nomorSpk || 'SPK_Document';
+      const cleanFileName = spkNo
+        .replace(/^(NO\.|NO|Nomor)\s*/i, '')
+        .trim()
+        .replace(/[\/\\]/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9_\.-]/g, '');
+        
+      const fileName = `${cleanFileName}.pdf`;
+      pdf.save(fileName);
+      showToast(`File PDF (${fileName}) berhasil diunduh!`);
+      setShowPrintModal(false);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      showToast('Gagal download otomatis. Membuka dialog pencetakan...');
+      setShowPrintModal(false);
+      setTimeout(() => {
+        window.print();
+      }, 200);
+    } finally {
+      if (wrapper) {
+        // Restore original style and class
+        wrapper.className = originalClassName;
+        if (originalStyle) {
+          wrapper.setAttribute('style', originalStyle);
+        } else {
+          wrapper.removeAttribute('style');
+        }
+      }
+      setIsExportingPdf(false);
+    }
   };
 
   // Save SPK to list and optional callback
@@ -840,9 +946,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
           </div>
 
           {/* Offscreen Printable Document Container for Monitoring Mode */}
-          <div className="fixed -left-[9999px] top-0 pointer-events-none print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
+          <div id="printable-spk-monitoring-wrapper" className="fixed -left-[9999px] top-0 pointer-events-none print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
             <div 
               ref={printRef}
+              id="printable-spk-monitoring"
               className="w-[794px] bg-white text-black p-8 font-sans relative overflow-hidden select-text text-black printable-spk-document"
               style={{ minHeight: '1000px', color: '#000000', backgroundColor: '#ffffff' }}
             >
@@ -857,17 +964,17 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
               {/* HEADER BOX */}
               <div className="border-2 border-black w-full mb-3 text-black">
                 <div className="grid grid-cols-12 border-b-2 border-black">
-                  <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-2">
-                    <div className="w-9 h-12 bg-sky-500 border border-black flex items-center justify-center shrink-0 relative overflow-hidden">
-                      <div className="w-full h-full bg-[#fde047] flex items-center justify-center relative p-0.5">
-                        <svg viewBox="0 0 24 24" className="w-8 h-8 text-red-600 fill-current drop-shadow-xs">
-                          <path d="M11 15H6l7-14v8h5l-7 14v-8z" />
-                        </svg>
-                        <div className="absolute bottom-0 text-[7px] font-black tracking-tighter text-blue-900 bg-white/90 px-0.5">
-                          PLN
-                        </div>
-                      </div>
-                    </div>
+                  <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-3">
+                    {/* High-quality Vector PLN Logo */}
+                    <svg viewBox="0 0 100 135" className="w-10 h-13 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="0" y="0" width="100" height="100" fill="#FFE300" />
+                      <path d="M 20,33 C 30,25 40,41 50,33 C 60,25 70,41 80,33" fill="none" stroke="#0096D6" strokeWidth="6.5" strokeLinecap="round" />
+                      <path d="M 20,49 C 30,41 40,57 50,49 C 60,41 70,57 80,49" fill="none" stroke="#0096D6" strokeWidth="6.5" strokeLinecap="round" />
+                      <path d="M 20,65 C 30,57 40,73 50,65 C 60,57 70,73 80,65" fill="none" stroke="#0096D6" strokeWidth="6.5" strokeLinecap="round" />
+                      <polygon points="68,10 26,56 53,56 42,90 76,44 49,44" fill="#FF0000" />
+                      <text x="50" y="128" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="28" fill="#0096D6" textAnchor="middle" letterSpacing="3">PLN</text>
+                    </svg>
+
                     <div className="leading-tight text-black">
                       <div className="font-extrabold text-[12px] uppercase tracking-wide">
                         PT PLN (Persero)
@@ -883,11 +990,47 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="col-span-4 p-2 flex items-center justify-center gap-1.5 text-center">
-                    <div className="w-8 h-8 rounded-full border border-yellow-500 bg-yellow-100 flex items-center justify-center shrink-0">
-                      <span className="text-[9px] font-black text-amber-800">SMK3</span>
-                    </div>
-                    <div className="text-[9px] font-bold leading-tight text-amber-700">
+                  <div className="col-span-4 p-1.5 flex items-center justify-center gap-2 text-center">
+                    {/* High-quality Vector SMK3 Gold Flag Award Logo */}
+                    <svg viewBox="0 0 100 110" className="w-12 h-12 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="goldGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#FFF2A3" />
+                          <stop offset="30%" stopColor="#FFC81A" />
+                          <stop offset="100%" stopColor="#E08B00" />
+                        </linearGradient>
+                      </defs>
+                      <g transform="rotate(0, 50, 45)">
+                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                      </g>
+                      <g transform="rotate(60, 50, 45)">
+                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                      </g>
+                      <g transform="rotate(120, 50, 45)">
+                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                      </g>
+                      <g transform="rotate(180, 50, 45)">
+                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                      </g>
+                      <g transform="rotate(240, 50, 45)">
+                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                      </g>
+                      <g transform="rotate(300, 50, 45)">
+                        <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient1)" />
+                      </g>
+                      <circle cx="50" cy="45" r="17" fill="#15803D" stroke="#E2E8F0" strokeWidth="1" />
+                      <circle cx="50" cy="45" r="12" fill="#FFFFFF" />
+                      <circle cx="50" cy="45" r="10" stroke="#15803D" strokeWidth="2" fill="none" />
+                      <circle cx="50" cy="45" r="11" stroke="#15803D" strokeWidth="1.5" strokeDasharray="1.5, 2.5" fill="none" />
+                      <rect x="48.5" y="40" width="3" height="10" fill="#15803D" />
+                      <rect x="45" y="43.5" width="10" height="3" fill="#15803D" />
+                      <g transform="translate(0, 5)">
+                        <text x="22" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">S</text>
+                        <path d="M 38,81 L 45,97 L 59,71 L 54,70 L 45,88 L 42,80 Z" fill="#DC2626" />
+                        <text x="59" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">K3</text>
+                      </g>
+                    </svg>
+                    <div className="text-[10px] font-extrabold leading-tight text-emerald-800">
                       Sistem Manajemen K3
                     </div>
                   </div>
@@ -1227,6 +1370,20 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         const val = e.target.value;
                         const isInspeksi = val === 'INSPEKSI JARINGAN DISTRIBUSI';
                         const isPerambasan = val.includes('PERAMBASAN') || val.includes('ROW');
+                        const isPemeliharaan = val === 'PEMELIHARAAN JARINGAN DISTRIBUSI';
+
+                        let nextMiddle = 'PK.TEK/ROW/ULP.BGL';
+                        if (isPerambasan) {
+                          nextMiddle = 'PK.TEK/ROW/ULP.BGL';
+                        } else if (isInspeksi) {
+                          nextMiddle = 'PK.TEK/INS/ULP.BGL';
+                        } else if (isPemeliharaan) {
+                          nextMiddle = 'PK.TEK/HAR/ULP.BGL';
+                        }
+
+                        // Parse current nomorSpk and build new one with nextMiddle
+                        const parsed = parseNomorSpk(formData.nomorSpk, formData.kategoriHeader);
+                        const nextNomorSpk = `${parsed.nomorUrut}/${nextMiddle}/${parsed.bulan}/${parsed.tahun}`;
 
                         let nextPersonnel: string[] = [];
                         let nextJenisPekerjaan = '';
@@ -1242,8 +1399,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         setFormData(prev => ({
                           ...prev,
                           kategoriHeader: val,
-                          personnel: nextPersonnel,
-                          jenisPekerjaan: nextJenisPekerjaan,
+                          nomorSpk: nextNomorSpk,
+                          personnel: nextPersonnel.length > 0 ? nextPersonnel : prev.personnel,
+                          jenisPekerjaan: nextJenisPekerjaan || prev.jenisPekerjaan,
                           checklist: {
                             ...prev.checklist,
                             row: isPerambasan ? true : false,
@@ -1261,15 +1419,84 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Nomor Dokumen SPK</label>
-                  <input
-                    type="text"
-                    placeholder=""
-                    value={formData.nomorSpk}
-                    onChange={(e) => setFormData({ ...formData, nomorSpk: e.target.value })}
-                    className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                  />
+                {/* Segmented & Combined Nomor SPK Fields */}
+                <div className="space-y-2 pt-1">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+                    Konfigurasi Nomor Dokumen SPK
+                  </label>
+                  
+                  {/* Segmented Sub-Inputs */}
+                  <div className="grid grid-cols-12 gap-1 bg-slate-100 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    
+                    {/* 1. Nomor Urut Input (Manual) */}
+                    <div className="col-span-3">
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 block mb-0.5 px-1 uppercase tracking-wider">No. Urut</span>
+                      <input
+                        type="text"
+                        placeholder="013"
+                        value={parseNomorSpk(formData.nomorSpk, formData.kategoriHeader).nomorUrut}
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const parsed = parseNomorSpk(formData.nomorSpk, formData.kategoriHeader);
+                          const nextNomor = `${val}/${parsed.tengah}/${parsed.bulan}/${parsed.tahun}`;
+                          setFormData({ ...formData, nomorSpk: nextNomor });
+                        }}
+                        className="w-full p-1.5 text-xs font-black text-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
+                        title="Input Nomor SPK (Manual)"
+                      />
+                    </div>
+
+                    {/* Slash Separator */}
+                    <div className="col-span-1 flex items-end justify-center pb-2 text-xs font-bold text-slate-400">
+                      /
+                    </div>
+
+                    {/* 2. Kategori Tengah (Auto-filled) */}
+                    <div className="col-span-4">
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 block mb-0.5 px-1 uppercase tracking-wider">Kategori</span>
+                      <div className="w-full p-1.5 text-[10px] font-extrabold text-center rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 text-blue-600 dark:text-blue-400 truncate" title="Bagian Tengah (Terisi Otomatis)">
+                        {parseNomorSpk(formData.nomorSpk, formData.kategoriHeader).tengah}
+                      </div>
+                    </div>
+
+                    {/* Slash Separator */}
+                    <div className="col-span-1 flex items-end justify-center pb-2 text-xs font-bold text-slate-400">
+                      /
+                    </div>
+
+                    {/* 3. Bulan Romawi Dropdown (Manual) */}
+                    <div className="col-span-3">
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 block mb-0.5 px-1 uppercase tracking-wider">Bulan</span>
+                      <select
+                        value={parseNomorSpk(formData.nomorSpk, formData.kategoriHeader).bulan}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = parseNomorSpk(formData.nomorSpk, formData.kategoriHeader);
+                          const nextNomor = `${parsed.nomorUrut}/${parsed.tengah}/${val}/${parsed.tahun}`;
+                          setFormData({ ...formData, nomorSpk: nextNomor });
+                        }}
+                        className="w-full p-1.5 text-xs font-black text-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                        title="Pilih Bulan Romawi (Manual)"
+                      >
+                        {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'].map(rom => (
+                          <option key={rom} value={rom}>{rom}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                  </div>
+
+                  {/* 4. Combined Full Preview Input */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 block mb-1">Pratinjau Nomor SPK Lengkap</span>
+                    <input
+                      type="text"
+                      value={formData.nomorSpk}
+                      onChange={(e) => setFormData({ ...formData, nomorSpk: e.target.value })}
+                      className="w-full p-2 text-xs font-black rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                      placeholder="Format: 013/PK.TEK/ROW/ULP.BGL/VIII/2026"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1758,18 +1985,16 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   <div className="grid grid-cols-12 border-b-2 border-black">
                     
                     {/* Left Logo & Name */}
-                    <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-2">
-                      {/* PLN Lightning Bolt Logo SVG */}
-                      <div className="w-9 h-12 bg-sky-500 border border-black flex items-center justify-center shrink-0 relative overflow-hidden">
-                        <div className="w-full h-full bg-[#fde047] flex items-center justify-center relative p-0.5">
-                          <svg viewBox="0 0 24 24" className="w-8 h-8 text-red-600 fill-current drop-shadow-xs">
-                            <path d="M11 15H6l7-14v8h5l-7 14v-8z" />
-                          </svg>
-                          <div className="absolute bottom-0 text-[7px] font-black tracking-tighter text-blue-900 bg-white/90 px-0.5">
-                            PLN
-                          </div>
-                        </div>
-                      </div>
+                    <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-3">
+                      {/* High-quality Vector PLN Logo */}
+                      <svg viewBox="0 0 100 135" className="w-10 h-13 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="100" height="100" fill="#FFE300" />
+                        <path d="M 20,33 C 30,25 40,41 50,33 C 60,25 70,41 80,33" fill="none" stroke="#0096D6" strokeWidth="6.5" strokeLinecap="round" />
+                        <path d="M 20,49 C 30,41 40,57 50,49 C 60,41 70,57 80,49" fill="none" stroke="#0096D6" strokeWidth="6.5" strokeLinecap="round" />
+                        <path d="M 20,65 C 30,57 40,73 50,65 C 60,57 70,73 80,65" fill="none" stroke="#0096D6" strokeWidth="6.5" strokeLinecap="round" />
+                        <polygon points="68,10 26,56 53,56 42,90 76,44 49,44" fill="#FF0000" />
+                        <text x="50" y="128" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="28" fill="#0096D6" textAnchor="middle" letterSpacing="3">PLN</text>
+                      </svg>
 
                       <div className="leading-tight text-black">
                         <div className="font-extrabold text-[12px] uppercase tracking-wide">
@@ -1788,11 +2013,47 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     </div>
 
                     {/* Right SMK3 Logo */}
-                    <div className="col-span-4 p-2 flex items-center justify-center gap-1.5 text-center">
-                      <div className="w-8 h-8 rounded-full border border-yellow-500 bg-yellow-100 flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-black text-amber-800">SMK3</span>
-                      </div>
-                      <div className="text-[9px] font-bold leading-tight text-amber-700">
+                    <div className="col-span-4 p-1.5 flex items-center justify-center gap-2 text-center">
+                      {/* High-quality Vector SMK3 Gold Flag Award Logo */}
+                      <svg viewBox="0 0 100 110" className="w-12 h-12 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                          <linearGradient id="goldGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#FFF2A3" />
+                            <stop offset="30%" stopColor="#FFC81A" />
+                            <stop offset="100%" stopColor="#E08B00" />
+                          </linearGradient>
+                        </defs>
+                        <g transform="rotate(0, 50, 45)">
+                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                        </g>
+                        <g transform="rotate(60, 50, 45)">
+                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                        </g>
+                        <g transform="rotate(120, 50, 45)">
+                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                        </g>
+                        <g transform="rotate(180, 50, 45)">
+                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                        </g>
+                        <g transform="rotate(240, 50, 45)">
+                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                        </g>
+                        <g transform="rotate(300, 50, 45)">
+                          <path d="M 43,23 C 43,10 57,10 57,23 C 57,32 54,35 50,35 C 46,35 43,32 43,23 Z" fill="url(#goldGradient2)" />
+                        </g>
+                        <circle cx="50" cy="45" r="17" fill="#15803D" stroke="#E2E8F0" strokeWidth="1" />
+                        <circle cx="50" cy="45" r="12" fill="#FFFFFF" />
+                        <circle cx="50" cy="45" r="10" stroke="#15803D" strokeWidth="2" fill="none" />
+                        <circle cx="50" cy="45" r="11" stroke="#15803D" strokeWidth="1.5" strokeDasharray="1.5, 2.5" fill="none" />
+                        <rect x="48.5" y="40" width="3" height="10" fill="#15803D" />
+                        <rect x="45" y="43.5" width="10" height="3" fill="#15803D" />
+                        <g transform="translate(0, 5)">
+                          <text x="22" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">S</text>
+                          <path d="M 38,81 L 45,97 L 59,71 L 54,70 L 45,88 L 42,80 Z" fill="#DC2626" />
+                          <text x="59" y="96" fontFamily="'Arial Black', 'Arial', sans-serif" fontWeight="900" fontSize="19" fill="#15803D">K3</text>
+                        </g>
+                      </svg>
+                      <div className="text-[10px] font-extrabold leading-tight text-emerald-800">
                         Sistem Manajemen K3
                       </div>
                     </div>
