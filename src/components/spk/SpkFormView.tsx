@@ -69,24 +69,41 @@ export interface SpkFormData {
   
   // Status Pekerjaan
   catatanStatus?: string;
-  statusPekerjaan: 'Dalam Progres (On Progress)' | 'Selesai' | 'Selesai (Dengan Catatan)' | 'Pending' | string;
+  statusPekerjaan: 'Dalam Progres' | 'Selesai' | 'Selesai Dengan catatan' | 'Pending' | string;
 }
+
+// Registered Penyulang List
+const REGISTERED_PENYULANG = [
+  'Passo', 'ACC', 'Lateri 1', 'Lateri 2', 'Lateri 3', 
+  'Waiheru 1', 'Waiheru 2', 'Waiheru 3', 
+  'Wayame 1', 'Wayame 2', 'Wayame 3', 
+  'Bandara 1', 'Bandara 2', 'Allang', 'Hutumuri', 'Rijali', 
+  'Karpan 1', 'MCM', 'MVTIC 1', 'MVTIC 2', 'Galala 1', 'Galala 2'
+];
+
+const DEFAULT_ROW_PERSONNEL = [
+  'Syahrul Kolly',
+  'Barqil Fuad Lessy',
+  'Agus Suprianto',
+  'Deylan S',
+  'Wilson Lesnussa',
+  'Melky Jackson P',
+  'Rivaldo Agustien'
+];
+
+const DEFAULT_INSPEKSI_PERSONNEL = [
+  'Rolly J Pattinama',
+  'Muzhar A Hatala',
+  'Andre H Gabriel'
+];
 
 // Preset 1 (Row Perambasan Pohon - Page 1 in user's PDF)
 const PRESET_ROW_PAGE_1: SpkFormData = {
   id: 'spk-017-row',
   tanggal: '12-08-2026',
-  nomorSpk: 'NO. 017/PK.TEK/ROW/ULP.BGL/VIII/2026',
-  kategoriHeader: 'PEMELIHARAAN JARINGAN DISTRIBUSI',
-  personnel: [
-    'Syahrul Kolly',
-    'Barqil Fuad Lessy',
-    'Rivaldo Agustien',
-    'Melky Jackson P',
-    'Deylan S',
-    'Agus Subakti',
-    'Wilson Lesnussa'
-  ],
+  nomorSpk: '',
+  kategoriHeader: '',
+  personnel: DEFAULT_ROW_PERSONNEL,
   checklist: {
     jtm: false,
     jtr: false,
@@ -94,24 +111,24 @@ const PRESET_ROW_PAGE_1: SpkFormData = {
     garduTrafo: false,
     tiangTm: false,
     tiangTr: false,
-    row: true,
+    row: false,
     inspeksi: false,
     survey: false,
     customText: '',
     customChecked: false
   },
-  jenisPekerjaan: 'Perambasan Pohon',
-  penyulang: 'Wayame 1&2',
-  section: 'Wayame',
-  lokasi: 'Tim 1 (JMP – Rumahtiga) Dan Tim 2 (GH Poka – GH Wayame)\n(Lanjut dari titik terakhir Perambasan Hari Kemarin)',
-  target: 'Wayame 1 (37 Temuan) Dan Wayame 2 (13 Temuan)',
-  tlTeknikName: 'Syahrul Kolly',
+  jenisPekerjaan: 'Perambasan Pohon ROW',
+  penyulang: '',
+  section: '',
+  lokasi: '',
+  target: '',
+  tlTeknikName: 'Muhamad Ricky Sabari',
   tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
   isApprovedTlTeknik: false,
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
   isApprovedManager: false,
-  statusPekerjaan: 'Dalam Proses'
+  statusPekerjaan: 'Dalam Progres'
 };
 
 // Preset 2 (Inspeksi Tier 1 - Page 2 in user's PDF)
@@ -144,13 +161,13 @@ const PRESET_INSPEKSI_PAGE_2: SpkFormData = {
   section: 'Wilayah Kerja',
   lokasi: 'Tersebar Wilayah Kerja',
   target: '67 Tiang Dan 4 Gardu Distribusi',
-  tlTeknikName: 'Syahrul Kolly',
+  tlTeknikName: 'Muhamad Ricky Sabari',
   tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
   isApprovedTlTeknik: false,
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
   isApprovedManager: false,
-  statusPekerjaan: 'Dalam Proses'
+  statusPekerjaan: 'Dalam Progres'
 };
 
 // Preset 3 (Pemeliharaan Gardu Passo)
@@ -181,7 +198,7 @@ const PRESET_PASSO_GARDU: SpkFormData = {
   penyulang: 'Passo',
   lokasi: 'Gardu Portal PAS-04 & PAS-09 Area Passo Transit',
   target: '2 Buah Gardu Distribusi',
-  tlTeknikName: 'Syahrul Kolly',
+  tlTeknikName: 'Muhamad Ricky Sabari',
   tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
@@ -215,11 +232,11 @@ const PRESET_LATERI_THERMO: SpkFormData = {
   penyulang: 'LATERI 2',
   lokasi: 'Jalur Utama LATERI 2 (Tiang #10 s/d Tiang #88)',
   target: '52 Titik Sambungan FCO & Jumper',
-  tlTeknikName: 'Syahrul Kolly',
+  tlTeknikName: 'Muhamad Ricky Sabari',
   tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
-  statusPekerjaan: 'Selesai dengan catatan'
+  statusPekerjaan: 'Selesai Dengan catatan'
 };
 
 // Helpers for HTML5 date input format (YYYY-MM-DD) <-> SPK Display format (DD-MM-YYYY)
@@ -291,7 +308,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
   // Target Unit State: 'volume' vs 'kms'
   const [targetType, setTargetType] = useState<'volume' | 'kms'>('volume');
-  const [targetValue, setTargetValue] = useState<string>('20 Titik Pohon');
+  const [targetValue, setTargetValue] = useState<string>('');
 
   // Sync targetType & targetValue when active SPK changes
   useEffect(() => {
@@ -362,9 +379,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
     const newSpk: SpkFormData = {
       id: `spk-${Date.now()}`,
       tanggal: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'),
-      nomorSpk: `NO. 0${Math.floor(Math.random() * 80 + 20)}/PK.TEK/ROW/ULP.BGL/VIII/2026`,
-      kategoriHeader: 'PEMELIHARAAN JARINGAN DISTRIBUSI',
-      personnel: ['Syahrul Kolly', 'Barqil Fuad Lessy'],
+      nomorSpk: '',
+      kategoriHeader: '',
+      personnel: [],
       checklist: {
         jtm: false,
         jtr: false,
@@ -372,21 +389,22 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
         garduTrafo: false,
         tiangTm: false,
         tiangTr: false,
-        row: true,
+        row: false,
         inspeksi: false,
         survey: false,
         customText: '',
         customChecked: false
       },
-      jenisPekerjaan: 'Perambasan Pohon ROW',
-      penyulang: 'Wayame 1',
-      lokasi: 'Wilayah Kerja ULP Baguala',
-      target: '20 Titik Pohon',
-      tlTeknikName: 'Syahrul Kolly',
+      jenisPekerjaan: '',
+      penyulang: '',
+      section: '',
+      lokasi: '',
+      target: '',
+      tlTeknikName: 'Muhamad Ricky Sabari',
       tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
       managerName: 'Niken Oka Witdoretno',
       managerTitle: 'Manager ULP Baguala',
-      statusPekerjaan: 'Dalam Proses'
+      statusPekerjaan: 'Dalam Progres'
     };
 
     setFormData(newSpk);
@@ -528,12 +546,17 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
       
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
       
-      const cleanNum = (formData.nomorSpk || 'SPK_Document')
-        .replace(/[^a-zA-Z0-9]/g, '_')
-        .replace(/_+/g, '_');
+      const spkNo = formData.nomorSpk || 'SPK_Document';
+      const cleanFileName = spkNo
+        .replace(/^(NO\.|NO|Nomor)\s*/i, '')
+        .trim()
+        .replace(/[\/\\]/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9_\.-]/g, '');
         
-      pdf.save(`SPK_${cleanNum}.pdf`);
-      showToast('File PDF SPK berhasil diunduh!');
+      const fileName = `${cleanFileName}.pdf`;
+      pdf.save(fileName);
+      showToast(`File PDF (${fileName}) berhasil diunduh!`);
       setShowPrintModal(false);
     } catch (err) {
       console.error('Failed to export PDF:', err);
@@ -570,14 +593,15 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
         locationSection: formData.lokasi,
         teamName: formData.personnel.join(', '),
         targetQty: formData.target,
-        status: 'Dalam Proses',
+        status: (formData.statusPekerjaan as any) || 'Dalam Progres',
         priority: 'Tinggi',
         description: `${formData.kategoriHeader} - TL Teknik: ${formData.tlTeknikName}`
       };
       onSaveSpk(spkRecord);
     }
 
-    showToast('Surat Perintah Kerja (SPK) berhasil disimpan & tersimpan otomatis di web!');
+    showToast('Surat Perintah Kerja (SPK) berhasil disimpan!');
+    setCurrentMode('monitoring');
   };
 
   // Filtered SPK List for Monitoring Dashboard
@@ -729,9 +753,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 className="p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
               >
                 <option value="ALL">Semua Status SPK</option>
-                <option value="Dalam Progres (On Progress)">Dalam Progres (On Progress)</option>
+                <option value="Dalam Progres">Dalam Progres</option>
                 <option value="Selesai">Selesai</option>
-                <option value="Selesai (Dengan Catatan)">Selesai (Dengan Catatan)</option>
+                <option value="Selesai Dengan catatan">Selesai Dengan catatan</option>
                 <option value="Pending">Pending</option>
               </select>
             </div>
@@ -808,9 +832,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
-                            onClick={() => handleOpenSpkEditor(spk)}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700 font-bold text-xs flex items-center gap-1 border border-blue-200 dark:border-slate-700"
-                            title="Buka / Cetak SPK"
+                            onClick={() => {
+                              setFormData(spk);
+                              setShowPrintModal(true);
+                            }}
+                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700 font-bold text-xs flex items-center gap-1 border border-blue-200 dark:border-slate-700 cursor-pointer"
+                            title="Cetak SPK"
                           >
                             <Printer className="w-3.5 h-3.5" />
                             <span>Cetak</span>
@@ -841,6 +868,284 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Offscreen Printable Document Container for Monitoring Mode */}
+          <div className="fixed -left-[9999px] top-0 pointer-events-none opacity-0 print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
+            <div 
+              ref={printRef}
+              className="w-[794px] bg-white text-black p-8 font-sans relative overflow-hidden select-text text-black printable-spk-document"
+              style={{ minHeight: '1000px', color: '#000000', backgroundColor: '#ffffff' }}
+            >
+              {/* Background Diagonal Watermark */}
+              <div 
+                className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.06] select-none rotate-[-30deg]"
+                style={{ fontSize: '48px', fontWeight: '900', color: '#000' }}
+              >
+                PT PLN (Persero) UP3 Ambon
+              </div>
+
+              {/* HEADER BOX */}
+              <div className="border-2 border-black w-full mb-3 text-black">
+                <div className="grid grid-cols-12 border-b-2 border-black">
+                  <div className="col-span-8 p-2 border-r-2 border-black flex items-center gap-2">
+                    <div className="w-9 h-12 bg-sky-500 border border-black flex items-center justify-center shrink-0 relative overflow-hidden">
+                      <div className="w-full h-full bg-[#fde047] flex items-center justify-center relative p-0.5">
+                        <svg viewBox="0 0 24 24" className="w-8 h-8 text-red-600 fill-current drop-shadow-xs">
+                          <path d="M11 15H6l7-14v8h5l-7 14v-8z" />
+                        </svg>
+                        <div className="absolute bottom-0 text-[7px] font-black tracking-tighter text-blue-900 bg-white/90 px-0.5">
+                          PLN
+                        </div>
+                      </div>
+                    </div>
+                    <div className="leading-tight text-black">
+                      <div className="font-extrabold text-[12px] uppercase tracking-wide">
+                        PT PLN (Persero)
+                      </div>
+                      <div className="font-bold text-[10px] uppercase">
+                        UNIT INDUK WILAYAH MALUKU DAN MALUKU UTARA
+                      </div>
+                      <div className="font-bold text-[10px] uppercase">
+                        UP3 AMBON
+                      </div>
+                      <div className="font-extrabold text-[11px] uppercase tracking-wide">
+                        ULP BAGUALA
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-span-4 p-2 flex items-center justify-center gap-1.5 text-center">
+                    <div className="w-8 h-8 rounded-full border border-yellow-500 bg-yellow-100 flex items-center justify-center shrink-0">
+                      <span className="text-[9px] font-black text-amber-800">SMK3</span>
+                    </div>
+                    <div className="text-[9px] font-bold leading-tight text-amber-700">
+                      Sistem Manajemen K3
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-12 text-black">
+                  <div className="col-span-8 p-2 border-r-2 border-black font-extrabold text-center text-sm uppercase tracking-wider flex items-center justify-center">
+                    FORMULIR PERINTAH KERJA
+                  </div>
+                  <div className="col-span-4 p-2 text-xs font-bold flex items-center justify-start gap-1">
+                    <span>Tanggal</span>
+                    <span>:</span>
+                    <span className="font-extrabold">{formData.tanggal}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* MAIN CONTENT BORDER BOX */}
+              <div className="border-2 border-black w-full p-4 space-y-4 text-black text-xs leading-relaxed min-h-[750px] flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="font-extrabold text-xs uppercase tracking-wide border-b border-black/20 pb-1.5">
+                    {formData.nomorSpk}
+                  </div>
+
+                  <div className="font-black text-sm uppercase text-center tracking-wide my-1">
+                    {formData.kategoriHeader}
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="font-extrabold text-xs">
+                      Di Perintahkan kepada :
+                    </div>
+                    <ol className="list-decimal list-inside pl-1 space-y-0.5 font-bold text-xs">
+                      {formData.personnel.map((person, idx) => (
+                        <li key={idx} className="leading-snug">
+                          {person}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  <div className="font-extrabold text-xs pt-1">
+                    Untuk melaksanakan {formData.kategoriHeader.toLowerCase()}
+                  </div>
+
+                  {/* Checklist 1 - 10 */}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 py-1 text-xs font-bold">
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">1</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.jtm ? '✓' : ''}
+                      </span>
+                      <span>JTM</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">6</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.tiangTr ? '✓' : ''}
+                      </span>
+                      <span>Tiang TR & aksesoris</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">2</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.jtr ? '✓' : ''}
+                      </span>
+                      <span>JTR</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">7</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.row ? '✓' : ''}
+                      </span>
+                      <span>ROW</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">3</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.garduHubung ? '✓' : ''}
+                      </span>
+                      <span>Gardu Hubung</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">8</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.inspeksi ? '✓' : ''}
+                      </span>
+                      <span>INSPEKSI</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">4</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.garduTrafo ? '✓' : ''}
+                      </span>
+                      <span>Gardu Trafo</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">9</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.survey ? '✓' : ''}
+                      </span>
+                      <span>SURVEY</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">5</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.tiangTm ? '✓' : ''}
+                      </span>
+                      <span>Tiang TM & aksesoris</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 text-right">10</span>
+                      <span className="w-4 h-4 border-2 border-black flex items-center justify-center bg-white text-[10px] font-bold shrink-0">
+                        {formData.checklist.customChecked ? '✓' : ''}
+                      </span>
+                      <span>{formData.checklist.customText || '__________'}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 font-bold text-xs">
+                    <div className="grid grid-cols-12">
+                      <span className="col-span-3 font-black">Jenis pekerjaan</span>
+                      <span className="col-span-1 text-center font-black">:</span>
+                      <span className="col-span-8 font-extrabold">{formData.jenisPekerjaan}</span>
+                    </div>
+                    <div className="grid grid-cols-12">
+                      <span className="col-span-3 font-black">Penyulang</span>
+                      <span className="col-span-1 text-center font-black">:</span>
+                      <span className="col-span-8 font-extrabold">{formData.penyulang}</span>
+                    </div>
+                    <div className="grid grid-cols-12">
+                      <span className="col-span-3 font-black">Section</span>
+                      <span className="col-span-1 text-center font-black">:</span>
+                      <span className="col-span-8 font-extrabold">{formData.section || '-'}</span>
+                    </div>
+                    <div className="grid grid-cols-12">
+                      <span className="col-span-3 font-black">Lokasi</span>
+                      <span className="col-span-1 text-center font-black">:</span>
+                      <span className="col-span-8 font-extrabold whitespace-pre-line leading-relaxed">
+                        {formData.lokasi || '-'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-12">
+                      <span className="col-span-3 font-black">Target</span>
+                      <span className="col-span-1 text-center font-black">:</span>
+                      <span className="col-span-8 font-extrabold">{formData.target || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-center text-xs font-extrabold pt-2">
+                    <div className="flex flex-col items-center justify-between min-h-[110px]">
+                      <div>
+                        <div>Pemberi Perintah</div>
+                        <div className="text-[11px] font-black text-blue-900">{formData.tlTeknikTitle}</div>
+                      </div>
+                      <div className="my-2 min-w-[140px] flex items-center justify-center">
+                        {Boolean(formData.isApprovedTlTeknik) ? (
+                          <div className="border-2 border-emerald-600 rounded-lg py-1.5 px-3 bg-emerald-50/90 shadow-xs rotate-[-4deg] text-center border-dashed">
+                            <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">
+                              APPROVE TL TEKNIK
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
+                            [ MENUNGGU APPROVAL ]
+                          </div>
+                        )}
+                      </div>
+                      <div className="underline font-black">{formData.tlTeknikName}</div>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-between min-h-[110px]">
+                      <div>
+                        <div>Mengetahui</div>
+                        <div className="text-[11px] font-black text-slate-900">{formData.managerTitle}</div>
+                      </div>
+                      <div className="my-2 min-w-[140px] flex items-center justify-center">
+                        {Boolean(formData.isApprovedManager) ? (
+                          <div className="border-2 border-emerald-600 rounded-lg py-1.5 px-3 bg-emerald-50/90 shadow-xs rotate-[-4deg] text-center border-dashed">
+                            <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">
+                              APPROVE MANAGER
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
+                            [ MENUNGGU APPROVAL ]
+                          </div>
+                        )}
+                      </div>
+                      <div className="underline font-black">{formData.managerName}</div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-black/40 pt-2 text-[11px] font-extrabold">
+                    <div className="mb-1 uppercase tracking-wide">Status pekerjaan</div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                          {(formData.statusPekerjaan === 'Dalam Progres (On Progress)' || formData.statusPekerjaan === 'Dalam Proses' || formData.statusPekerjaan === 'Dalam Progres') ? '✓' : ''}
+                        </span>
+                        <span>Dalam Progres</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                          {formData.statusPekerjaan === 'Selesai' ? '✓' : ''}
+                        </span>
+                        <span>Selesai</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                          {(formData.statusPekerjaan === 'Selesai (Dengan Catatan)' || formData.statusPekerjaan === 'Selesai Dengan catatan' || formData.statusPekerjaan?.includes('catatan')) ? '✓' : ''}
+                        </span>
+                        <span>Selesai Dengan catatan</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                          {formData.statusPekerjaan === 'Pending' ? '✓' : ''}
+                        </span>
+                        <span>Pending</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -897,15 +1202,6 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <Save className="w-4 h-4" />
                 <span>Simpan SPK</span>
               </button>
-
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Cetak / Download SPK</span>
-              </button>
             </div>
           </div>
 
@@ -959,11 +1255,40 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     </label>
                     <select
                       value={formData.kategoriHeader}
-                      onChange={(e) => setFormData({ ...formData, kategoriHeader: e.target.value })}
-                      className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const isInspeksi = val === 'INSPEKSI JARINGAN DISTRIBUSI';
+                        const isPerambasan = val.includes('PERAMBASAN') || val.includes('ROW');
+
+                        let nextPersonnel: string[] = [];
+                        let nextJenisPekerjaan = '';
+
+                        if (isPerambasan) {
+                          nextPersonnel = [...DEFAULT_ROW_PERSONNEL];
+                          nextJenisPekerjaan = 'Perambasan Pohon (ROW)';
+                        } else if (isInspeksi) {
+                          nextPersonnel = [...DEFAULT_INSPEKSI_PERSONNEL];
+                          nextJenisPekerjaan = 'Inspeksi Jaringan Distribusi';
+                        }
+
+                        setFormData(prev => ({
+                          ...prev,
+                          kategoriHeader: val,
+                          personnel: nextPersonnel,
+                          jenisPekerjaan: nextJenisPekerjaan,
+                          checklist: {
+                            ...prev.checklist,
+                            row: isPerambasan ? true : false,
+                            inspeksi: isInspeksi ? true : false
+                          }
+                        }));
+                      }}
+                      className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     >
+                      <option value="">Pilih Kategori</option>
                       <option value="PEMELIHARAAN JARINGAN DISTRIBUSI">PEMELIHARAAN JARINGAN DISTRIBUSI</option>
                       <option value="INSPEKSI JARINGAN DISTRIBUSI">INSPEKSI JARINGAN DISTRIBUSI</option>
+                      <option value="PERAMBASAN POHON (ROW)">PERAMBASAN POHON (ROW)</option>
                     </select>
                   </div>
                 </div>
@@ -972,6 +1297,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   <label className="text-[11px] font-bold text-slate-500 block mb-1">Nomor Dokumen SPK</label>
                   <input
                     type="text"
+                    placeholder=""
                     value={formData.nomorSpk}
                     onChange={(e) => setFormData({ ...formData, nomorSpk: e.target.value })}
                     className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
@@ -1136,13 +1462,13 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         className="rounded text-blue-600 w-4 h-4 cursor-pointer"
                       />
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
-                        10. Lainnya / Input Manual (Klik untuk Tampilkan Teks)
+                        10. Lainnya (Klik untuk input)
                       </span>
                     </label>
                     {formData.checklist.customChecked && (
                       <input
                         type="text"
-                        placeholder="Ketik deskripsi lingkup manual (misal: Pengujian Recloser, Penggantian Trafo...)"
+                        placeholder="Ketik deskripsi lingkup manual..."
                         value={formData.checklist.customText}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
@@ -1175,20 +1501,29 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Penyulang</label>
-                  <input
-                    type="text"
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                    Penyulang (Pilihan Berdaftar)
+                  </label>
+                  <select
                     value={formData.penyulang}
                     onChange={(e) => setFormData({ ...formData, penyulang: e.target.value })}
-                    className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                  />
+                    className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    <option value="">Pilih Penyulang</option>
+                    {REGISTERED_PENYULANG.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                    {formData.penyulang && !REGISTERED_PENYULANG.includes(formData.penyulang) && (
+                      <option value={formData.penyulang}>{formData.penyulang}</option>
+                    )}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Section</label>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Section</label>
                   <input
                     type="text"
-                    placeholder="Masukkan Section (misal: Section 1 / Gh Wayame)"
+                    placeholder=""
                     value={formData.section || ''}
                     onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                     className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
@@ -1196,9 +1531,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500 block mb-1">Lokasi Detail</label>
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Lokasi Detail</label>
                   <textarea
                     rows={2}
+                    placeholder=""
                     value={formData.lokasi}
                     onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
                     className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
@@ -1239,7 +1575,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   <div className="relative flex items-center">
                     <input
                       type="text"
-                      placeholder={targetType === 'kms' ? "Masukkan angka (misal: 15)" : "Masukkan nilai angka saja (misal: 20)"}
+                      placeholder={targetType === 'kms' ? "Masukkan angka (misal: 15)" : "Masukkan angka (misal: 20)"}
                       value={targetValue}
                       onChange={(e) => updateTarget(e.target.value, targetType)}
                       className="w-full p-2 pr-28 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
@@ -1403,9 +1739,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   onChange={(e) => setFormData({ ...formData, statusPekerjaan: e.target.value })}
                   className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                 >
-                  <option value="Dalam Progres (On Progress)">Dalam Progres (On Progress)</option>
+                  <option value="Dalam Progres">Dalam Progres</option>
                   <option value="Selesai">Selesai</option>
-                  <option value="Selesai (Dengan Catatan)">Selesai (Dengan Catatan)</option>
+                  <option value="Selesai Dengan catatan">Selesai Dengan catatan</option>
                   <option value="Pending">Pending</option>
                 </select>
 
