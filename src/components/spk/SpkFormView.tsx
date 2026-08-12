@@ -520,59 +520,13 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
     setShowPrintModal(true);
   };
 
-  // Download PDF file directly using html2canvas & jsPDF
-  const handleDownloadPdf = async () => {
-    // Select editor preview if in editor mode, otherwise use the dedicated invisible viewport container
-    const selector = currentMode === 'editor' ? '#printable-spk-editor' : '#printable-spk-monitoring';
-    const element = document.querySelector(selector) as HTMLElement;
-    if (!element) {
-      showToast('Gagal memproses dokumen SPK untuk diunduh.');
-      return;
-    }
-    setIsExportingPdf(true);
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      const imgData = canvas.toDataURL('image/png');
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
-      
-      const spkNo = formData.nomorSpk || 'SPK_Document';
-      const cleanFileName = spkNo
-        .replace(/^(NO\.|NO|Nomor)\s*/i, '')
-        .trim()
-        .replace(/[\/\\]/g, '_')
-        .replace(/\s+/g, '_')
-        .replace(/[^a-zA-Z0-9_\.-]/g, '');
-        
-      const fileName = `${cleanFileName}.pdf`;
-      pdf.save(fileName);
-      showToast(`File PDF (${fileName}) berhasil diunduh!`);
-      setShowPrintModal(false);
-    } catch (err) {
-      console.error('Failed to export PDF:', err);
-      showToast('Gagal download otomatis. Membuka dialog pencetakan...');
-      setShowPrintModal(false);
-      setTimeout(() => {
-        window.print();
-      }, 200);
-    } finally {
-      setIsExportingPdf(false);
-    }
+  // Download PDF file directly using native window.print()
+  const handleDownloadPdf = () => {
+    setShowPrintModal(false);
+    showToast('Membuka dialog cetak... Silakan pilih opsi "Simpan sebagai PDF" / "Save as PDF" untuk mengunduh.');
+    setTimeout(() => {
+      window.print();
+    }, 250);
   };
 
   // Save SPK to list and optional callback
@@ -886,10 +840,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
           </div>
 
           {/* Offscreen Printable Document Container for Monitoring Mode */}
-          <div className="fixed top-0 left-0 w-[794px] h-[1123px] overflow-hidden pointer-events-none opacity-[0.02] z-[-1000] print:static print:left-0 print:opacity-100 print:w-full">
+          <div className="fixed -left-[9999px] top-0 pointer-events-none print:static print:left-0 print:opacity-100 print:w-full z-[-100]">
             <div 
               ref={printRef}
-              id="printable-spk-monitoring"
               className="w-[794px] bg-white text-black p-8 font-sans relative overflow-hidden select-text text-black printable-spk-document"
               style={{ minHeight: '1000px', color: '#000000', backgroundColor: '#ffffff' }}
             >
