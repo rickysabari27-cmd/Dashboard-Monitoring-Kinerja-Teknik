@@ -315,12 +315,7 @@ export const INITIAL_GARDU_MEASUREMENTS: GarduMeasurement[] = [
   }
 ];
 
-export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
-  { id: 'MF-01', feederCode: 'LTR-01', feederName: 'LATERI 1', substationName: 'GI Passo', voltageKv: 20, lengthKms: 18.4, customerCount: 3820, sectionCount: 12, breakerType: 'Vacuum Breaker 20kV', status: 'Aktif / Operasi' },
-  { id: 'MF-02', feederCode: 'LTR-02', feederName: 'LATERI 2', substationName: 'GI Passo', voltageKv: 20, lengthKms: 24.1, customerCount: 5310, sectionCount: 16, breakerType: 'SF6 Circuit Breaker', status: 'Aktif / Operasi' },
-  { id: 'MF-03', feederCode: 'TLH-01', feederName: 'TULEHU', substationName: 'GI Passo', voltageKv: 20, lengthKms: 38.6, customerCount: 6890, sectionCount: 22, breakerType: 'SF6 Circuit Breaker', status: 'Aktif / Operasi' },
-  { id: 'MF-04', feederCode: 'ALG-01', feederName: 'ALLANG', substationName: 'GI Passo', voltageKv: 20, lengthKms: 29.2, customerCount: 4120, sectionCount: 18, breakerType: 'Vacuum Breaker 20kV', status: 'Aktif / Operasi' }
-];
+export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [];
 
 export const INITIAL_MATERIALS: MaterialItem[] = [
   { id: 'M-01', itemCode: 'MAT-PIN-20', name: 'Pin Post Insulator 20kV', category: 'Isolator', stockQty: 42, unit: 'Buah', minStock: 15, warehouseLocation: 'Gudang ULP Baguala', status: 'Aman' },

@@ -23,7 +23,14 @@ import {
   Clock, 
   Zap,
   Tag,
-  Search
+  Search,
+  Trash2,
+  Pencil,
+  GitBranch,
+  Power,
+  PowerOff,
+  Save,
+  X
 } from 'lucide-react';
 
 interface MaterialStockViewProps {
@@ -37,6 +44,8 @@ interface MaterialStockViewProps {
   vehicles?: Vehicle[];
   users?: UserAccess[];
   onOpenUniversalInput?: (tab?: string) => void;
+  onDeleteMasterFeeder?: (feederId: string) => void;
+  onSaveMasterFeeder?: (feeder: MasterFeeder) => void;
 }
 
 export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
@@ -49,8 +58,63 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
   apdTools = [],
   vehicles = [],
   users = [],
-  onOpenUniversalInput
+  onOpenUniversalInput,
+  onDeleteMasterFeeder,
+  onSaveMasterFeeder
 }) => {
+  const [feederSearchQuery, setFeederSearchQuery] = React.useState('');
+  const [feederToDelete, setFeederToDelete] = React.useState<MasterFeeder | null>(null);
+
+  // Edit Feeder Modal State
+  const [feederToEdit, setFeederToEdit] = React.useState<MasterFeeder | null>(null);
+  const [editCode, setEditCode] = React.useState('');
+  const [editName, setEditName] = React.useState('');
+  const [editGi, setEditGi] = React.useState('Hative Besar');
+  const [editStatus, setEditStatus] = React.useState('Utama');
+  const [editOpStatus, setEditOpStatus] = React.useState('Operasi');
+  const [editKha, setEditKha] = React.useState<number | string>(41);
+  const [editLength, setEditLength] = React.useState<number | string>(11.05);
+  const [editGarduCount, setEditGarduCount] = React.useState<number | string>(25);
+  const [editCustomerCount, setEditCustomerCount] = React.useState<number | string>(6082);
+  const [editConfig, setEditConfig] = React.useState('Looping');
+
+  const handleStartEdit = (feeder: MasterFeeder) => {
+    setFeederToEdit(feeder);
+    setEditCode(feeder.feederCode || '');
+    setEditName(feeder.feederName || '');
+    setEditGi(feeder.substationName || 'Hative Besar');
+    setEditStatus(feeder.status || 'Utama');
+    setEditOpStatus(feeder.operationalStatus || 'Operasi');
+    setEditKha(feeder.khaAmpere ?? 41);
+    setEditLength(feeder.lengthKms ?? 11.05);
+    setEditGarduCount(feeder.garduCount ?? feeder.sectionCount ?? 25);
+    setEditCustomerCount(feeder.customerCount ?? 0);
+    setEditConfig(feeder.configuration || 'Looping');
+  };
+
+  const handleSaveEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feederToEdit) return;
+
+    const updated: MasterFeeder = {
+      ...feederToEdit,
+      feederCode: editCode,
+      feederName: editName,
+      substationName: editGi,
+      status: editStatus,
+      operationalStatus: editOpStatus,
+      khaAmpere: Number(editKha) || 0,
+      lengthKms: Number(editLength) || 0,
+      garduCount: Number(editGarduCount) || 0,
+      customerCount: Number(editCustomerCount) || 0,
+      configuration: editConfig
+    };
+
+    if (onSaveMasterFeeder) {
+      onSaveMasterFeeder(updated);
+    }
+    setFeederToEdit(null);
+  };
   
   // 1. SPK VIEW
   if (currentView === 'spk') {
@@ -171,8 +235,24 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
 
   // 3. MASTER DATA VIEW
   if (currentView === 'master_data') {
+    const totalPenyulang = masterFeeders.length;
+    const penyulangUtama = masterFeeders.filter(f => (f.status || 'Utama') === 'Utama').length;
+    const penyulangPercabangan = masterFeeders.filter(f => f.status === 'Percabangan').length;
+    const penyulangOperasi = masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length;
+    const penyulangTidakOperasi = masterFeeders.filter(f => f.operationalStatus === 'Tidak Operasi').length;
+
+    const filteredFeeders = masterFeeders.filter((feeder) => {
+      if (!feederSearchQuery.trim()) return true;
+      const query = feederSearchQuery.toLowerCase();
+      const code = (feeder.feederCode || '').toLowerCase();
+      const name = (feeder.feederName || '').toLowerCase();
+      const gi = (feeder.substationName || '').toLowerCase();
+      return code.includes(query) || name.includes(query) || gi.includes(query);
+    });
+
     return (
       <div className="space-y-4">
+        {/* Header Bar */}
         <div className={`p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-4 ${
           isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
         }`}>
@@ -185,49 +265,429 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 Master Data Penyulang 20kV ULP Baguala
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Inventaris Feeder, Gardu Induk, Breaker, Panjang KMS & Jumlah Pelanggan
+                Inventaris Feeder, Gardu Induk, KHA, Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
               </p>
             </div>
           </div>
           <button 
             onClick={() => onOpenUniversalInput && onOpenUniversalInput('master_data')}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>+ Penyulang Baru</span>
+            <span>Input Data Penyulang</span>
           </button>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-left text-xs">
-            <thead className={`border-b ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600'} font-bold uppercase text-[10px]`}>
+        {/* Ringkasan Statistik Penyulang (5 KPI Cards) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Card 1: Total Penyulang */}
+          <div className={`p-3.5 rounded-2xl border ${
+            isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Total Penyulang</span>
+              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500">
+                <Database className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+              {totalPenyulang} <span className="text-xs font-normal text-slate-400">Feeder</span>
+            </div>
+          </div>
+
+          {/* Card 2: Penyulang Utama */}
+          <div className={`p-3.5 rounded-2xl border ${
+            isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Utama</span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              {penyulangUtama} <span className="text-xs font-normal text-slate-400">Feeder</span>
+            </div>
+          </div>
+
+          {/* Card 3: Penyulang Percabangan */}
+          <div className={`p-3.5 rounded-2xl border ${
+            isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Percabangan</span>
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                <GitBranch className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
+              {penyulangPercabangan} <span className="text-xs font-normal text-slate-400">Feeder</span>
+            </div>
+          </div>
+
+          {/* Card 4: Penyulang Operasi */}
+          <div className={`p-3.5 rounded-2xl border ${
+            isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Operasi</span>
+              <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500">
+                <Power className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-cyan-600 dark:text-cyan-400">
+              {penyulangOperasi} <span className="text-xs font-normal text-slate-400">Feeder</span>
+            </div>
+          </div>
+
+          {/* Card 5: Penyulang Tidak Operasi */}
+          <div className={`p-3.5 rounded-2xl border ${
+            isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Tidak Operasi</span>
+              <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
+                <PowerOff className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-xl font-extrabold text-rose-600 dark:text-rose-400">
+              {penyulangTidakOperasi} <span className="text-xs font-normal text-slate-400">Feeder</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar for Kode Penyulang or Nama Penyulang */}
+        <div className={`p-3 rounded-2xl border flex items-center gap-3 ${
+          isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xs'
+        }`}>
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+          <input 
+            type="text"
+            value={feederSearchQuery}
+            onChange={(e) => setFeederSearchQuery(e.target.value)}
+            placeholder="Cari berdasarkan Kode Penyulang, Nama, atau Gardu Induk..."
+            className="w-full text-xs font-bold bg-transparent focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+          />
+          {feederSearchQuery && (
+            <button 
+              onClick={() => setFeederSearchQuery('')}
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 cursor-pointer"
+            >
+              Hapus
+            </button>
+          )}
+        </div>
+
+        {/* Table View Matching Example Screenshot */}
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <table className="w-full text-center text-xs border-collapse">
+            <thead className={`border-b ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'} font-bold text-xs`}>
               <tr>
-                <th className="p-3">Kode / Feeder</th>
-                <th className="p-3">Gardu Induk</th>
-                <th className="p-3">Panjang (KMS)</th>
-                <th className="p-3">Pelanggan</th>
-                <th className="p-3">Jenis Breaker</th>
-                <th className="p-3 text-right">Status</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">No</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Kode Penyulang</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Nama Penyulang</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Gardu Induk</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Status</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Status Operasional</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">KHA (A)</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Panjang Jaringan (kms)</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Jumlah Gardu</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Jumlah Pel</th>
+                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Konfigurasi</th>
+                <th className="p-3 text-center font-normal">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-              {masterFeeders.map((feeder) => (
-                <tr key={feeder.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                  <td className="p-3 font-bold text-slate-900 dark:text-white">{feeder.feederName} ({feeder.feederCode})</td>
-                  <td className="p-3 text-slate-600 dark:text-slate-300">{feeder.substationName}</td>
-                  <td className="p-3 text-slate-800 dark:text-slate-200 font-bold">{feeder.lengthKms} km</td>
-                  <td className="p-3 text-slate-800 dark:text-slate-200 font-bold">{feeder.customerCount.toLocaleString('id-ID')} Plg</td>
-                  <td className="p-3 text-slate-500">{feeder.breakerType}</td>
-                  <td className="p-3 text-right">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      {feeder.status}
-                    </span>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-center">
+              {masterFeeders.length === 0 ? (
+                <tr>
+                  <td colSpan={12} className="p-10 text-center text-slate-400 font-bold">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Database className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
+                      <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Belum Ada Data Penyulang</p>
+                      <p className="text-xs text-slate-400">Klik tombol <span className="font-bold text-purple-500">"Input Data Penyulang"</span> di atas untuk menambahkan data baru.</p>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : filteredFeeders.length === 0 ? (
+                <tr>
+                  <td colSpan={12} className="p-8 text-center text-slate-400 font-bold">
+                    Tidak ada data penyulang yang cocok dengan pencarian "{feederSearchQuery}"
+                  </td>
+                </tr>
+              ) : (
+                filteredFeeders.map((feeder, idx) => {
+                  const displayStatus = feeder.status && feeder.status !== 'Aktif / Operasi' ? feeder.status : 'Utama';
+
+                  return (
+                    <tr key={feeder.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-semibold text-slate-700 dark:text-slate-300">
+                        {idx + 1}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
+                        {feeder.feederCode}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200 font-medium">
+                        {feeder.feederName}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-700 dark:text-slate-300">
+                        {feeder.substationName}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200">
+                        {displayStatus}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200">
+                        {feeder.operationalStatus || 'Operasi'}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
+                        {feeder.khaAmpere ?? 41}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
+                        {feeder.lengthKms.toString().replace('.', ',')}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
+                        {feeder.garduCount ?? feeder.sectionCount ?? 25}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
+                        {feeder.customerCount}
+                      </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200 font-medium">
+                        {feeder.configuration || 'Looping'}
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Edit Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(feeder)}
+                            title="Edit Data Penyulang"
+                            className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 hover:text-blue-600 transition-colors inline-flex items-center justify-center cursor-pointer active:scale-90"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => setFeederToDelete(feeder)}
+                            title="Hapus Data Penyulang"
+                            className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 hover:text-rose-600 transition-colors inline-flex items-center justify-center cursor-pointer active:scale-90"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Modal Edit Data Penyulang */}
+        {feederToEdit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className={`w-full max-w-lg p-6 rounded-2xl shadow-2xl border max-h-[90vh] overflow-y-auto ${
+              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                    <Pencil className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base">Edit Data Penyulang</h3>
+                    <p className="text-xs text-slate-400">Ubah informasi spesifikasi penyulang 20kV</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFeederToEdit(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEditSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Kode Penyulang</label>
+                    <input 
+                      type="text" 
+                      value={editCode} 
+                      onChange={(e) => setEditCode(e.target.value)} 
+                      required
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Nama Penyulang</label>
+                    <input 
+                      type="text" 
+                      value={editName} 
+                      onChange={(e) => setEditName(e.target.value)} 
+                      required
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Gardu Induk</label>
+                    <select 
+                      value={editGi} 
+                      onChange={(e) => setEditGi(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    >
+                      <option value="Hative Besar">Hative Besar</option>
+                      <option value="GIS Passo">GIS Passo</option>
+                      <option value="GI Passo">GI Passo</option>
+                      <option value="GI Sirimau">GI Sirimau</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Status</label>
+                    <select 
+                      value={editStatus} 
+                      onChange={(e) => setEditStatus(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    >
+                      <option value="Utama">Utama</option>
+                      <option value="Percabangan">Percabangan</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Status Operasional</label>
+                    <select 
+                      value={editOpStatus} 
+                      onChange={(e) => setEditOpStatus(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    >
+                      <option value="Operasi">Operasi</option>
+                      <option value="Tidak Operasi">Tidak Operasi</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">KHA (A)</label>
+                    <input 
+                      type="number" 
+                      value={editKha} 
+                      onChange={(e) => setEditKha(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Panjang (kms)</label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      value={editLength} 
+                      onChange={(e) => setEditLength(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jml Gardu</label>
+                    <input 
+                      type="number" 
+                      value={editGarduCount} 
+                      onChange={(e) => setEditGarduCount(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jml Pelanggan</label>
+                    <input 
+                      type="number" 
+                      value={editCustomerCount} 
+                      onChange={(e) => setEditCustomerCount(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Konfigurasi</label>
+                  <select 
+                    value={editConfig} 
+                    onChange={(e) => setEditConfig(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                  >
+                    <option value="Looping">Looping</option>
+                    <option value="Radial">Radial</option>
+                  </select>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFeederToEdit(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md shadow-blue-500/20 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Simpan Perubahan</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Konfirmasi Hapus Data */}
+        {feederToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border ${
+              isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              <div className="flex items-center gap-3 text-rose-500 mb-4">
+                <div className="p-3 rounded-xl bg-rose-500/10">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">Hapus Data Penyulang</h3>
+                  <p className="text-xs text-slate-400">Konfirmasi Penghapusan</p>
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-6">
+                Apakah Anda yakin ingin menghapus data penyulang <span className="font-bold text-slate-900 dark:text-white">{feederToDelete.feederName} ({feederToDelete.feederCode})</span>?
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFeederToDelete(null)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Tidak
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onDeleteMasterFeeder && feederToDelete.id) {
+                      onDeleteMasterFeeder(feederToDelete.id);
+                    }
+                    setFeederToDelete(null);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                >
+                  Ya
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

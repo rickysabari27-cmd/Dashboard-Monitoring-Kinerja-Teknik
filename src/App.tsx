@@ -200,9 +200,17 @@ export default function App() {
   };
 
   const handleSaveMasterFeeder = (newFeeder: MasterFeeder) => {
-    setMasterFeeders([newFeeder, ...masterFeeders]);
+    setMasterFeeders(prev => {
+      const idx = prev.findIndex(f => f.id === newFeeder.id || (f.feederCode && newFeeder.feederCode && f.feederCode.trim().toLowerCase() === newFeeder.feederCode.trim().toLowerCase()));
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newFeeder;
+        return updated;
+      }
+      return [newFeeder, ...prev];
+    });
     saveDocument('master_feeders', newFeeder, newFeeder.id);
-    showToast(`Master Feeder Baru ${newFeeder.feederName} berhasil ditambahkan ke Firebase!`);
+    showToast(`Data Penyulang ${newFeeder.feederName} (${newFeeder.feederCode}) berhasil disimpan!`);
   };
 
   const handleUpdateSaidi = (
@@ -274,6 +282,13 @@ export default function App() {
     setUsers(prev => prev.filter(u => u.id !== userId));
     deleteDocument('users_access', userId);
     showToast(`Akun user ${targetUser ? targetUser.name : ''} berhasil dihapus!`);
+  };
+
+  const handleDeleteMasterFeeder = (feederId: string) => {
+    const target = masterFeeders.find(f => f.id === feederId);
+    setMasterFeeders(prev => prev.filter(f => f.id !== feederId));
+    deleteDocument('master_feeders', feederId);
+    showToast(`Data Penyulang ${target ? target.feederName : ''} berhasil dihapus!`);
   };
 
   // Render standalone Gardu Induk Login Page if user is logged out
@@ -464,6 +479,8 @@ export default function App() {
               vehicles={vehicles}
               users={users}
               onOpenUniversalInput={handleOpenUniversalInput}
+              onDeleteMasterFeeder={handleDeleteMasterFeeder}
+              onSaveMasterFeeder={handleSaveMasterFeeder}
             />
           )}
 

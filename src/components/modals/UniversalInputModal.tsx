@@ -101,11 +101,16 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [currentN, setCurrentN] = useState(25);
 
   // 5. Master Feeder
-  const [mFeederCode, setMFeederCode] = useState('LTR-04');
-  const [mFeederName, setMFeederName] = useState('LATERI 4');
-  const [mFeederGi, setMFeederGi] = useState('GI Passo');
-  const [mFeederLength, setMFeederLength] = useState(16.5);
-  const [mFeederCust, setMFeederCust] = useState(3200);
+  const [mFeederCode, setMFeederCode] = useState('BDR1');
+  const [mFeederName, setMFeederName] = useState('Bandara 1');
+  const [mFeederGi, setMFeederGi] = useState('Hative Besar');
+  const [mFeederStatus, setMFeederStatus] = useState('Utama');
+  const [mFeederOpStatus, setMFeederOpStatus] = useState('Operasi');
+  const [mFeederKha, setMFeederKha] = useState(41);
+  const [mFeederLength, setMFeederLength] = useState(11.05);
+  const [mFeederGarduCount, setMFeederGarduCount] = useState(25);
+  const [mFeederCust, setMFeederCust] = useState(6082);
+  const [mFeederConfig, setMFeederConfig] = useState('Looping');
 
   // 6. SAIDI SAIFI
   const [saidiMonth, setSaidiMonth] = useState('Ags');
@@ -223,16 +228,20 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       });
     } else if (activeTab === 'master_data' && onSaveMasterFeeder) {
       onSaveMasterFeeder({
-        id: `MF-0${Math.floor(Math.random() * 90 + 10)}`,
-        feederCode: mFeederCode,
-        feederName: mFeederName,
-        substationName: mFeederGi,
+        id: `MF-${Date.now()}`,
+        feederCode: mFeederCode || 'BDR1',
+        feederName: mFeederName || 'Bandara 1',
+        substationName: mFeederGi || 'Hative Besar',
+        status: mFeederStatus || 'Utama',
+        operationalStatus: mFeederOpStatus || 'Operasi',
+        khaAmpere: Number(mFeederKha) || 41,
+        lengthKms: Number(mFeederLength) || 11.05,
+        garduCount: Number(mFeederGarduCount) || 25,
+        customerCount: Number(mFeederCust) || 6082,
+        configuration: mFeederConfig || 'Looping',
         voltageKv: 20,
-        lengthKms: Number(mFeederLength),
-        customerCount: Number(mFeederCust),
-        sectionCount: 14,
-        breakerType: 'SF6 Circuit Breaker 20kV',
-        status: 'Aktif / Operasi'
+        sectionCount: 12,
+        breakerType: 'Vacuum Breaker 20kV'
       });
     } else if (activeTab === 'saidi_saifi' && onSaveSaidi) {
       onSaveSaidi(saidiMonth, Number(saidiVal), Number(saifiVal));
@@ -301,13 +310,13 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                Pusat Input Data Operasional 20kV
+                Pusat Input Data Operasional Distribusi
                 <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                   ULP Baguala
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Pilih kategori menu di bawah untuk menambahkan entri data baru ke sistem
+                Formulir Entri Data Penyulang
               </p>
             </div>
           </div>
@@ -317,34 +326,6 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Tab Selector Horizontal Scroll */}
-        <div className={`p-2 border-b overflow-x-auto custom-scrollbar flex items-center gap-1.5 ${
-          isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-        }`}>
-          {tabMenuList.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0
-                  ${isActive 
-                    ? 'bg-blue-600 text-white shadow-sm' 
-                    : isDarkMode 
-                      ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' 
-                      : 'text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'}
-                `}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : tab.color}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
         </div>
 
         {/* Form Body Scrollable */}
@@ -564,31 +545,67 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
           {activeTab === 'master_data' && (
             <div className="space-y-3">
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 font-semibold mb-3">
-                Input Master Data Penyulang & Feeder 20kV Baru
+                Input Data Penyulang
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Kode Feeder</label>
-                  <input type="text" value={mFeederCode} onChange={(e) => setMFeederCode(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Kode Penyulang</label>
+                  <input type="text" value={mFeederCode} onChange={(e) => setMFeederCode(e.target.value)} placeholder="Contoh: BDR1" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Nama Penyulang</label>
-                  <input type="text" value={mFeederName} onChange={(e) => setMFeederName(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <input type="text" value={mFeederName} onChange={(e) => setMFeederName(e.target.value)} placeholder="Contoh: Bandara 1" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Gardu Induk (GI)</label>
-                  <input type="text" value={mFeederGi} onChange={(e) => setMFeederGi(e.target.value)} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Gardu Induk</label>
+                  <select value={mFeederGi} onChange={(e) => setMFeederGi(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="Hative Besar">Hative Besar</option>
+                    <option value="GIS Passo">GIS Passo</option>
+                    <option value="GI Passo">GI Passo</option>
+                    <option value="GI Sirimau">GI Sirimau</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Panjang (KMS)</label>
-                  <input type="number" value={mFeederLength} onChange={(e) => setMFeederLength(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Status</label>
+                  <select value={mFeederStatus} onChange={(e) => setMFeederStatus(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="Utama">Utama</option>
+                    <option value="Percabangan">Percabangan</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Pelanggan</label>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Status Operasional</label>
+                  <select value={mFeederOpStatus} onChange={(e) => setMFeederOpStatus(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="Operasi">Operasi</option>
+                    <option value="Tidak Operasi">Tidak Operasi</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">KHA (A)</label>
+                  <input type="number" value={mFeederKha} onChange={(e) => setMFeederKha(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Panjang (kms)</label>
+                  <input type="number" step="0.01" value={mFeederLength} onChange={(e) => setMFeederLength(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Gardu</label>
+                  <input type="number" value={mFeederGarduCount} onChange={(e) => setMFeederGarduCount(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Pel</label>
                   <input type="number" value={mFeederCust} onChange={(e) => setMFeederCust(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Konfigurasi</label>
+                <select value={mFeederConfig} onChange={(e) => setMFeederConfig(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold">
+                  <option value="Looping">Looping</option>
+                  <option value="Radial">Radial</option>
+                </select>
               </div>
             </div>
           )}
@@ -767,10 +784,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
           )}
 
           {/* Action Footer Buttons */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
-            <span className="text-[11px] text-slate-400">
-              * Input data terintegrasi ke SCADA & Realtime Dashboard
-            </span>
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -784,7 +798,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl shadow-md shadow-blue-500/20 flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Simpan Entri Data</span>
+                <span>Simpan Data</span>
               </button>
             </div>
           </div>

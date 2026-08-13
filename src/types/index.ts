@@ -136,12 +136,16 @@ export interface MasterFeeder {
   feederCode: string;
   feederName: string;
   substationName: string;
-  voltageKv: number;
+  voltageKv?: number;
   lengthKms: number;
   customerCount: number;
-  sectionCount: number;
-  breakerType: string;
-  status: 'Aktif / Operasi' | 'Pemeliharaan' | 'Cadangan';
+  sectionCount?: number;
+  breakerType?: string;
+  status?: string;
+  operationalStatus?: string;
+  khaAmpere?: number;
+  garduCount?: number;
+  configuration?: string;
 }
 
 export interface MaterialItem {
