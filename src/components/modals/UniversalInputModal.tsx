@@ -101,16 +101,31 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [currentN, setCurrentN] = useState(25);
 
   // 5. Master Feeder
-  const [mFeederCode, setMFeederCode] = useState('BDR1');
-  const [mFeederName, setMFeederName] = useState('Bandara 1');
-  const [mFeederGi, setMFeederGi] = useState('Hative Besar');
+  const [mFeederCode, setMFeederCode] = useState('');
+  const [mFeederName, setMFeederName] = useState('');
+  const [mFeederGi, setMFeederGi] = useState('-');
+  const [mFeederGh, setMFeederGh] = useState('-');
   const [mFeederStatus, setMFeederStatus] = useState('Utama');
   const [mFeederOpStatus, setMFeederOpStatus] = useState('Operasi');
-  const [mFeederKha, setMFeederKha] = useState(41);
-  const [mFeederLength, setMFeederLength] = useState(11.05);
-  const [mFeederGarduCount, setMFeederGarduCount] = useState(25);
-  const [mFeederCust, setMFeederCust] = useState(6082);
+  const [mFeederKha, setMFeederKha] = useState<number | string>('');
+  const [mFeederLength, setMFeederLength] = useState<number | string>('');
+  const [mFeederGarduCount, setMFeederGarduCount] = useState<number | string>('');
+  const [mFeederCust, setMFeederCust] = useState<number | string>('');
   const [mFeederConfig, setMFeederConfig] = useState('Looping');
+
+  const handleMFeederGiChange = (val: string) => {
+    setMFeederGi(val);
+    if (val && val !== '-') {
+      setMFeederGh('-');
+    }
+  };
+
+  const handleMFeederGhChange = (val: string) => {
+    setMFeederGh(val);
+    if (val && val !== '-') {
+      setMFeederGi('-');
+    }
+  };
 
   // 6. SAIDI SAIFI
   const [saidiMonth, setSaidiMonth] = useState('Ags');
@@ -229,20 +244,29 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     } else if (activeTab === 'master_data' && onSaveMasterFeeder) {
       onSaveMasterFeeder({
         id: `MF-${Date.now()}`,
-        feederCode: mFeederCode || 'BDR1',
-        feederName: mFeederName || 'Bandara 1',
-        substationName: mFeederGi || 'Hative Besar',
+        feederCode: mFeederCode,
+        feederName: mFeederName,
+        substationName: mFeederGi || '-',
+        garduHubung: mFeederGh || '-',
         status: mFeederStatus || 'Utama',
         operationalStatus: mFeederOpStatus || 'Operasi',
-        khaAmpere: Number(mFeederKha) || 41,
-        lengthKms: Number(mFeederLength) || 11.05,
-        garduCount: Number(mFeederGarduCount) || 25,
-        customerCount: Number(mFeederCust) || 6082,
+        khaAmpere: mFeederKha !== '' ? Number(mFeederKha) : 0,
+        lengthKms: mFeederLength !== '' ? Number(mFeederLength) : 0,
+        garduCount: mFeederGarduCount !== '' ? Number(mFeederGarduCount) : 0,
+        customerCount: mFeederCust !== '' ? Number(mFeederCust) : 0,
         configuration: mFeederConfig || 'Looping',
         voltageKv: 20,
         sectionCount: 12,
         breakerType: 'Vacuum Breaker 20kV'
       });
+      setMFeederCode('');
+      setMFeederName('');
+      setMFeederGi('-');
+      setMFeederGh('-');
+      setMFeederKha('');
+      setMFeederLength('');
+      setMFeederGarduCount('');
+      setMFeederCust('');
     } else if (activeTab === 'saidi_saifi' && onSaveSaidi) {
       onSaveSaidi(saidiMonth, Number(saidiVal), Number(saifiVal));
     } else if (activeTab === 'material' && onSaveMaterial) {
@@ -557,14 +581,30 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   <input type="text" value={mFeederName} onChange={(e) => setMFeederName(e.target.value)} placeholder="Contoh: Bandara 1" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Gardu Induk</label>
-                  <select value={mFeederGi} onChange={(e) => setMFeederGi(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                  <select value={mFeederGi} onChange={(e) => handleMFeederGiChange(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="-">Pilih Gardu</option>
                     <option value="Hative Besar">Hative Besar</option>
                     <option value="GIS Passo">GIS Passo</option>
                     <option value="GI Passo">GI Passo</option>
                     <option value="GI Sirimau">GI Sirimau</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">GH</label>
+                  <select value={mFeederGh} onChange={(e) => handleMFeederGhChange(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="-">Pilih Gardu</option>
+                    <option value="GH Area">GH Area</option>
+                    <option value="GH Aston">GH Aston</option>
+                    <option value="GH Baguala">GH Baguala</option>
+                    <option value="GH Bandara">GH Bandara</option>
+                    <option value="GH Box Pantai Galala">GH Box Pantai Galala</option>
+                    <option value="GH Box Pantai Poka">GH Box Pantai Poka</option>
+                    <option value="GH Hative Kecil">GH Hative Kecil</option>
+                    <option value="GH Poka">GH Poka</option>
+                    <option value="GH Wayame">GH Wayame</option>
                   </select>
                 </div>
                 <div>
@@ -585,19 +625,19 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
               <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">KHA (A)</label>
-                  <input type="number" value={mFeederKha} onChange={(e) => setMFeederKha(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <input type="number" value={mFeederKha} onChange={(e) => setMFeederKha(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Panjang (kms)</label>
-                  <input type="number" step="0.01" value={mFeederLength} onChange={(e) => setMFeederLength(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <input type="number" step="0.01" value={mFeederLength} onChange={(e) => setMFeederLength(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Gardu</label>
-                  <input type="number" value={mFeederGarduCount} onChange={(e) => setMFeederGarduCount(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <input type="number" value={mFeederGarduCount} onChange={(e) => setMFeederGarduCount(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Pel</label>
-                  <input type="number" value={mFeederCust} onChange={(e) => setMFeederCust(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <input type="number" value={mFeederCust} onChange={(e) => setMFeederCust(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
               </div>
               <div>

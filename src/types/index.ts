@@ -136,6 +136,7 @@ export interface MasterFeeder {
   feederCode: string;
   feederName: string;
   substationName: string;
+  garduHubung?: string;
   voltageKv?: number;
   lengthKms: number;
   customerCount: number;

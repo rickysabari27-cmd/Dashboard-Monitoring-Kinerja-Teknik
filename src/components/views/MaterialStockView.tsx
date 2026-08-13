@@ -69,26 +69,42 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
   const [feederToEdit, setFeederToEdit] = React.useState<MasterFeeder | null>(null);
   const [editCode, setEditCode] = React.useState('');
   const [editName, setEditName] = React.useState('');
-  const [editGi, setEditGi] = React.useState('Hative Besar');
+  const [editGi, setEditGi] = React.useState('-');
+  const [editGh, setEditGh] = React.useState('-');
   const [editStatus, setEditStatus] = React.useState('Utama');
   const [editOpStatus, setEditOpStatus] = React.useState('Operasi');
-  const [editKha, setEditKha] = React.useState<number | string>(41);
-  const [editLength, setEditLength] = React.useState<number | string>(11.05);
-  const [editGarduCount, setEditGarduCount] = React.useState<number | string>(25);
-  const [editCustomerCount, setEditCustomerCount] = React.useState<number | string>(6082);
+  const [editKha, setEditKha] = React.useState<number | string>('');
+  const [editLength, setEditLength] = React.useState<number | string>('');
+  const [editGarduCount, setEditGarduCount] = React.useState<number | string>('');
+  const [editCustomerCount, setEditCustomerCount] = React.useState<number | string>('');
   const [editConfig, setEditConfig] = React.useState('Looping');
+
+  const handleEditGiChange = (val: string) => {
+    setEditGi(val);
+    if (val && val !== '-') {
+      setEditGh('-');
+    }
+  };
+
+  const handleEditGhChange = (val: string) => {
+    setEditGh(val);
+    if (val && val !== '-') {
+      setEditGi('-');
+    }
+  };
 
   const handleStartEdit = (feeder: MasterFeeder) => {
     setFeederToEdit(feeder);
     setEditCode(feeder.feederCode || '');
     setEditName(feeder.feederName || '');
-    setEditGi(feeder.substationName || 'Hative Besar');
+    setEditGi(feeder.substationName && feeder.substationName !== '-' ? feeder.substationName : '-');
+    setEditGh(feeder.garduHubung && feeder.garduHubung !== '-' ? feeder.garduHubung : '-');
     setEditStatus(feeder.status || 'Utama');
     setEditOpStatus(feeder.operationalStatus || 'Operasi');
-    setEditKha(feeder.khaAmpere ?? 41);
-    setEditLength(feeder.lengthKms ?? 11.05);
-    setEditGarduCount(feeder.garduCount ?? feeder.sectionCount ?? 25);
-    setEditCustomerCount(feeder.customerCount ?? 0);
+    setEditKha(feeder.khaAmpere ?? '');
+    setEditLength(feeder.lengthKms ?? '');
+    setEditGarduCount(feeder.garduCount ?? '');
+    setEditCustomerCount(feeder.customerCount ?? '');
     setEditConfig(feeder.configuration || 'Looping');
   };
 
@@ -101,12 +117,13 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
       feederCode: editCode,
       feederName: editName,
       substationName: editGi,
+      garduHubung: editGh,
       status: editStatus,
       operationalStatus: editOpStatus,
-      khaAmpere: Number(editKha) || 0,
-      lengthKms: Number(editLength) || 0,
-      garduCount: Number(editGarduCount) || 0,
-      customerCount: Number(editCustomerCount) || 0,
+      khaAmpere: editKha !== '' ? Number(editKha) : 0,
+      lengthKms: editLength !== '' ? Number(editLength) : 0,
+      garduCount: editGarduCount !== '' ? Number(editGarduCount) : 0,
+      customerCount: editCustomerCount !== '' ? Number(editCustomerCount) : 0,
       configuration: editConfig
     };
 
@@ -235,9 +252,9 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
 
   // 3. MASTER DATA VIEW
   if (currentView === 'master_data') {
-    const totalPenyulang = masterFeeders.length;
     const penyulangUtama = masterFeeders.filter(f => (f.status || 'Utama') === 'Utama').length;
     const penyulangPercabangan = masterFeeders.filter(f => f.status === 'Percabangan').length;
+    const totalPenyulang = penyulangUtama + penyulangPercabangan;
     const penyulangOperasi = masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length;
     const penyulangTidakOperasi = masterFeeders.filter(f => f.operationalStatus === 'Tidak Operasi').length;
 
@@ -247,7 +264,14 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
       const code = (feeder.feederCode || '').toLowerCase();
       const name = (feeder.feederName || '').toLowerCase();
       const gi = (feeder.substationName || '').toLowerCase();
-      return code.includes(query) || name.includes(query) || gi.includes(query);
+      const gh = (feeder.garduHubung || '').toLowerCase();
+      return code.includes(query) || name.includes(query) || gi.includes(query) || gh.includes(query);
+    });
+
+    const sortedFeeders = [...filteredFeeders].sort((a, b) => {
+      const nameA = (a.feederName || a.feederCode || '').toLowerCase();
+      const nameB = (b.feederName || b.feederCode || '').toLowerCase();
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
     });
 
     return (
@@ -265,7 +289,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 Master Data Penyulang 20kV ULP Baguala
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Inventaris Feeder, Gardu Induk, KHA, Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
+                Inventaris Feeder, Gardu Induk, GH, KHA, Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
               </p>
             </div>
           </div>
@@ -290,7 +314,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 <Database className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-xl font-extrabold text-slate-900 dark:text-white">
+            <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
               {totalPenyulang} <span className="text-xs font-normal text-slate-400">Feeder</span>
             </div>
           </div>
@@ -365,8 +389,10 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
             type="text"
             value={feederSearchQuery}
             onChange={(e) => setFeederSearchQuery(e.target.value)}
-            placeholder="Cari berdasarkan Kode Penyulang, Nama, atau Gardu Induk..."
-            className="w-full text-xs font-bold bg-transparent focus:outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+            placeholder="Cari berdasarkan Kode Penyulang, Nama, GI, atau GH..."
+            className={`w-full text-xs font-bold bg-transparent focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}
           />
           {feederSearchQuery && (
             <button 
@@ -379,28 +405,29 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
         </div>
 
         {/* Table View Matching Example Screenshot */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
           <table className="w-full text-center text-xs border-collapse">
-            <thead className={`border-b ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'} font-bold text-xs`}>
+            <thead className="bg-slate-900 dark:bg-slate-950 text-white font-bold text-xs border-b border-slate-800">
               <tr>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">No</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Kode Penyulang</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Nama Penyulang</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Gardu Induk</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Status</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Status Operasional</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">KHA (A)</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Panjang Jaringan (kms)</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Jumlah Gardu</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Jumlah Pel</th>
-                <th className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-normal">Konfigurasi</th>
-                <th className="p-3 text-center font-normal">Aksi</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">No</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Kode Penyulang</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Nama Penyulang</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Gardu Induk</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Gardu Hubung</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Status</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Status Operasional</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">KHA (A)</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Panjang Jaringan (kms)</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Jumlah Gardu</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Jumlah Pel</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Konfigurasi</th>
+                <th className="p-3 text-center font-bold text-white">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-center">
               {masterFeeders.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-10 text-center text-slate-400 font-bold">
+                  <td colSpan={13} className="p-10 text-center text-slate-400 font-bold">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Database className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-1" />
                       <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Belum Ada Data Penyulang</p>
@@ -410,12 +437,12 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 </tr>
               ) : filteredFeeders.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="p-8 text-center text-slate-400 font-bold">
+                  <td colSpan={13} className="p-8 text-center text-slate-400 font-bold">
                     Tidak ada data penyulang yang cocok dengan pencarian "{feederSearchQuery}"
                   </td>
                 </tr>
               ) : (
-                filteredFeeders.map((feeder, idx) => {
+                sortedFeeders.map((feeder, idx) => {
                   const displayStatus = feeder.status && feeder.status !== 'Aktif / Operasi' ? feeder.status : 'Utama';
 
                   return (
@@ -432,6 +459,9 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-700 dark:text-slate-300">
                         {feeder.substationName}
                       </td>
+                      <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-700 dark:text-slate-300 font-medium">
+                        {feeder.garduHubung || '-'}
+                      </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200">
                         {displayStatus}
                       </td>
@@ -439,16 +469,16 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                         {feeder.operationalStatus || 'Operasi'}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
-                        {feeder.khaAmpere ?? 41}
+                        {feeder.khaAmpere ?? 0}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
-                        {feeder.lengthKms.toString().replace('.', ',')}
+                        {feeder.lengthKms?.toString().replace('.', ',') || 0}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
-                        {feeder.garduCount ?? feeder.sectionCount ?? 25}
+                        {feeder.garduCount ?? 0}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
-                        {feeder.customerCount}
+                        {feeder.customerCount ?? 0}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200 font-medium">
                         {feeder.configuration || 'Looping'}
@@ -533,18 +563,38 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Gardu Induk</label>
                     <select 
                       value={editGi} 
-                      onChange={(e) => setEditGi(e.target.value)} 
+                      onChange={(e) => handleEditGiChange(e.target.value)} 
                       className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                     >
+                      <option value="-">Pilih Gardu</option>
                       <option value="Hative Besar">Hative Besar</option>
                       <option value="GIS Passo">GIS Passo</option>
                       <option value="GI Passo">GI Passo</option>
                       <option value="GI Sirimau">GI Sirimau</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">GH</label>
+                    <select 
+                      value={editGh} 
+                      onChange={(e) => handleEditGhChange(e.target.value)} 
+                      className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    >
+                      <option value="-">Pilih Gardu</option>
+                      <option value="GH Area">GH Area</option>
+                      <option value="GH Aston">GH Aston</option>
+                      <option value="GH Baguala">GH Baguala</option>
+                      <option value="GH Bandara">GH Bandara</option>
+                      <option value="GH Box Pantai Galala">GH Box Pantai Galala</option>
+                      <option value="GH Box Pantai Poka">GH Box Pantai Poka</option>
+                      <option value="GH Hative Kecil">GH Hative Kecil</option>
+                      <option value="GH Poka">GH Poka</option>
+                      <option value="GH Wayame">GH Wayame</option>
                     </select>
                   </div>
                   <div>
