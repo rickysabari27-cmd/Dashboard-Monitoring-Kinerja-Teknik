@@ -22,7 +22,10 @@ import {
   Award,
   Download,
   Loader2,
-  X
+  X,
+  XCircle,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 
 interface SpkFormViewProps {
@@ -69,7 +72,7 @@ export interface SpkFormData {
   
   // Status Pekerjaan
   catatanStatus?: string;
-  statusPekerjaan: 'Dalam Progres' | 'Selesai' | 'Selesai (Dengan Catatan)' | 'Pending' | string;
+  statusPekerjaan: 'Dalam Progres' | 'Selesai' | 'Selesai (Dengan Catatan)' | 'Pending' | 'Terencana' | 'Rencana' | 'Dibatalkan' | string;
 }
 
 // Registered Penyulang List
@@ -683,10 +686,108 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                spk.statusPekerjaan === 'Selesai Dengan catatan' || 
                spk.statusPekerjaan?.toLowerCase().includes('catatan');
       }
+      if (statusFilter === 'Terencana' || statusFilter === 'Rencana') {
+        return spk.statusPekerjaan === 'Terencana' || spk.statusPekerjaan === 'Rencana';
+      }
       return spk.statusPekerjaan === statusFilter;
     })();
 
     return matchesSearch && matchesStatus;
+  });
+
+  // Group SPK Records dynamically by Work Status
+  const rencanaSpks = filteredSpks.filter(s => s.statusPekerjaan === 'Terencana' || s.statusPekerjaan === 'Rencana');
+  const progresSpks = filteredSpks.filter(s => 
+    s.statusPekerjaan === 'Dalam Progres' || 
+    s.statusPekerjaan === 'Dalam Proses' || 
+    s.statusPekerjaan === 'Dalam Progres (On Progress)' ||
+    s.statusPekerjaan?.includes('Progres') ||
+    s.statusPekerjaan?.includes('Progress')
+  );
+  const pendingSpks = filteredSpks.filter(s => s.statusPekerjaan === 'Pending');
+  const selesaiSpks = filteredSpks.filter(s => s.statusPekerjaan === 'Selesai');
+  const selesaiCatatanSpks = filteredSpks.filter(s => 
+    s.statusPekerjaan === 'Selesai (Dengan Catatan)' || 
+    s.statusPekerjaan === 'Selesai Dengan catatan' || 
+    s.statusPekerjaan?.toLowerCase().includes('catatan')
+  );
+  const dibatalkanSpks = filteredSpks.filter(s => s.statusPekerjaan === 'Dibatalkan');
+
+  const groupedCategories = [
+    {
+      id: 'Terencana',
+      title: 'SPK Terencana',
+      items: rencanaSpks,
+      icon: <Calendar className="w-4 h-4" />,
+      badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50',
+      headerClass: isDarkMode ? 'bg-indigo-950/25 border-y border-indigo-900/40 text-indigo-300' : 'bg-indigo-50/50 border-y border-indigo-100/70 text-indigo-850 font-bold'
+    },
+    {
+      id: 'Dalam Progres',
+      title: 'SPK Dalam Proses / On Progress',
+      items: progresSpks,
+      icon: <Clock className="w-4 h-4" />,
+      badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50',
+      headerClass: isDarkMode ? 'bg-amber-950/25 border-y border-amber-900/40 text-amber-300' : 'bg-amber-50/50 border-y border-amber-100/70 text-amber-850 font-bold'
+    },
+    {
+      id: 'Pending',
+      title: 'SPK Pending / Ditangguhkan',
+      items: pendingSpks,
+      icon: <AlertCircle className="w-4 h-4" />,
+      badgeClass: 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
+      headerClass: isDarkMode ? 'bg-slate-900/40 border-y border-slate-800 text-slate-300' : 'bg-slate-50 border-y border-slate-200 text-slate-850 font-bold'
+    },
+    {
+      id: 'Selesai',
+      title: 'SPK Selesai (Murni)',
+      items: selesaiSpks,
+      icon: <CheckCircle2 className="w-4 h-4" />,
+      badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50',
+      headerClass: isDarkMode ? 'bg-emerald-950/25 border-y border-emerald-900/40 text-emerald-300' : 'bg-emerald-50/50 border-y border-emerald-100/70 text-emerald-850 font-bold'
+    },
+    {
+      id: 'Selesai (Dengan Catatan)',
+      title: 'SPK Selesai (Dengan Catatan)',
+      items: selesaiCatatanSpks,
+      icon: <Award className="w-4 h-4" />,
+      badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50',
+      headerClass: isDarkMode ? 'bg-blue-950/25 border-y border-blue-900/40 text-blue-300' : 'bg-blue-50/50 border-y border-blue-100/70 text-blue-850 font-bold'
+    },
+    {
+      id: 'Dibatalkan',
+      title: 'SPK Dibatalkan',
+      items: dibatalkanSpks,
+      icon: <XCircle className="w-4 h-4" />,
+      badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50',
+      headerClass: isDarkMode ? 'bg-rose-950/25 border-y border-rose-900/40 text-rose-300' : 'bg-rose-50/50 border-y border-rose-100/70 text-rose-850 font-bold'
+    }
+  ];
+
+  // Determine active visible categories for the table
+  const visibleCategories = groupedCategories.filter(cat => {
+    if (statusFilter === 'ALL') {
+      return cat.items.length > 0;
+    }
+    if (statusFilter === 'Terencana' || statusFilter === 'Rencana') {
+      return cat.id === 'Terencana';
+    }
+    if (statusFilter === 'Dalam Progres') {
+      return cat.id === 'Dalam Progres';
+    }
+    if (statusFilter === 'Selesai') {
+      return cat.id === 'Selesai' || cat.id === 'Selesai (Dengan Catatan)';
+    }
+    if (statusFilter === 'Selesai (Dengan Catatan)') {
+      return cat.id === 'Selesai (Dengan Catatan)';
+    }
+    if (statusFilter === 'Pending') {
+      return cat.id === 'Pending';
+    }
+    if (statusFilter === 'Dibatalkan') {
+      return cat.id === 'Dibatalkan';
+    }
+    return false;
   });
 
   return (
@@ -748,11 +849,20 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
           </div>
 
           {/* KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             
-            <div className={`p-4 rounded-2xl border flex items-center gap-4 ${
-              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
-            }`}>
+            <div 
+              onClick={() => setStatusFilter('ALL')}
+              className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                statusFilter === 'ALL'
+                  ? isDarkMode 
+                    ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30' 
+                    : 'border-blue-500 bg-blue-50/50 shadow-[0_0_15px_rgba(59,130,246,0.1)] ring-1 ring-blue-500/20'
+                  : isDarkMode 
+                    ? 'bg-slate-900/80 border-slate-800 opacity-70 hover:opacity-100' 
+                    : 'bg-white border-slate-200/80 shadow-xs hover:border-slate-300'
+              }`}
+            >
               <div className="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <FileText className="w-5 h-5" />
               </div>
@@ -765,9 +875,44 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
               </div>
             </div>
 
-            <div className={`p-4 rounded-2xl border flex items-center gap-4 ${
-              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
-            }`}>
+            <div 
+              onClick={() => setStatusFilter('Terencana')}
+              className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                statusFilter === 'Terencana' || statusFilter === 'Rencana'
+                  ? isDarkMode 
+                    ? 'border-indigo-500 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/30' 
+                    : 'border-indigo-500 bg-indigo-50/50 shadow-[0_0_15px_rgba(99,102,241,0.1)] ring-1 ring-indigo-500/20'
+                  : isDarkMode 
+                    ? 'bg-slate-900/80 border-slate-800 opacity-70 hover:opacity-100' 
+                    : 'bg-white border-slate-200/80 shadow-xs hover:border-slate-300'
+              }`}
+            >
+              <div className="w-11 h-11 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">SPK Terencana</span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                    {allSpks.filter(s => s.statusPekerjaan === 'Terencana' || s.statusPekerjaan === 'Rencana').length}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">SPK</span>
+                </div>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => setStatusFilter('Dalam Progres')}
+              className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                statusFilter === 'Dalam Progres'
+                  ? isDarkMode 
+                    ? 'border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30' 
+                    : 'border-amber-500 bg-amber-50/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] ring-1 ring-amber-500/20'
+                  : isDarkMode 
+                    ? 'bg-slate-900/80 border-slate-800 opacity-70 hover:opacity-100' 
+                    : 'bg-white border-slate-200/80 shadow-xs hover:border-slate-300'
+              }`}
+            >
               <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
@@ -786,9 +931,18 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
               </div>
             </div>
 
-            <div className={`p-4 rounded-2xl border flex items-center gap-4 ${
-              isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
-            }`}>
+            <div 
+              onClick={() => setStatusFilter('Selesai')}
+              className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                (statusFilter === 'Selesai' || statusFilter === 'Selesai (Dengan Catatan)')
+                  ? isDarkMode 
+                    ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30' 
+                    : 'border-emerald-500 bg-emerald-50/50 shadow-[0_0_15px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/20'
+                  : isDarkMode 
+                    ? 'bg-slate-900/80 border-slate-800 opacity-70 hover:opacity-100' 
+                    : 'bg-white border-slate-200/80 shadow-xs hover:border-slate-300'
+              }`}
+            >
               <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
@@ -802,6 +956,32 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       s.statusPekerjaan === 'Selesai dengan catatan' ||
                       s.statusPekerjaan === 'Selesai (Dengan Catatan)'
                     ).length}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">SPK</span>
+                </div>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => setStatusFilter('Dibatalkan')}
+              className={`p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                statusFilter === 'Dibatalkan'
+                  ? isDarkMode 
+                    ? 'border-rose-500 bg-rose-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)] ring-1 ring-rose-500/30' 
+                    : 'border-rose-500 bg-rose-50/50 shadow-[0_0_15px_rgba(239,68,68,0.1)] ring-1 ring-rose-500/20'
+                  : isDarkMode 
+                    ? 'bg-slate-900/80 border-slate-800 opacity-70 hover:opacity-100' 
+                    : 'bg-white border-slate-200/80 shadow-xs hover:border-slate-300'
+              }`}
+            >
+              <div className="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <XCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">SPK Dibatalkan</span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                    {allSpks.filter(s => s.statusPekerjaan === 'Dibatalkan').length}
                   </span>
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">SPK</span>
                 </div>
@@ -833,10 +1013,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 className="p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
               >
                 <option value="ALL">Semua Status SPK</option>
+                <option value="Terencana">Terencana</option>
                 <option value="Dalam Progres">Dalam Progres</option>
                 <option value="Selesai">Selesai</option>
                 <option value="Selesai (Dengan Catatan)">Selesai (Dengan Catatan)</option>
                 <option value="Pending">Pending</option>
+                <option value="Dibatalkan">Dibatalkan</option>
               </select>
             </div>
           </div>
@@ -861,79 +1043,101 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredSpks.map((spk) => (
-                    <tr 
-                      key={spk.id}
-                      onClick={() => handleOpenSpkEditor(spk)}
-                      className={`hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group`}
-                    >
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                        <div className="font-extrabold text-blue-600 dark:text-blue-400">{spk.nomorSpk}</div>
-                        <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                          <span>📅 {spk.tanggal}</span>
-                        </div>
-                      </td>
+                  {visibleCategories.map((cat) => (
+                    <React.Fragment key={`cat-fragment-${cat.id}`}>
+                      {/* Section Header Row for Status Group */}
+                      <tr key={`group-header-${cat.id}`} className={cat.headerClass}>
+                        <td colSpan={7} className="py-2.5 px-4 font-black">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="shrink-0">{cat.icon}</span>
+                              <span className="tracking-wider uppercase text-[10px]">{cat.title}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${cat.badgeClass}`}>
+                              {cat.items.length} Berkas
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">{spk.jenisPekerjaan}</div>
-                        <div className="text-[10px] font-bold text-slate-500 uppercase">{spk.kategoriHeader}</div>
-                      </td>
+                      {/* SPK rows belonging to this group */}
+                      {cat.items.map((spk) => (
+                        <tr 
+                          key={spk.id}
+                          onClick={() => handleOpenSpkEditor(spk)}
+                          className={`hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group`}
+                        >
+                          <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
+                            <div className="font-extrabold text-blue-600 dark:text-blue-400">{spk.nomorSpk}</div>
+                            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <span>📅 {spk.tanggal}</span>
+                            </div>
+                          </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900 dark:text-white">⚡ {spk.penyulang}</div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">{spk.lokasi}</div>
-                      </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-extrabold text-slate-900 dark:text-white">{spk.jenisPekerjaan}</div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase">{spk.kategoriHeader}</div>
+                          </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-800 dark:text-slate-200">
-                          {spk.personnel.slice(0, 2).join(', ')}
-                          {spk.personnel.length > 2 && <span className="text-slate-400 font-normal"> +{spk.personnel.length - 2} lainnya</span>}
-                        </div>
-                        <div className="text-[10px] text-slate-500 font-semibold">{spk.personnel.length} Orang Tim</div>
-                      </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-900 dark:text-white">⚡ {spk.penyulang}</div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">{spk.lokasi}</div>
+                          </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">🎯 {spk.target || '-'}</div>
-                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Target PK</div>
-                      </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              {spk.personnel.slice(0, 2).join(', ')}
+                              {spk.personnel.length > 2 && <span className="text-slate-400 font-normal"> +{spk.personnel.length - 2} lainnya</span>}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-semibold">{spk.personnel.length} Orang Tim</div>
+                          </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold inline-block ${
-                          spk.statusPekerjaan === 'Selesai' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-                          (spk.statusPekerjaan === 'Selesai (Dengan Catatan)' || spk.statusPekerjaan === 'Selesai Dengan catatan' || spk.statusPekerjaan?.includes('catatan')) ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
-                          (spk.statusPekerjaan === 'Dalam Proses' || spk.statusPekerjaan === 'Dalam Progres' || spk.statusPekerjaan?.includes('Progres')) ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
-                          'bg-slate-500/10 text-slate-600 border border-slate-500/20'
-                        }`}>
-                          {spk.statusPekerjaan}
-                        </span>
-                      </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-extrabold text-slate-900 dark:text-white">🎯 {spk.target || '-'}</div>
+                            <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">Target PK</div>
+                          </td>
 
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormData(spk);
-                              setShowPrintModal(true);
-                            }}
-                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700 font-bold text-xs flex items-center gap-1 border border-blue-200 dark:border-slate-700 cursor-pointer"
-                            title="Cetak SPK"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            <span>Cetak</span>
-                          </button>
-                          
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteSpk(spk.id, e)}
-                            className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-slate-700 transition-colors"
-                            title="Hapus SPK"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold inline-block ${
+                              (spk.statusPekerjaan === 'Rencana' || spk.statusPekerjaan === 'Terencana') ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20' :
+                              spk.statusPekerjaan === 'Selesai' ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
+                              (spk.statusPekerjaan === 'Selesai (Dengan Catatan)' || spk.statusPekerjaan === 'Selesai Dengan catatan' || spk.statusPekerjaan?.includes('catatan')) ? 'bg-blue-500/10 text-blue-600 border border-blue-500/20' :
+                              (spk.statusPekerjaan === 'Dalam Proses' || spk.statusPekerjaan === 'Dalam Progres' || spk.statusPekerjaan?.includes('Progres')) ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' :
+                              spk.statusPekerjaan === 'Dibatalkan' ? 'bg-rose-500/10 text-rose-600 border border-rose-500/20' :
+                              'bg-slate-500/10 text-slate-600 border border-slate-500/20'
+                            }`}>
+                              {spk.statusPekerjaan}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData(spk);
+                                  setShowPrintModal(true);
+                                }}
+                                className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-slate-800 dark:text-blue-400 dark:hover:bg-slate-700 font-bold text-xs flex items-center gap-1 border border-blue-200 dark:border-slate-700 cursor-pointer"
+                                title="Cetak SPK"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                                <span>Cetak</span>
+                              </button>
+                              
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteSpk(spk.id, e)}
+                                className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-slate-800 dark:text-rose-400 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                title="Hapus SPK"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
                   ))}
 
                   {filteredSpks.length === 0 && (
@@ -941,7 +1145,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <FileText className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                          <span>Belum ada dokumen SPK. Klik <strong>"+ Buat SPK Baru"</strong> untuk membuat dokumen SPK pertama Anda.</span>
+                          <span>Belum ada dokumen SPK atau pencarian Anda tidak cocok dengan data apapun.</span>
                         </div>
                       </td>
                     </tr>
@@ -1223,7 +1427,13 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
                   <div className="border-t border-black/40 pt-2 text-[11px] font-extrabold">
                     <div className="mb-1 uppercase tracking-wide">Status pekerjaan</div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1.5 text-xs">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                          {(formData.statusPekerjaan === 'Rencana' || formData.statusPekerjaan === 'Terencana') ? '✓' : ''}
+                        </span>
+                        <span>Terencana</span>
+                      </label>
                       <label className="flex items-center gap-1.5 cursor-pointer">
                         <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
                           {(formData.statusPekerjaan === 'Dalam Progres (On Progress)' || formData.statusPekerjaan === 'Dalam Proses' || formData.statusPekerjaan === 'Dalam Progres') ? '✓' : ''}
@@ -1250,6 +1460,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           {formData.statusPekerjaan === 'Pending' ? '✓' : ''}
                         </span>
                         <span>Pending</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                          {formData.statusPekerjaan === 'Dibatalkan' ? '✓' : ''}
+                        </span>
+                        <span>Dibatalkan</span>
                       </label>
                     </div>
                   </div>
@@ -1414,6 +1630,28 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <option value="INSPEKSI JARINGAN DISTRIBUSI">INSPEKSI JARINGAN DISTRIBUSI</option>
                       <option value="PERAMBASAN POHON (ROW)">PERAMBASAN POHON (ROW)</option>
                     </select>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
+                      Pemberi Perintah: TL TEKNIK
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Pemberi Perintah (TL Teknik)</label>
+                    <input
+                      type="text"
+                      value={formData.tlTeknikName}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        tlTeknikName: e.target.value, 
+                        tlTeknikTitle: 'TL TEKNIK ULP BAGUALA' 
+                      })}
+                      className="w-full p-2 text-xs font-bold rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      placeholder="Masukkan Nama Pemberi Perintah (TL Teknik)..."
+                    />
                   </div>
                 </div>
 
@@ -1811,70 +2049,6 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       )}
                     </button>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {/* TL Teknik Approval Button */}
-                    <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase text-blue-600 dark:text-blue-400">TL TEKNIK</span>
-                        {Boolean(formData.isApprovedTlTeknik) ? (
-                          <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-black flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            TER-APPROVE
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-[9px] font-bold flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            PENDING
-                          </span>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleToggleApproveTlTeknik}
-                        className={`w-full py-1.5 px-2 rounded-lg text-[10px] font-black flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                          Boolean(formData.isApprovedTlTeknik)
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
-                        }`}
-                      >
-                        <UserCheck className="w-3 h-3" />
-                        <span>{Boolean(formData.isApprovedTlTeknik) ? '✓ Approved TL Teknik' : 'Klik Approve TL Teknik'}</span>
-                      </button>
-                    </div>
-
-                    {/* Manager ULP Approval Button */}
-                    <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold uppercase text-purple-600 dark:text-purple-400">MANAGER ULP</span>
-                        {Boolean(formData.isApprovedManager) ? (
-                          <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-[9px] font-black flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            TER-APPROVE
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-[9px] font-bold flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            PENDING
-                          </span>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleToggleApproveManager}
-                        className={`w-full py-1.5 px-2 rounded-lg text-[10px] font-black flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                          Boolean(formData.isApprovedManager)
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
-                            : 'bg-purple-600 hover:bg-purple-700 text-white shadow-xs'
-                        }`}
-                      >
-                        <UserCheck className="w-3 h-3" />
-                        <span>{Boolean(formData.isApprovedManager) ? '✓ Approved Manager' : 'Klik Approve Manager'}</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
@@ -1884,7 +2058,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     </span>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Nama Team Leader Teknik</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Pemberi Perintah (TL Teknik)</label>
                     <input
                       type="text"
                       value={formData.tlTeknikName}
@@ -1894,7 +2068,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         tlTeknikTitle: 'TL TEKNIK ULP BAGUALA' 
                       })}
                       className="w-full p-2 text-xs font-bold rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      placeholder="Masukkan Nama TL Teknik..."
+                      placeholder="Masukkan Nama Pemberi Perintah (TL Teknik)..."
                     />
                   </div>
                 </div>
@@ -1932,10 +2106,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   onChange={(e) => setFormData({ ...formData, statusPekerjaan: e.target.value })}
                   className="w-full p-2 text-xs font-bold rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                 >
+                  <option value="Terencana">Terencana</option>
                   <option value="Dalam Progres">Dalam Progres</option>
                   <option value="Selesai">Selesai</option>
                   <option value="Selesai (Dengan Catatan)">Selesai (Dengan Catatan)</option>
                   <option value="Pending">Pending</option>
+                  <option value="Dibatalkan">Dibatalkan</option>
                 </select>
 
                 {(formData.statusPekerjaan === 'Selesai (Dengan Catatan)' || formData.statusPekerjaan?.includes('catatan')) && (
@@ -2218,22 +2394,13 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                         <div>
                           <div>Pemberi Perintah</div>
-                          <div className="text-[11px] font-black text-blue-900">{formData.tlTeknikTitle}</div>
+                          <div className="text-[11px] font-black text-blue-900">TL TEKNIK ULP BAGUALA</div>
                         </div>
 
-                        {/* Stamp Box Matching User Request (Green border, APPROVE TL TEKNIK, No date) */}
-                        <div className="my-2 min-w-[140px] flex items-center justify-center">
-                          {Boolean(formData.isApprovedTlTeknik) ? (
-                            <div className="border-2 border-emerald-600 rounded-lg py-1.5 px-3 bg-emerald-50/90 shadow-xs rotate-[-4deg] text-center border-dashed">
-                              <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">
-                                APPROVE TL TEKNIK
-                              </span>
+                        <div className="my-2 min-h-[40px] flex items-center justify-center">
+                            <div className="h-9 flex items-center justify-center text-[9px] font-bold text-slate-700 italic border border-dashed border-slate-300 rounded-lg px-2 bg-slate-50/50">
+                              [ Otorisasi Digital ]
                             </div>
-                          ) : (
-                            <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
-                              [ MENUNGGU APPROVAL ]
-                            </div>
-                          )}
                         </div>
 
                         <div className="underline font-black">{formData.tlTeknikName}</div>
@@ -2269,7 +2436,14 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     {/* Status Pekerjaan Bottom Checkboxes */}
                     <div className="border-t border-black/40 pt-2 text-[11px] font-extrabold">
                       <div className="mb-1 uppercase tracking-wide">Status pekerjaan</div>
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1.5 text-xs">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                            {(formData.statusPekerjaan === 'Rencana' || formData.statusPekerjaan === 'Terencana') ? '✓' : ''}
+                          </span>
+                          <span>Terencana</span>
+                        </label>
+
                         <label className="flex items-center gap-1.5 cursor-pointer">
                           <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
                             {(formData.statusPekerjaan === 'Dalam Progres (On Progress)' || formData.statusPekerjaan === 'Dalam Proses' || formData.statusPekerjaan === 'Dalam Progres' || formData.statusPekerjaan?.includes('Progres') || formData.statusPekerjaan?.includes('Progress')) ? '✓' : ''}
@@ -2299,6 +2473,13 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                             {formData.statusPekerjaan === 'Pending' ? '✓' : ''}
                           </span>
                           <span>Pending</span>
+                        </label>
+
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <span className="w-3.5 h-3.5 border border-black flex items-center justify-center text-[9px] font-bold bg-white">
+                            {formData.statusPekerjaan === 'Dibatalkan' ? '✓' : ''}
+                          </span>
+                          <span>Dibatalkan</span>
                         </label>
                       </div>
                     </div>
