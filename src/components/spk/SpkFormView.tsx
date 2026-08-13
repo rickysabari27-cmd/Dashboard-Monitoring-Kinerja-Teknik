@@ -1369,13 +1369,13 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <span className="w-[25%] font-black">Lokasi</span>
                       <span className="w-[5%] text-center font-black">:</span>
                       <span className="w-[70%] font-extrabold whitespace-pre-line leading-relaxed">
-                        {formData.lokasi || '-'}
+                        {formData.lokasi}
                       </span>
                     </div>
                     <div className="flex w-full">
                       <span className="w-[25%] font-black">Target</span>
                       <span className="w-[5%] text-center font-black">:</span>
-                      <span className="w-[70%] font-extrabold">{formData.target || '-'}</span>
+                      <span className="w-[70%] font-extrabold">{formData.target}</span>
                     </div>
                   </div>
                 </div>
@@ -1389,10 +1389,8 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       </div>
                       <div className="my-2 min-w-[140px] flex items-center justify-center">
                         {Boolean(formData.isApprovedTlTeknik) ? (
-                          <div className="border-2 border-emerald-600 rounded-lg py-1.5 px-3 bg-emerald-50/90 shadow-xs rotate-[-4deg] text-center border-dashed">
-                            <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">
-                              APPROVE TL TEKNIK
-                            </span>
+                          <div className="h-9 flex items-center justify-center text-[10px] font-bold text-blue-700 italic border border-dashed border-blue-300 rounded-lg px-3 bg-blue-50/50 shadow-xs">
+                            [ Otorisasi Digital ]
                           </div>
                         ) : (
                           <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
@@ -1403,7 +1401,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <div className="underline font-black">{formData.tlTeknikName}</div>
                     </div>
 
-                    <div className="flex flex-col items-center justify-between min-h-[110px]">
+                    <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                       <div>
                         <div>Mengetahui</div>
                         <div className="text-[11px] font-black text-slate-900">{formData.managerTitle}</div>
@@ -2024,7 +2022,43 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   5. Pejabat Penandatangan & Persetujuan
                 </div>
 
-                {/* Direct Approval Control Card */}
+                {/* Individual Approval Controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleToggleApproveTlTeknik}
+                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+                      Boolean(formData.isApprovedTlTeknik)
+                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-600'
+                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${Boolean(formData.isApprovedTlTeknik) ? 'bg-blue-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
+                      {Boolean(formData.isApprovedTlTeknik) ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-center">
+                      {Boolean(formData.isApprovedTlTeknik) ? 'TL TEKNIK: APPROVED' : 'TL TEKNIK: PENDING'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleApproveManager}
+                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+                      Boolean(formData.isApprovedManager)
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
+                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${Boolean(formData.isApprovedManager) ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
+                      {Boolean(formData.isApprovedManager) ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-center">
+                      {Boolean(formData.isApprovedManager) ? 'MANAGER: APPROVED' : 'MANAGER: PENDING'}
+                    </span>
+                  </button>
+                </div>
+
                 <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-purple-500/10 border border-emerald-500/30 space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <button
@@ -2039,12 +2073,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       {(Boolean(formData.isApprovedTlTeknik) && Boolean(formData.isApprovedManager)) ? (
                         <>
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Approve (TL & Manager)</span>
+                          <span>Batalkan Semua Persetujuan</span>
                         </>
                       ) : (
                         <>
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>(Menunggu Approve)</span>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Approve Keduanya (TL & Manager)</span>
                         </>
                       )}
                     </button>
@@ -2398,9 +2432,15 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         </div>
 
                         <div className="my-2 min-h-[40px] flex items-center justify-center">
-                            <div className="h-9 flex items-center justify-center text-[9px] font-bold text-slate-700 italic border border-dashed border-slate-300 rounded-lg px-2 bg-slate-50/50">
+                          {Boolean(formData.isApprovedTlTeknik) ? (
+                            <div className="h-9 flex items-center justify-center text-[10px] font-bold text-blue-700 italic border border-dashed border-blue-300 rounded-lg px-3 bg-blue-50/50 shadow-xs">
                               [ Otorisasi Digital ]
                             </div>
+                          ) : (
+                            <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
+                              [ MENUNGGU APPROVAL ]
+                            </div>
+                          )}
                         </div>
 
                         <div className="underline font-black">{formData.tlTeknikName}</div>
