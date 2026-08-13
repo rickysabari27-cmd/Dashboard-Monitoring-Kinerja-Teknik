@@ -353,7 +353,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 Kelola User & Hak Akses Petugas Teknik
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Otorisasi Team Leader, Supervisor, Petugas Yantek & Operator SCADA
+                Otorisasi Team Leader, Petugas Yantek & Admin
               </p>
             </div>
           </div>
@@ -367,8 +367,8 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {users.map((item) => (
-            <div key={item.id} className={`p-4 rounded-2xl border ${
+          {users.map((item, idx) => (
+            <div key={`${item.id || item.nik || 'user'}-${idx}`} className={`p-4 rounded-2xl border ${
               isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
             }`}>
               <div className="flex items-start justify-between mb-2">

@@ -2,6 +2,7 @@ import {
   collection, 
   onSnapshot, 
   setDoc, 
+  deleteDoc,
   doc, 
   getDocs,
   writeBatch
@@ -39,10 +40,16 @@ export function syncCollection<T extends { id?: string; month?: string }>(
           handleFirestoreError(err, OperationType.WRITE, collectionName);
         }
       } else {
-        const items = snapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id
-        })) as T[];
+        const seen = new Set<string>();
+        const items: T[] = [];
+        snapshot.docs.forEach((d, idx) => {
+          const itemData = d.data();
+          const id = d.id || itemData.id || `doc_${idx}`;
+          if (!seen.has(id)) {
+            seen.add(id);
+            items.push({ ...itemData, id } as T);
+          }
+        });
         onDataUpdate(items);
       }
     },
@@ -72,5 +79,17 @@ export async function saveDocument<T extends { id?: string; month?: string }>(
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${collectionName}/${docId}`);
     throw error;
+  }
+}
+
+/**
+ * Deletes a document from a collection
+ */
+export async function deleteDocument(collectionName: string, docId: string) {
+  const docRef = doc(db, collectionName, docId);
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${docId}`);
   }
 }

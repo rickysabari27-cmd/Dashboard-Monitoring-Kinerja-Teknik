@@ -65,7 +65,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           id: `USR-${Date.now()}`,
           nik: trimmedUsername.toUpperCase(),
           name: trimmedUsername.includes('@') ? trimmedUsername.split('@')[0] : trimmedUsername,
-          role: 'Supervisor Teknik',
+          role: 'Team Leader',
           unitName: 'PLN ULP Baguala',
           email: trimmedUsername.includes('@') ? trimmedUsername : `${trimmedUsername.toLowerCase()}@pln.co.id`,
           status: 'Aktif',

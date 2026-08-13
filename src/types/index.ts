@@ -183,9 +183,10 @@ export interface UserAccess {
   id: string;
   nik: string;
   name: string;
-  role: 'Team Leader' | 'Supervisor Teknik' | 'Petugas Yantek' | 'Operator SCADA' | 'Admin';
+  role: 'Manager' | 'Team Leader' | 'Admin Yantek' | 'Petugas Yantek' | 'Admin';
   unitName: string;
   email: string;
+  phone?: string;
   status: 'Aktif' | 'Non-Aktif';
   lastActive: string;
 }

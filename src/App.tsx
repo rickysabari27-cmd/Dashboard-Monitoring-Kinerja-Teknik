@@ -28,7 +28,7 @@ import {
   INITIAL_VEHICLES,
   INITIAL_USERS
 } from './data/mockData';
-import { syncCollection, saveDocument } from './services/firebaseSync';
+import { syncCollection, saveDocument, deleteDocument } from './services/firebaseSync';
 
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -269,6 +269,13 @@ export default function App() {
     showToast(`User ${newUser.name} (${newUser.role}) berhasil diberikan akses ke Firebase!`);
   };
 
+  const handleDeleteUser = (userId: string) => {
+    const targetUser = users.find(u => u.id === userId);
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    deleteDocument('users_access', userId);
+    showToast(`Akun user ${targetUser ? targetUser.name : ''} berhasil dihapus!`);
+  };
+
   // Render standalone Gardu Induk Login Page if user is logged out
   if (!currentUser) {
     return (
@@ -440,6 +447,7 @@ export default function App() {
               isDarkMode={isDarkMode}
               users={users}
               onSaveUser={handleSaveUser}
+              onDeleteUser={handleDeleteUser}
               currentUser={currentUser}
             />
           )}

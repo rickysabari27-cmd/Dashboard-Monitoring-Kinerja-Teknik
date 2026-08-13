@@ -739,7 +739,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">NIK Pegawai PLN</label>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">NIP / ID Petugas</label>
                   <input type="text" value={userNik} onChange={(e) => setUserNik(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
                 <div>
@@ -751,10 +751,11 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Peran / Role Akses</label>
                   <select value={userRole} onChange={(e) => setUserRole(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                    <option value="Manager">Manager</option>
                     <option value="Team Leader">Team Leader</option>
-                    <option value="Supervisor Teknik">Supervisor Teknik</option>
+                    <option value="Admin Yantek">Admin Yantek</option>
                     <option value="Petugas Yantek">Petugas Yantek</option>
-                    <option value="Operator SCADA">Operator SCADA</option>
+                    <option value="Admin">Admin</option>
                   </select>
                 </div>
                 <div>

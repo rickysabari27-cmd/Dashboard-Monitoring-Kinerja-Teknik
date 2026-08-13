@@ -33,7 +33,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       setIsLoading(false);
 
       if (!username.trim() || !password.trim()) {
-        setErrorMsg('Username/NIK dan Password wajib diisi.');
+        setErrorMsg('NIP/ID Petugas dan Password wajib diisi.');
         return;
       }
 
@@ -57,7 +57,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           id: `USR-${Date.now()}`,
           nik: username.trim().toUpperCase(),
           name: username.includes('@') ? username.split('@')[0] : username,
-          role: 'Supervisor Teknik',
+          role: 'Team Leader',
           unitName: 'PLN ULP Baguala',
           email: username.includes('@') ? username : `${username.toLowerCase()}@pln.co.id`,
           status: 'Aktif',
@@ -104,7 +104,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           </div>
           <p className="text-xs text-blue-100/80 mt-2 font-medium">
-            Masukkan NIK/Email dan Password akun PLN untuk membuka akses fitur penuh
+            Masukkan NIP / ID Petugas/Email dan Password akun PLN untuk membuka akses fitur penuh
           </p>
         </div>
 
@@ -115,9 +115,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <span>Pilih Akun Demo (Akses Cepat):</span>
           </label>
           <div className="flex flex-wrap gap-1.5">
-            {usersList.slice(0, 3).map((u) => (
+            {usersList.slice(0, 3).map((u, idx) => (
               <button
-                key={u.id}
+                key={`${u.id || u.nik || 'user'}-${idx}`}
                 type="button"
                 onClick={() => handleQuickSelect(u)}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
@@ -149,7 +149,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div>
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-blue-500" />
-              <span>Username / NIK / Email PLN</span>
+              <span>Username / NIP / ID Petugas / Email</span>
             </label>
             <div className="relative">
               <input 
