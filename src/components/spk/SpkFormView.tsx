@@ -126,7 +126,7 @@ const PRESET_ROW_PAGE_1: SpkFormData = {
   lokasi: '',
   target: '',
   tlTeknikName: 'Muhamad Ricky Sabari',
-  tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
+  tlTeknikTitle: 'TL TEKNIK',
   isApprovedTlTeknik: false,
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
@@ -165,7 +165,7 @@ const PRESET_INSPEKSI_PAGE_2: SpkFormData = {
   lokasi: 'Tersebar Wilayah Kerja',
   target: '67 Tiang Dan 4 Gardu Distribusi',
   tlTeknikName: 'Muhamad Ricky Sabari',
-  tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
+  tlTeknikTitle: 'TL TEKNIK',
   isApprovedTlTeknik: false,
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
@@ -202,7 +202,7 @@ const PRESET_PASSO_GARDU: SpkFormData = {
   lokasi: 'Gardu Portal PAS-04 & PAS-09 Area Passo Transit',
   target: '2 Buah Gardu Distribusi',
   tlTeknikName: 'Muhamad Ricky Sabari',
-  tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
+  tlTeknikTitle: 'TL TEKNIK',
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
   statusPekerjaan: 'Selesai'
@@ -236,7 +236,7 @@ const PRESET_LATERI_THERMO: SpkFormData = {
   lokasi: 'Jalur Utama LATERI 2 (Tiang #10 s/d Tiang #88)',
   target: '52 Titik Sambungan FCO & Jumper',
   tlTeknikName: 'Muhamad Ricky Sabari',
-  tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
+  tlTeknikTitle: 'TL TEKNIK',
   managerName: 'Niken Oka Witdoretno',
   managerTitle: 'Manager ULP Baguala',
   statusPekerjaan: 'Selesai (Dengan Catatan)'
@@ -438,7 +438,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
       lokasi: '',
       target: '',
       tlTeknikName: 'Muhamad Ricky Sabari',
-      tlTeknikTitle: 'TL TEKNIK ULP BAGUALA',
+      tlTeknikTitle: 'TL TEKNIK',
       managerName: 'Niken Oka Witdoretno',
       managerTitle: 'Manager ULP Baguala',
       statusPekerjaan: 'Dalam Progres'
@@ -1250,8 +1250,19 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
               {/* MAIN CONTENT BORDER BOX */}
               <div className="border-2 border-black w-full p-4 space-y-4 text-black text-xs leading-relaxed min-h-[750px] flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="font-extrabold text-xs uppercase tracking-wide border-b border-black/20 pb-1.5">
-                    {formData.nomorSpk}
+                  <div className="space-y-2 border-b border-black/20 pb-2">
+                    <div className="font-extrabold text-xs uppercase tracking-wide">
+                      {formData.nomorSpk}
+                    </div>
+                    <div className="flex items-center justify-between text-xs font-extrabold pt-1">
+                      <div>
+                        <span>Pemberi Perintah: </span>
+                        <span className="text-blue-900">{formData.tlTeknikTitle || 'TL TEKNIK'}</span>
+                      </div>
+                      <div>
+                        <span className="underline font-black">{formData.tlTeknikName}</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="font-black text-sm uppercase text-center tracking-wide my-1">
@@ -1381,26 +1392,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 </div>
 
                 <div className="pt-4 space-y-4">
-                  <div className="flex w-full gap-4 text-center text-xs font-extrabold pt-2">
-                    <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
-                      <div>
-                        <div>Pemberi Perintah</div>
-                        <div className="text-[11px] font-black text-blue-900">{formData.tlTeknikTitle}</div>
-                      </div>
-                      <div className="my-2 min-w-[140px] flex items-center justify-center">
-                        {Boolean(formData.isApprovedTlTeknik) ? (
-                          <div className="h-9 flex items-center justify-center text-[10px] font-bold text-blue-700 italic border border-dashed border-blue-300 rounded-lg px-3 bg-blue-50/50 shadow-xs">
-                            [ Otorisasi Digital ]
-                          </div>
-                        ) : (
-                          <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
-                            [ MENUNGGU APPROVAL ]
-                          </div>
-                        )}
-                      </div>
-                      <div className="underline font-black">{formData.tlTeknikName}</div>
-                    </div>
-
+                  <div className="flex w-full justify-center text-center text-xs font-extrabold pt-2">
                     <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                       <div>
                         <div>Mengetahui</div>
@@ -1604,7 +1596,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           nextPersonnel = [...DEFAULT_INSPEKSI_PERSONNEL];
                           nextJenisPekerjaan = 'Inspeksi Jaringan Distribusi';
                         } else if (isPemeliharaan) {
-                          nextPersonnel = [...DEFAULT_INSPEKSI_PERSONNEL];
+                          nextPersonnel = [];
                           nextJenisPekerjaan = 'Pemeliharaan Jaringan Distribusi';
                         }
 
@@ -1612,7 +1604,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           ...prev,
                           kategoriHeader: val,
                           nomorSpk: nextNomorSpk,
-                          personnel: nextPersonnel.length > 0 ? nextPersonnel : prev.personnel,
+                          personnel: isPemeliharaan ? [] : (nextPersonnel.length > 0 ? nextPersonnel : prev.personnel),
                           jenisPekerjaan: nextJenisPekerjaan || prev.jenisPekerjaan,
                           checklist: {
                             ...prev.checklist,
@@ -1628,28 +1620,6 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <option value="INSPEKSI JARINGAN DISTRIBUSI">INSPEKSI JARINGAN DISTRIBUSI</option>
                       <option value="PERAMBASAN POHON (ROW)">PERAMBASAN POHON (ROW)</option>
                     </select>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
-                      Pemberi Perintah: TL TEKNIK
-                    </span>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Pemberi Perintah (TL Teknik)</label>
-                    <input
-                      type="text"
-                      value={formData.tlTeknikName}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        tlTeknikName: e.target.value, 
-                        tlTeknikTitle: 'TL TEKNIK ULP BAGUALA' 
-                      })}
-                      className="w-full p-2 text-xs font-bold rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      placeholder="Masukkan Nama Pemberi Perintah (TL Teknik)..."
-                    />
                   </div>
                 </div>
 
@@ -1729,6 +1699,28 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       onChange={(e) => setFormData({ ...formData, nomorSpk: e.target.value })}
                       className="w-full p-2 text-xs font-black rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                       placeholder="Format: 013/PK.TEK/ROW/ULP.BGL/VIII/2026"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
+                      Pemberi Perintah: TL TEKNIK
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Pemberi Perintah (TL Teknik)</label>
+                    <input
+                      type="text"
+                      value={formData.tlTeknikName}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        tlTeknikName: e.target.value, 
+                        tlTeknikTitle: 'TL TEKNIK' 
+                      })}
+                      className="w-full p-2 text-xs font-bold rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      placeholder="Masukkan Nama Pemberi Perintah (TL Teknik)..."
                     />
                   </div>
                 </div>
@@ -2022,90 +2014,35 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   5. Pejabat Penandatangan & Persetujuan
                 </div>
 
-                {/* Individual Approval Controls */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={handleToggleApproveTlTeknik}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
-                      Boolean(formData.isApprovedTlTeknik)
-                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-600'
-                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${Boolean(formData.isApprovedTlTeknik) ? 'bg-blue-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
-                      {Boolean(formData.isApprovedTlTeknik) ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-center">
-                      {Boolean(formData.isApprovedTlTeknik) ? 'TL TEKNIK: APPROVED' : 'TL TEKNIK: PENDING'}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleApproveManager}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
-                      Boolean(formData.isApprovedManager)
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
-                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${Boolean(formData.isApprovedManager) ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'}`}>
+                {/* Manager Approval Control */}
+                <button
+                  type="button"
+                  onClick={handleToggleApproveManager}
+                  className={`w-full p-3.5 rounded-xl border flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                    Boolean(formData.isApprovedManager)
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-lg ${Boolean(formData.isApprovedManager) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
                       {Boolean(formData.isApprovedManager) ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-center">
-                      {Boolean(formData.isApprovedManager) ? 'MANAGER: APPROVED' : 'MANAGER: PENDING'}
-                    </span>
-                  </button>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-purple-500/10 border border-emerald-500/30 space-y-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handleApproveAll}
-                      className={`px-3 py-1.5 text-white font-black text-[11px] rounded-lg shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                        (Boolean(formData.isApprovedTlTeknik) && Boolean(formData.isApprovedManager))
-                          ? 'bg-emerald-600 hover:bg-emerald-700'
-                          : 'bg-orange-500 hover:bg-orange-600'
-                      }`}
-                    >
-                      {(Boolean(formData.isApprovedTlTeknik) && Boolean(formData.isApprovedManager)) ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Batalkan Semua Persetujuan</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Approve Keduanya (TL & Manager)</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="text-left">
+                      <div className="text-[11px] font-black uppercase tracking-wider">
+                        {Boolean(formData.isApprovedManager) ? 'MANAGER: APPROVED' : 'MANAGER: PENDING APPROVAL'}
+                      </div>
+                      <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                        Persetujuan Manager ULP Baguala
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-blue-600 dark:text-blue-400">
-                      Pemberi Perintah: TL TEKNIK
-                    </span>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Pemberi Perintah (TL Teknik)</label>
-                    <input
-                      type="text"
-                      value={formData.tlTeknikName}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        tlTeknikName: e.target.value, 
-                        tlTeknikTitle: 'TL TEKNIK ULP BAGUALA' 
-                      })}
-                      className="w-full p-2 text-xs font-bold rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      placeholder="Masukkan Nama Pemberi Perintah (TL Teknik)..."
-                    />
-                  </div>
-                </div>
+                  <span className={`text-[10px] font-extrabold px-2 py-1 rounded-md uppercase ${
+                    Boolean(formData.isApprovedManager) ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                  }`}>
+                    {Boolean(formData.isApprovedManager) ? 'Disetujui' : 'Menunggu'}
+                  </span>
+                </button>
 
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
                   <div className="flex items-center justify-between">
@@ -2270,9 +2207,20 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <div className="border-2 border-black w-full p-4 space-y-4 text-black text-xs leading-relaxed min-h-[750px] flex flex-col justify-between">
                   
                   <div className="space-y-3">
-                    {/* Document Number */}
-                    <div className="font-extrabold text-xs uppercase tracking-wide border-b border-black/20 pb-1.5">
-                      {formData.nomorSpk}
+                    {/* Document Number & Pemberi Perintah */}
+                    <div className="space-y-2 border-b border-black/20 pb-2">
+                      <div className="font-extrabold text-xs uppercase tracking-wide">
+                        {formData.nomorSpk}
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-extrabold pt-1">
+                        <div>
+                          <span>Pemberi Perintah: </span>
+                          <span className="text-blue-900">{formData.tlTeknikTitle || 'TL TEKNIK'}</span>
+                        </div>
+                        <div>
+                          <span className="underline font-black">{formData.tlTeknikName}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Header Category Subtitle */}
@@ -2421,32 +2369,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   {/* Bottom Signatures & Status Section */}
                   <div className="pt-4 space-y-4">
                     
-                    {/* SIGNATURE BLOCKS (2 Signatories: TL Teknik Pemberi Perintah + Manager) */}
-                    <div className="flex w-full gap-4 text-center text-xs font-extrabold pt-2">
+                    {/* SIGNATURE BLOCK (1 Signatory: Manager ULP Baguala on bottom-right) */}
+                    <div className="flex w-full justify-end text-center text-xs font-extrabold pt-2">
                       
-                      {/* Left: Pemberi Perintah TL TEKNIK */}
-                      <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
-                        <div>
-                          <div>Pemberi Perintah</div>
-                          <div className="text-[11px] font-black text-blue-900">TL TEKNIK ULP BAGUALA</div>
-                        </div>
-
-                        <div className="my-2 min-h-[40px] flex items-center justify-center">
-                          {Boolean(formData.isApprovedTlTeknik) ? (
-                            <div className="h-9 flex items-center justify-center text-[10px] font-bold text-blue-700 italic border border-dashed border-blue-300 rounded-lg px-3 bg-blue-50/50 shadow-xs">
-                              [ Otorisasi Digital ]
-                            </div>
-                          ) : (
-                            <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
-                              [ MENUNGGU APPROVAL ]
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="underline font-black">{formData.tlTeknikName}</div>
-                      </div>
-
-                      {/* Right: Mengetahui MANAGER ULP BAGUALA */}
+                      {/* Mengetahui MANAGER ULP BAGUALA */}
                       <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                         <div>
                           <div>Mengetahui</div>
