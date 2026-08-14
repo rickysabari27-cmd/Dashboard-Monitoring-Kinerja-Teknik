@@ -16,7 +16,9 @@ import {
   MaterialItem,
   ApdTool,
   Vehicle,
-  UserAccess
+  UserAccess,
+  WhatsAppContact,
+  WhatsAppMessage
 } from '../types';
 
 export const INITIAL_TRIPS: FeederTrip[] = [
@@ -618,6 +620,95 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
 
 export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
   {
+    id: 'SEC-ALL-01',
+    sectionCode: 'ALG-ALL-01',
+    sectionName: 'GH Bandara-Namahatu',
+    feederName: 'Allang',
+    substationOrGh: 'GH Bandara',
+    startPoint: 'GH Bandara (Pangkal)',
+    endPoint: 'Recloser Namahatu (Node)',
+    garduCount: 18,
+    lengthKms: 11.2,
+    khaAmpere: 450,
+    bebanUtamaKha: 11.2,
+    bebanCabangKha: 18,
+    totalBebanKha: 450,
+    customerCount: 1820,
+    status: 'Normal',
+    currentLoadAmpere: 245,
+    voltageKv: 20.1,
+    voltageDropPercent: 1.2,
+    temperatureCelsius: 38
+  },
+  {
+    id: 'SEC-ALL-02',
+    sectionCode: 'ALG-ALL-02',
+    sectionName: 'Namahatu-Samahuku',
+    feederName: 'Allang',
+    substationOrGh: 'GH Bandara',
+    startPoint: 'Recloser Namahatu (Node)',
+    endPoint: 'LBSM Samahuku (Node)',
+    garduCount: 11,
+    lengthKms: 6.3,
+    khaAmpere: 320,
+    bebanUtamaKha: 6.3,
+    bebanCabangKha: 11,
+    totalBebanKha: 320,
+    customerCount: 1150,
+    status: 'Normal',
+    hasFcoBranch: true,
+    fcoBranchName: 'FCO Percabangan Lateral (Node)',
+    fcoLengthKms: 0.8,
+    fcoKhaAmpere: 65,
+    fcoLaterals: ['Lateral 1: Desa X', 'Lateral 2: Industri Y'],
+    currentLoadAmpere: 182,
+    voltageKv: 19.8,
+    voltageDropPercent: 2.1,
+    temperatureCelsius: 41
+  },
+  {
+    id: 'SEC-ALL-03',
+    sectionCode: 'ALG-ALL-03',
+    sectionName: 'FCO Tapi -Samahuku',
+    feederName: 'Allang',
+    substationOrGh: 'GH Bandara',
+    startPoint: 'LBSM Samahuku (Node)',
+    endPoint: 'LBSM Tapi (Node)',
+    garduCount: 5,
+    lengthKms: 3.5,
+    khaAmpere: 210,
+    bebanUtamaKha: 3.5,
+    bebanCabangKha: 5,
+    totalBebanKha: 210,
+    customerCount: 520,
+    status: 'Normal',
+    currentLoadAmpere: 110,
+    voltageKv: 19.5,
+    voltageDropPercent: 2.8,
+    temperatureCelsius: 36
+  },
+  {
+    id: 'SEC-ALL-04',
+    sectionCode: 'ALG-ALL-04',
+    sectionName: 'LBSM Tapi (Ujung)',
+    feederName: 'Allang',
+    substationOrGh: 'GH Bandara',
+    startPoint: 'LBSM Tapi (Node)',
+    endPoint: 'FCO Tapi (Node)',
+    garduCount: 1,
+    lengthKms: 1.5,
+    khaAmpere: 180,
+    bebanUtamaKha: 1.5,
+    bebanCabangKha: 1,
+    totalBebanKha: 180,
+    customerCount: 130,
+    status: 'Warning',
+    currentLoadAmpere: 168,
+    voltageKv: 18.9,
+    voltageDropPercent: 5.4,
+    temperatureCelsius: 49
+  },
+  {
     id: 'SEC-01',
     sectionCode: 'SEC-LTR2-01',
     sectionName: 'Section Utama Lateri - Suli',
@@ -627,8 +718,9 @@ export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
     endPoint: 'LBS Suli Atas (Pole #88)',
     garduCount: 14,
     lengthKms: 6.8,
+    khaAmpere: 420,
     customerCount: 1850,
-    status: 'Operasi'
+    status: 'Normal'
   },
   {
     id: 'SEC-02',
@@ -640,8 +732,9 @@ export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
     endPoint: 'FCO Ujung Tial Pantai',
     garduCount: 9,
     lengthKms: 5.4,
+    khaAmpere: 290,
     customerCount: 1200,
-    status: 'Operasi'
+    status: 'Normal'
   },
   {
     id: 'SEC-03',
@@ -653,8 +746,9 @@ export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
     endPoint: 'Recloser Passo Transit',
     garduCount: 18,
     lengthKms: 7.2,
+    khaAmpere: 510,
     customerCount: 2950,
-    status: 'Operasi'
+    status: 'Normal'
   },
   {
     id: 'SEC-04',
@@ -666,8 +760,9 @@ export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
     endPoint: 'GH Bandara',
     garduCount: 12,
     lengthKms: 8.5,
+    khaAmpere: 380,
     customerCount: 1400,
-    status: 'Operasi'
+    status: 'Normal'
   },
   {
     id: 'SEC-05',
@@ -679,8 +774,9 @@ export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
     endPoint: 'LBS Nania Permai',
     garduCount: 11,
     lengthKms: 4.9,
+    khaAmpere: 310,
     customerCount: 1650,
-    status: 'Operasi'
+    status: 'Normal'
   }
 ];
 
@@ -974,3 +1070,97 @@ export const INITIAL_USERS: UserAccess[] = [
   { id: 'USR-02', nik: '9512088PLN', name: 'Joni Doe', role: 'Team Leader', unitName: 'PLN ULP Baguala', email: 'joni.doe@pln.co.id', phone: '081298765432', status: 'Aktif', lastActive: 'Hari ini 11:30' },
   { id: 'USR-03', nik: '9820011PLN', name: 'Tim Yantek Passo', role: 'Petugas Yantek', unitName: 'Posko Passo', email: 'yantek.passo@pln.co.id', phone: '085211223344', status: 'Aktif', lastActive: 'Hari ini 10:15' }
 ];
+
+export const INITIAL_WHATSAPP_CONTACTS: WhatsAppContact[] = [
+  {
+    id: 'WAC-01',
+    name: 'Grup Dispatch SCADA & Pengatur 20kV',
+    phoneNumber: '6281240001001',
+    roleType: 'Group Dispatch',
+    avatarColor: 'bg-emerald-600',
+    description: 'Pusat Kontrol Operasi Distribusi & SCADA Dispatcher'
+  },
+  {
+    id: 'WAC-02',
+    name: 'Regu Yantek Posko Passo (Piket 1)',
+    phoneNumber: '6281240001002',
+    roleType: 'Regu Yantek',
+    avatarColor: 'bg-blue-600',
+    description: 'Tim Reaksi Cepat Gangguan SUTM & Gardu'
+  },
+  {
+    id: 'WAC-03',
+    name: 'Regu Pemeliharaan Jaringan & ROW',
+    phoneNumber: '6281240001003',
+    roleType: 'Regu Yantek',
+    avatarColor: 'bg-amber-600',
+    description: 'Pelaksana Rabat Pohon & Pemeliharaan Preventif'
+  },
+  {
+    id: 'WAC-04',
+    name: 'Manajemen & Manajer ULP Baguala',
+    phoneNumber: '6281240001004',
+    roleType: 'Manajemen',
+    avatarColor: 'bg-purple-600',
+    description: 'Laporan Eksekutif & Pemadaman Berdampak Luas'
+  },
+  {
+    id: 'WAC-05',
+    name: 'Grup Stakeholder & Kepala Desa Baguala',
+    phoneNumber: '6281240001005',
+    roleType: 'Stakeholder',
+    avatarColor: 'bg-rose-600',
+    description: 'Pemberitahuan Padam Terencana & Info Pelanggan'
+  }
+];
+
+export const INITIAL_WHATSAPP_MESSAGES: WhatsAppMessage[] = [
+  {
+    id: 'WA-MSG-001',
+    recipientName: 'Grup Dispatch SCADA & Pengatur 20kV',
+    phoneNumber: '6281240001001',
+    recipientType: 'Group Dispatch',
+    category: 'Gangguan / Trip',
+    senderName: 'M. Ricky Sabary (Team Leader)',
+    sentAt: '2026-08-14 09:15 WIT',
+    status: 'Dibaca',
+    feederRelated: 'LATERI 2',
+    messageText: `🔴 *LAPORAN GANGGUAN / TRIP PENYULANG 20kV*
+*PLN ULP BAGUALA*
+━━━━━━━━━━━━━━━━━━━━
+⚡ *Penyulang*: LATERI 2
+🏢 *Gardu Induk / GH*: GI Passo (20kV)
+📅 *Waktu Trip*: 2026-08-14, Pukul 09:10 WIT
+⚠️ *Relay Bekerja*: GFR / OCR
+📊 *Arus Gangguan*: 450 Ampere
+📍 *Lokasi Indikasi*: Km 4.2 - Depan Kantor Desa
+🔍 *Dugaan Penyebab*: Dahan pohon tumbang akibat angin kencang
+👥 *Pelanggan Terdampak*: 4.120 Pelanggan
+⏳ *Status*: Regu Yantek Passo sedang meluncur ke lokasi.
+━━━━━━━━━━━━━━━━━━━━
+_Safety First - Utamakan Keselamatan K3!_`
+  },
+  {
+    id: 'WA-MSG-002',
+    recipientName: 'Regu Pemeliharaan Jaringan & ROW',
+    phoneNumber: '6281240001003',
+    recipientType: 'Regu Yantek',
+    category: 'SPK Lapangan',
+    senderName: 'M. Ricky Sabary (Team Leader)',
+    sentAt: '2026-08-13 15:30 WIT',
+    status: 'Diterima',
+    feederRelated: 'TULEHU',
+    messageText: `📋 *SURAT PERINTAH KERJA (SPK) PEMELIHARAAN*
+*PLN ULP BAGUALA*
+━━━━━━━━━━━━━━━━━━━━
+📄 *No. SPK*: SPK/2026/08/BGL-014
+👷‍♂️ *Regu Pelaksana*: Regu Pemeliharaan Jaringan
+⚡ *Penyulang / Lokasi*: TULEHU - SUTM Km 12.8 Tikungan Liang
+🔧 *Uraian Pekerjaan*: Pemangkasan 12 Pohon Kritis ROW & Penggantian Isolator Tumpu
+🛡️ *K3 & APD Wajib*: Helm, Sarung Tangan 20kV, Sepatu Safety, Grounding Stick
+🕒 *Jadwal Pengerjaan*: 15 Agustus 2026 (09:00 - 14:00 WIT)
+━━━━━━━━━━━━━━━━━━━━
+_Mohon konfirmasi kesiapan personil dan alat kerja._`
+  }
+];
+

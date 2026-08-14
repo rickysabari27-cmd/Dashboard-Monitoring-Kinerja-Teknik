@@ -11,7 +11,8 @@ export type ViewMode =
   | 'material'
   | 'apd'
   | 'kendaraan'
-  | 'users';
+  | 'users'
+  | 'whatsapp';
 
 export interface FeederTrip {
   id: string;
@@ -159,8 +160,23 @@ export interface MasterSection {
   endPoint: string;
   garduCount: number;
   lengthKms: number;
+  khaAmpere?: number;
+  bebanUtamaKha?: number;
+  bebanCabangKha?: number;
+  totalBebanKha?: number;
   customerCount?: number;
-  status: 'Operasi' | 'Tidak Operasi' | 'Manuver';
+  status: 'Normal' | 'Warning' | 'Kritis' | 'Operasi' | 'Tidak Operasi' | 'Manuver' | string;
+  // FCO Percabangan Manual Input
+  hasFcoBranch?: boolean;
+  fcoBranchName?: string;
+  fcoLengthKms?: number;
+  fcoKhaAmpere?: number;
+  fcoLaterals?: string[]; // Daftar nama sub-cabang lateral manual
+  // Live Telemetry Monitoring Fields
+  currentLoadAmpere?: number;
+  voltageKv?: number;
+  voltageDropPercent?: number;
+  temperatureCelsius?: number;
 }
 
 export interface MasterGarduHubung {
@@ -270,4 +286,26 @@ export interface ImportedFeederFile {
     tinggiDaN?: string;
     keteranganLainnya?: string;
   }>;
+}
+
+export interface WhatsAppContact {
+  id: string;
+  name: string;
+  phoneNumber: string;
+  roleType: 'Group Dispatch' | 'Regu Yantek' | 'Manajemen' | 'Stakeholder' | 'Petugas Khusus';
+  avatarColor: string;
+  description?: string;
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  recipientName: string;
+  phoneNumber: string;
+  recipientType: string;
+  category: 'Gangguan / Trip' | 'Penormalan' | 'SPK Lapangan' | 'Padam Terencana' | 'Emergency' | 'Lainnya';
+  messageText: string;
+  senderName: string;
+  sentAt: string;
+  status: 'Terkirim' | 'Diterima' | 'Dibaca' | 'Draft';
+  feederRelated?: string;
 }

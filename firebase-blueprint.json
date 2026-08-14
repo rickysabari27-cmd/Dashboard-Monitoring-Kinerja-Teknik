@@ -124,6 +124,83 @@
       },
       "required": ["id", "feederCode", "feederName", "status"]
     },
+    "MasterSection": {
+      "title": "MasterSection",
+      "description": "Master data seksi / section penyulang ULP Baguala",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sectionCode": { "type": "string" },
+        "sectionName": { "type": "string" },
+        "feederName": { "type": "string" },
+        "substationOrGh": { "type": "string" },
+        "startPoint": { "type": "string" },
+        "endPoint": { "type": "string" },
+        "garduCount": { "type": "number" },
+        "lengthKms": { "type": "number" },
+        "khaAmpere": { "type": "number" },
+        "status": { "type": "string" },
+        "hasFcoBranch": { "type": "boolean" },
+        "fcoBranchName": { "type": "string" },
+        "fcoLengthKms": { "type": "number" },
+        "fcoKhaAmpere": { "type": "number" },
+        "currentLoadAmpere": { "type": "number" },
+        "voltageDropPercent": { "type": "number" },
+        "temperatureCelsius": { "type": "number" }
+      },
+      "required": ["id", "sectionCode", "sectionName", "feederName", "status"]
+    },
+    "MasterGarduHubung": {
+      "title": "MasterGarduHubung",
+      "description": "Master data gardu hubung (GH)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ghCode": { "type": "string" },
+        "ghName": { "type": "string" },
+        "location": { "type": "string" },
+        "incomingFeeder": { "type": "string" },
+        "outgoingFeedersCount": { "type": "number" },
+        "outgoingFeedersList": { "type": "string" },
+        "ghType": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "ghCode", "ghName", "incomingFeeder", "status"]
+    },
+    "MasterGarduDistribusi": {
+      "title": "MasterGarduDistribusi",
+      "description": "Master data gardu distribusi (GD)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "garduCode": { "type": "string" },
+        "garduName": { "type": "string" },
+        "feederName": { "type": "string" },
+        "capacityKva": { "type": "number" },
+        "phase": { "type": "string" },
+        "garduType": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "garduCode", "garduName", "feederName", "capacityKva", "status"]
+    },
+    "MasterPemutus": {
+      "title": "MasterPemutus",
+      "description": "Master data peralatan pemutus beban (Recloser, LBS, PMT, FCO)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "equipmentCode": { "type": "string" },
+        "equipmentType": { "type": "string" },
+        "feederName": { "type": "string" },
+        "location": { "type": "string" },
+        "brandModel": { "type": "string" },
+        "currentRatingAmpere": { "type": "number" },
+        "scadaStatus": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "equipmentCode", "equipmentType", "feederName", "status"]
+    },
     "MaterialItem": {
       "title": "MaterialItem",
       "description": "Stok material pemeliharaan",
@@ -215,6 +292,22 @@
     "/master_feeders/{feederId}": {
       "schema": { "$ref": "#/entities/MasterFeeder" },
       "description": "Master data penyulang"
+    },
+    "/master_sections/{sectionId}": {
+      "schema": { "$ref": "#/entities/MasterSection" },
+      "description": "Master data seksi jaringan / sections"
+    },
+    "/master_gardu_hubung/{ghId}": {
+      "schema": { "$ref": "#/entities/MasterGarduHubung" },
+      "description": "Master data gardu hubung"
+    },
+    "/master_gardu_distribusi/{gdId}": {
+      "schema": { "$ref": "#/entities/MasterGarduDistribusi" },
+      "description": "Master data gardu distribusi"
+    },
+    "/master_pemutus/{pmtId}": {
+      "schema": { "$ref": "#/entities/MasterPemutus" },
+      "description": "Master data peralatan pemutus beban"
     },
     "/materials/{materialId}": {
       "schema": { "$ref": "#/entities/MaterialItem" },

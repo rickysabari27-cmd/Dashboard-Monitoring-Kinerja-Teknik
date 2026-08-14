@@ -19,7 +19,8 @@ import {
   X,
   LogOut,
   LogIn,
-  UserCheck
+  UserCheck,
+  MessageSquare
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -48,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const menuItems = [
     { id: 'dashboard' as ViewMode, label: 'Dashboard Utama', icon: LayoutGrid, badge: null },
+    { id: 'whatsapp' as ViewMode, label: 'Kirim Chat WhatsApp', icon: MessageSquare, badge: 'Live WA' },
     { id: 'gis' as ViewMode, label: 'Peta Penyulang', icon: MapPin, badge: null },
     { id: 'health_index' as ViewMode, label: 'Health Index Penyulang', icon: TrendingUp, badge: null },
     { id: 'trips' as ViewMode, label: 'Gangguan & Trip Feeder', icon: Zap, badge: null },

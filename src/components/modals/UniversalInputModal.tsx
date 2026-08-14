@@ -7,6 +7,7 @@ import {
   Wrench, 
   Gauge, 
   Database, 
+  Layers,
   BarChart2, 
   Package, 
   Shield, 
@@ -28,6 +29,7 @@ interface UniversalInputModalProps {
   onSaveRowTree?: (row: any) => void;
   onSaveMeasurement?: (measurement: any) => void;
   onSaveMasterFeeder?: (feeder: any) => void;
+  onSaveMasterSection?: (section: any) => void;
   onSaveSaidi?: (month: string, saidiReal: number, saifiReal: number) => void;
   onSaveMaterial?: (material: any) => void;
   onSaveApd?: (apd: any) => void;
@@ -46,6 +48,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   onSaveInspection,
   onSaveMeasurement,
   onSaveMasterFeeder,
+  onSaveMasterSection,
   onSaveSaidi,
   onSaveMaterial,
   onSaveApd,
@@ -113,6 +116,27 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [mFeederCust, setMFeederCust] = useState<number | string>('');
   const [mFeederConfig, setMFeederConfig] = useState('Looping');
 
+  // 5b. Master Section
+  const [mSecCode, setMSecCode] = useState('');
+  const [mSecName, setMSecName] = useState('');
+  const [mSecFeeder, setMSecFeeder] = useState('ALLANG');
+  const [mSecSubstation, setMSecSubstation] = useState('GH Bandara');
+  const [mSecStart, setMSecStart] = useState('');
+  const [mSecEnd, setMSecEnd] = useState('');
+  const [mSecGarduCount, setMSecGarduCount] = useState<number | string>('');
+  const [mSecLength, setMSecLength] = useState<number | string>('');
+  const [mSecKha, setMSecKha] = useState<number | string>('');
+  const [mSecCust, setMSecCust] = useState<number | string>('');
+  const [mSecStatus, setMSecStatus] = useState<string>('Normal');
+  const [mSecHasFco, setMSecHasFco] = useState(false);
+  const [mSecFcoName, setMSecFcoName] = useState('');
+  const [mSecFcoLength, setMSecFcoLength] = useState<number | string>('');
+  const [mSecFcoKha, setMSecFcoKha] = useState<number | string>('');
+  const [mSecFcoLaterals, setMSecFcoLaterals] = useState('');
+  const [mSecCurrentLoad, setMSecCurrentLoad] = useState<number | string>('');
+  const [mSecVoltageDrop, setMSecVoltageDrop] = useState<number | string>('');
+  const [mSecTemperature, setMSecTemperature] = useState<number | string>('');
+
   const handleMFeederGiChange = (val: string) => {
     setMFeederGi(val);
     if (val && val !== '-') {
@@ -166,9 +190,10 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     { id: 'pemeliharaan', label: 'Inspeksi & ROW 20kV', icon: Wrench, color: 'text-emerald-500' },
     { id: 'pengukuran', label: 'Pengukuran Gardu', icon: Gauge, color: 'text-amber-500' },
     { id: 'master_data', label: 'Master Feeder', icon: Database, color: 'text-purple-500' },
-    { id: 'saidi_saifi', label: 'SAIDI / SAIFI', icon: BarChart2, color: 'text-cyan-500' },
+    { id: 'master_section', label: 'Master Section', icon: Layers, color: 'text-cyan-500' },
+    { id: 'saidi_saifi', label: 'SAIDI / SAIFI', icon: BarChart2, color: 'text-teal-500' },
     { id: 'material', label: 'Stok Material', icon: Package, color: 'text-indigo-500' },
-    { id: 'apd', label: 'Alat Kerja & APD', icon: Shield, color: 'text-teal-500' },
+    { id: 'apd', label: 'Alat Kerja & APD', icon: Shield, color: 'text-emerald-500' },
     { id: 'kendaraan', label: 'Armada Kendaraan', icon: Car, color: 'text-sky-500' },
     { id: 'users', label: 'Akses User', icon: Users, color: 'text-slate-400' },
   ];
@@ -271,6 +296,52 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMFeederLength('');
       setMFeederGarduCount('');
       setMFeederCust('');
+    } else if (activeTab === 'master_section' && onSaveMasterSection) {
+      onSaveMasterSection({
+        id: `SEC-${Date.now()}`,
+        sectionCode: mSecCode || `SEC-${Math.floor(Math.random() * 900 + 100)}`,
+        sectionName: mSecName || 'Section Baru',
+        feederName: mSecFeeder || 'ALLANG',
+        substation: mSecSubstation || 'GH Bandara',
+        startPoint: mSecStart || '-',
+        endPoint: mSecEnd || '-',
+        lengthKms: mSecLength !== '' ? Number(mSecLength) : 0,
+        garduCount: mSecGarduCount !== '' ? Number(mSecGarduCount) : 0,
+        khaAmpere: mSecKha !== '' ? Number(mSecKha) : 0,
+        bebanUtamaKha: mSecLength !== '' ? Number(mSecLength) : 0,
+        bebanCabangKha: 0,
+        totalBebanKha: mSecKha !== '' ? Number(mSecKha) : 0,
+        customerCount: mSecCust !== '' ? Number(mSecCust) : 0,
+        status: mSecStatus || 'Normal',
+        hasFcoBranch: mSecHasFco,
+        fcoBranchName: mSecHasFco ? (mSecFcoName || 'FCO Percabangan') : '',
+        fcoLengthKms: mSecHasFco ? (mSecFcoLength !== '' ? Number(mSecFcoLength) : 0) : 0,
+        fcoKhaAmpere: mSecHasFco ? (mSecFcoKha !== '' ? Number(mSecFcoKha) : 0) : 0,
+        fcoLaterals: mSecHasFco && mSecFcoLaterals.trim() 
+          ? mSecFcoLaterals.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        currentLoad: mSecCurrentLoad !== '' ? Number(mSecCurrentLoad) : 0,
+        currentLoadAmpere: mSecCurrentLoad !== '' ? Number(mSecCurrentLoad) : 0,
+        voltageKv: 20.0,
+        voltageDropPercent: mSecVoltageDrop !== '' ? Number(mSecVoltageDrop) : 0,
+        temperatureCelsius: mSecTemperature !== '' ? Number(mSecTemperature) : 0
+      });
+      setMSecCode('');
+      setMSecName('');
+      setMSecStart('');
+      setMSecEnd('');
+      setMSecLength('');
+      setMSecGarduCount('');
+      setMSecKha('');
+      setMSecCust('');
+      setMSecHasFco(false);
+      setMSecFcoName('');
+      setMSecFcoLength('');
+      setMSecFcoKha('');
+      setMSecFcoLaterals('');
+      setMSecCurrentLoad('');
+      setMSecVoltageDrop('');
+      setMSecTemperature('');
     } else if (activeTab === 'saidi_saifi' && onSaveSaidi) {
       onSaveSaidi(saidiMonth, Number(saidiVal), Number(saifiVal));
     } else if (activeTab === 'material' && onSaveMaterial) {
@@ -707,6 +778,275 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   <option value="Looping">Looping</option>
                   <option value="Radial">Radial</option>
                 </select>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5b: MASTER SECTION */}
+          {activeTab === 'master_section' && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-semibold mb-3 flex items-center justify-between">
+                <span>Input Data Section / Segmen Jaringan 20kV</span>
+                <span className="text-[11px] font-normal text-cyan-600 dark:text-cyan-400">Master Section & Topologi</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Section</label>
+                  <input 
+                    type="text" 
+                    value={mSecCode} 
+                    onChange={(e) => setMSecCode(e.target.value)} 
+                    placeholder="Contoh: ALG-ALL-01" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Section</label>
+                  <input 
+                    type="text" 
+                    value={mSecName} 
+                    onChange={(e) => setMSecName(e.target.value)} 
+                    placeholder="Contoh: GH Bandara-Namahatu" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
+                  <select 
+                    value={mSecFeeder} 
+                    onChange={(e) => setMSecFeeder(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="ALLANG">ALLANG</option>
+                    <option value="LATERI 2">LATERI 2</option>
+                    <option value="TULEHU">TULEHU</option>
+                    <option value="PASSO">PASSO</option>
+                    <option value="BATU MERAH">BATU MERAH</option>
+                    <option value="HATIVE">HATIVE</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">GI / GH Asal</label>
+                  <select 
+                    value={mSecSubstation} 
+                    onChange={(e) => setMSecSubstation(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  >
+                    <option value="">-- Pilih GI / GH Asal --</option>
+                    <optgroup label="Gardu Induk (GI)">
+                      <option value="GI Passo">GI Passo</option>
+                      <option value="GIS Passo">GIS Passo</option>
+                      <option value="GI Hative Besar">GI Hative Besar</option>
+                      <option value="GI Sirimau">GI Sirimau</option>
+                    </optgroup>
+                    <optgroup label="Gardu Hubung (GH)">
+                      <option value="GH Area">GH Area</option>
+                      <option value="GH Aston">GH Aston</option>
+                      <option value="GH Baguala">GH Baguala</option>
+                      <option value="GH Bandara">GH Bandara</option>
+                      <option value="GH Box Pantai Galala">GH Box Pantai Galala</option>
+                      <option value="GH Box Pantai Poka">GH Box Pantai Poka</option>
+                      <option value="GH Hative Kecil">GH Hative Kecil</option>
+                      <option value="GH Poka">GH Poka</option>
+                      <option value="GH Wayame">GH Wayame</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Awal (In / Pangkal)</label>
+                  <input 
+                    type="text" 
+                    value={mSecStart} 
+                    onChange={(e) => setMSecStart(e.target.value)} 
+                    placeholder="Contoh: GH Bandara (Pangkal)" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Akhir (Out / Ujung)</label>
+                  <input 
+                    type="text" 
+                    value={mSecEnd} 
+                    onChange={(e) => setMSecEnd(e.target.value)} 
+                    placeholder="Contoh: Recloser Namahatu (Node)" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang (kms)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={mSecLength} 
+                    onChange={(e) => setMSecLength(e.target.value)} 
+                    placeholder="Contoh: 11.2" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Gardu</label>
+                  <input 
+                    type="number" 
+                    value={mSecGarduCount} 
+                    onChange={(e) => setMSecGarduCount(e.target.value)} 
+                    placeholder="Contoh: 18" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban KHA (A)</label>
+                  <input 
+                    type="number" 
+                    value={mSecKha} 
+                    onChange={(e) => setMSecKha(e.target.value)} 
+                    placeholder="Contoh: 450" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status Kondisi</label>
+                  <select 
+                    value={mSecStatus} 
+                    onChange={(e) => setMSecStatus(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="Normal">Normal</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Kritis">Kritis</option>
+                    <option value="Operasi">Operasi</option>
+                    <option value="Tidak Operasi">Tidak Operasi</option>
+                    <option value="Manuver">Manuver</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Pelanggan</label>
+                  <input 
+                    type="number" 
+                    value={mSecCust} 
+                    onChange={(e) => setMSecCust(e.target.value)} 
+                    placeholder="Contoh: 1250" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500" 
+                  />
+                </div>
+              </div>
+
+              {/* FCO Branching Configuration */}
+              <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="universalHasFco"
+                      checked={mSecHasFco}
+                      onChange={(e) => setMSecHasFco(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                    />
+                    <label htmlFor="universalHasFco" className="font-bold text-slate-900 dark:text-white text-xs cursor-pointer">
+                      Terdapat FCO Percabangan Lateral
+                    </label>
+                  </div>
+                  {mSecHasFco && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                      Percabangan Aktif
+                    </span>
+                  )}
+                </div>
+
+                {mSecHasFco && (
+                  <div className="space-y-2.5 pt-2 border-t border-amber-500/20">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="sm:col-span-1">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Percabangan FCO</label>
+                        <input
+                          type="text"
+                          value={mSecFcoName}
+                          onChange={(e) => setMSecFcoName(e.target.value)}
+                          placeholder="Contoh: FCO Cabang Lateri"
+                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang Cabang (kms)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={mSecFcoLength}
+                          onChange={(e) => setMSecFcoLength(e.target.value)}
+                          placeholder="Contoh: 0.8"
+                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">KHA FCO (A)</label>
+                        <input
+                          type="number"
+                          value={mSecFcoKha}
+                          onChange={(e) => setMSecFcoKha(e.target.value)}
+                          placeholder="Contoh: 65"
+                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Daftar Sub-Lateral (Pisahkan dengan koma)</label>
+                      <input
+                        type="text"
+                        value={mSecFcoLaterals}
+                        onChange={(e) => setMSecFcoLaterals(e.target.value)}
+                        placeholder="Contoh: Lateral 1 Tap Passo, Lateral 2 Kampus"
+                        className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-medium"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Telemetri Real-time Section */}
+              <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2.5">
+                <span className="font-bold text-slate-900 dark:text-white text-xs block">
+                  Parameter Telemetri Monitoring Section
+                </span>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban Arus (A)</label>
+                    <input
+                      type="number"
+                      value={mSecCurrentLoad}
+                      onChange={(e) => setMSecCurrentLoad(e.target.value)}
+                      placeholder="Contoh: 180"
+                      className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Drop Tegangan (%)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={mSecVoltageDrop}
+                      onChange={(e) => setMSecVoltageDrop(e.target.value)}
+                      placeholder="Contoh: 1.5"
+                      className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Temperatur Konduktor (°C)</label>
+                    <input
+                      type="number"
+                      value={mSecTemperature}
+                      onChange={(e) => setMSecTemperature(e.target.value)}
+                      placeholder="Contoh: 38"
+                      className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}

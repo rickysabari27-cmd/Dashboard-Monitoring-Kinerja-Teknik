@@ -48,6 +48,35 @@ service cloud.firestore {
       allow create, update, delete: if true;
     }
 
+    // Master Sections collection
+    match /master_sections/{sectionId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Master Gardu Hubung collection
+    match /master_gardu_hubung/{ghId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Master Gardu Distribusi collection
+    match /master_gardu_distribusi/{gdId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Master Pemutus collection
+    match /master_pemutus/{pmtId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Connection test collection
+    match /_connection_test_/{testId} {
+      allow read, write: if true;
+    }
+
     // Materials collection
     match /materials/{materialId} {
       allow read: if true;

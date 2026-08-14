@@ -14,7 +14,9 @@ import {
   ApdTool,
   Vehicle,
   UserAccess,
-  InspectionRecord
+  InspectionRecord,
+  WhatsAppMessage,
+  WhatsAppContact
 } from './types';
 import { 
   INITIAL_TRIPS, 
@@ -34,7 +36,8 @@ import {
   INITIAL_MATERIALS,
   INITIAL_APD_TOOLS,
   INITIAL_VEHICLES,
-  INITIAL_USERS
+  INITIAL_USERS,
+  INITIAL_WHATSAPP_MESSAGES
 } from './data/mockData';
 import { syncCollection, saveDocument, deleteDocument } from './services/firebaseSync';
 
@@ -54,11 +57,13 @@ import { MaterialStockView } from './components/views/MaterialStockView';
 import { MasterDataView } from './components/views/MasterDataView';
 import { UserManagementView } from './components/views/UserManagementView';
 import { LoginPage } from './components/views/LoginPage';
+import { WhatsAppDispatchView } from './components/views/WhatsAppDispatchView';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
 import { UniversalInputModal } from './components/modals/UniversalInputModal';
 import { LoginModal } from './components/modals/LoginModal';
+import { WhatsAppModal } from './components/modals/WhatsAppModal';
 import { Menu, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -85,6 +90,16 @@ export default function App() {
   const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
   const [users, setUsers] = useState<UserAccess[]>(INITIAL_USERS);
   const [inspections, setInspections] = useState<InspectionRecord[]>(INSPECTION_LIST);
+  const [whatsAppMessages, setWhatsAppMessages] = useState<WhatsAppMessage[]>(INITIAL_WHATSAPP_MESSAGES);
+
+  // Dark Mode DOM synchronization
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // Firebase Real-time Synchronization
   useEffect(() => {
@@ -101,6 +116,7 @@ export default function App() {
     const unsubApd = syncCollection<ApdTool>('apd_tools', INITIAL_APD_TOOLS, (data) => setApdTools(data));
     const unsubVehicles = syncCollection<Vehicle>('vehicles', INITIAL_VEHICLES, (data) => setVehicles(data));
     const unsubUsers = syncCollection<UserAccess>('users_access', INITIAL_USERS, (data) => setUsers(data));
+    const unsubWa = syncCollection<WhatsAppMessage>('whatsapp_messages', INITIAL_WHATSAPP_MESSAGES, (data) => setWhatsAppMessages(data));
 
     return () => {
       unsubTrips();
@@ -116,6 +132,7 @@ export default function App() {
       unsubApd();
       unsubVehicles();
       unsubUsers();
+      unsubWa();
     };
   }, []);
 
@@ -126,6 +143,10 @@ export default function App() {
   const [isSaidiModalOpen, setIsSaidiModalOpen] = useState(false);
   const [isUniversalModalOpen, setIsUniversalModalOpen] = useState(false);
   const [universalModalTab, setUniversalModalTab] = useState<string>('trips');
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsAppModalCategory, setWhatsAppModalCategory] = useState<string>('Gangguan / Trip');
+  const [whatsAppModalTrip, setWhatsAppModalTrip] = useState<FeederTrip | undefined>(undefined);
+  const [whatsAppModalSpk, setWhatsAppModalSpk] = useState<SpkTask | undefined>(undefined);
 
   // Calculated Metrics
   const totalTripsCount = trips.length;
@@ -161,6 +182,19 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     showToast('Anda telah logout dari akun PLN.');
+  };
+
+  const handleSendMessage = (msg: WhatsAppMessage) => {
+    setWhatsAppMessages(prev => [msg, ...prev]);
+    saveDocument('whatsapp_messages', msg, msg.id);
+    showToast(`Pesan WhatsApp berhasil dikirim ke ${msg.recipientName}`);
+  };
+
+  const handleOpenWhatsAppModal = (trip?: FeederTrip, category?: string, spk?: SpkTask) => {
+    setWhatsAppModalTrip(trip);
+    setWhatsAppModalSpk(spk);
+    setWhatsAppModalCategory(category || (trip ? 'Gangguan / Trip' : spk ? 'SPK Lapangan' : 'Gangguan / Trip'));
+    setIsWhatsAppModalOpen(true);
   };
 
   const handleOpenUniversalInput = (tab?: string) => {
@@ -410,7 +444,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-200 font-sans ${
-      isDarkMode ? 'bg-[#020617] text-slate-100' : 'bg-slate-100/70 text-slate-900'
+      isDarkMode ? 'dark bg-[#020617] text-slate-100' : 'bg-slate-100/70 text-slate-900'
     }`}>
       
       {/* Toast Notification */}
@@ -429,6 +463,7 @@ export default function App() {
         onOpenSaidiView={() => setCurrentView('saidi_saifi')}
         onOpenUniversalInput={handleOpenUniversalInput}
         onOpenGisMap={() => setCurrentView('gis')}
+        onOpenWhatsAppModal={() => handleOpenWhatsAppModal()}
         systemReliability={98.6}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginModalOpen(true)}
@@ -526,6 +561,18 @@ export default function App() {
               isDarkMode={isDarkMode}
               trips={trips}
               onOpenInputGangguan={() => setIsGangguanModalOpen(true)}
+              onOpenWhatsAppModal={(trip) => handleOpenWhatsAppModal(trip, 'Gangguan / Trip')}
+            />
+          )}
+
+          {currentView === 'whatsapp' && (
+            <WhatsAppDispatchView 
+              isDarkMode={isDarkMode}
+              messages={whatsAppMessages}
+              onSendMessage={handleSendMessage}
+              trips={trips}
+              spkList={spkList}
+              onOpenQuickModal={(cat, trip) => handleOpenWhatsAppModal(trip, cat)}
             />
           )}
 
@@ -640,6 +687,7 @@ export default function App() {
         onSaveInspection={handleSaveInspection}
         onSaveMeasurement={handleSaveMeasurement}
         onSaveMasterFeeder={handleSaveMasterFeeder}
+        onSaveMasterSection={handleSaveMasterSection}
         onSaveSaidi={handleUpdateSaidi}
         onSaveMaterial={handleSaveMaterial}
         onSaveApd={handleSaveApd}
@@ -653,6 +701,18 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
         isDarkMode={isDarkMode}
         usersList={users}
+      />
+
+      <WhatsAppModal 
+        isOpen={isWhatsAppModalOpen}
+        onClose={() => setIsWhatsAppModalOpen(false)}
+        isDarkMode={isDarkMode}
+        trips={trips}
+        spkList={spkList}
+        selectedTrip={whatsAppModalTrip}
+        selectedSpk={whatsAppModalSpk}
+        initialCategory={whatsAppModalCategory}
+        onSaveMessage={handleSendMessage}
       />
 
     </div>

@@ -13,7 +13,8 @@ import {
   BarChart2,
   User,
   LogOut,
-  LogIn
+  LogIn,
+  MessageSquare
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -23,6 +24,7 @@ interface HeaderProps {
   onOpenSaidiView: () => void;
   onOpenUniversalInput: (tab?: string) => void;
   onOpenGisMap: () => void;
+  onOpenWhatsAppModal?: () => void;
   systemReliability: number;
   currentUser?: UserAccess | null;
   onOpenLogin?: () => void;
@@ -36,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSaidiView,
   onOpenUniversalInput,
   onOpenGisMap,
+  onOpenWhatsAppModal,
   systemReliability,
   currentUser,
   onOpenLogin,
@@ -102,6 +105,18 @@ export const Header: React.FC<HeaderProps> = ({
             <Zap className="w-3.5 h-3.5 fill-current" />
             <span>+ Input Gangguan</span>
           </button>
+
+          {/* Action Button: Kirim WA Dispatch */}
+          {onOpenWhatsAppModal && (
+            <button 
+              onClick={onOpenWhatsAppModal}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg transition-all bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95"
+              title="Kirim Chat & Broadcast Laporan via WhatsApp"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Kirim WA</span>
+            </button>
+          )}
 
           {/* Action Button: Menu Monitoring SAIDI/SAIFI */}
           <button 

@@ -25,7 +25,8 @@ import {
   X,
   XCircle,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from 'lucide-react';
 
 interface SpkFormViewProps {
@@ -1125,6 +1126,20 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                               >
                                 <Printer className="w-3.5 h-3.5" />
                                 <span>Cetak</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const waText = `📋 *SURAT PERINTAH KERJA (SPK) PEMELIHARAAN 20kV*\n*PLN ULP BAGUALA*\n━━━━━━━━━━━━━━━━━━━━\n📄 *No. SPK*: ${spk.nomorSpk || spk.id}\n📅 *Tanggal*: ${spk.tanggal}\n⚡ *Penyulang*: ${spk.penyulang || '-'}\n🔧 *Jenis Pekerjaan*: ${spk.jenisPekerjaan || '-'}\n📍 *Lokasi*: ${spk.lokasi || '-'}\n🎯 *Target*: ${spk.target || '-'}\n👷‍♂️ *Personel*: ${(spk.personnel || []).filter(Boolean).join(', ')}\n━━━━━━━━━━━━━━━━━━━━\n_Safety First - Bekerja Sesuai SOP K3!_`;
+                                  const encoded = encodeURIComponent(waText);
+                                  window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+                                }}
+                                className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-slate-800 dark:text-emerald-400 dark:hover:bg-slate-700 font-bold text-xs flex items-center gap-1 border border-emerald-300 dark:border-emerald-700 cursor-pointer"
+                                title="Kirim SPK via WhatsApp"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>WA</span>
                               </button>
                               
                               <button

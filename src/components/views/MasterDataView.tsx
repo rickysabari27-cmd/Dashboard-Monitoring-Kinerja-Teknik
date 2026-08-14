@@ -20,7 +20,24 @@ import {
   ShieldCheck, 
   SlidersHorizontal,
   Activity,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  GitBranch,
+  Network,
+  Route,
+  ChevronRight,
+  Eye,
+  Radio,
+  Share2,
+  Gauge,
+  Thermometer,
+  Flame,
+  ArrowRight,
+  CornerDownRight,
+  Sparkles,
+  Waves,
+  Cpu,
+  Check
 } from 'lucide-react';
 
 export type MasterDataSubTab = 
@@ -109,17 +126,72 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const [fCust, setFCust] = useState<number | string>(0);
   const [fConfig, setFConfig] = useState('Looping');
 
+  // Section States & Filter
+  const [selectedSectionFeeder, setSelectedSectionFeeder] = useState('Allang');
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [sectionViewTab, setSectionViewTab] = useState<'topology_table' | 'monitoring'>('topology_table');
+
+  // Available GI and GH master lists
+  const availableGIs = Array.from(new Set([
+    'GI Passo',
+    'GIS Passo',
+    'GI Hative Besar',
+    'GI Sirimau',
+    ...masterFeeders.map(f => f.substationName).filter((s): s is string => Boolean(s && s !== '-'))
+  ])).filter(Boolean);
+
+  const availableGHs = Array.from(new Set([
+    ...masterGarduHubung.map(gh => gh.ghName),
+    'GH Area',
+    'GH Aston',
+    'GH Baguala',
+    'GH Bandara',
+    'GH Box Pantai Galala',
+    'GH Box Pantai Poka',
+    'GH Hative Kecil',
+    'GH Poka',
+    'GH Wayame',
+    ...masterFeeders.map(f => f.garduHubung).filter((g): g is string => Boolean(g && g !== '-'))
+  ])).filter(Boolean);
+
+  // Helper to generate dynamic Section Code based on Feeder and existing section count
+  const generateSectionCode = (targetFeederName: string) => {
+    const matching = masterFeeders.find(f => f.feederName.toLowerCase() === targetFeederName.toLowerCase());
+    const prefix = matching ? matching.feederCode : targetFeederName.replace(/\s+/g, '-').toUpperCase();
+    const existingCount = masterSections.filter(s => s.feederName.toLowerCase() === targetFeederName.toLowerCase()).length;
+    const seq = String(existingCount + 1).padStart(2, '0');
+    return `${prefix}-SEC-${seq}`;
+  };
+
   // Section Form States
   const [secCode, setSecCode] = useState('');
   const [secName, setSecName] = useState('');
-  const [secFeeder, setSecFeeder] = useState('');
-  const [secSubstation, setSecSubstation] = useState('GI Passo');
+  const [secFeeder, setSecFeeder] = useState('Allang');
+  const [secSubstation, setSecSubstation] = useState('GH Bandara');
   const [secStart, setSecStart] = useState('');
   const [secEnd, setSecEnd] = useState('');
-  const [secGarduCount, setSecGarduCount] = useState<number | string>(0);
-  const [secLength, setSecLength] = useState<number | string>(0);
-  const [secCust, setSecCust] = useState<number | string>(0);
-  const [secStatus, setSecStatus] = useState<'Operasi' | 'Tidak Operasi' | 'Manuver'>('Operasi');
+  const [secGarduCount, setSecGarduCount] = useState<number | string>('');
+  const [secLength, setSecLength] = useState<number | string>('');
+  const [secKha, setSecKha] = useState<number | string>('');
+  const [secBebanUtama, setSecBebanUtama] = useState<number | string>('');
+  const [secBebanCabang, setSecBebanCabang] = useState<number | string>('');
+  const [secTotalBeban, setSecTotalBeban] = useState<number | string>('');
+  const [secCust, setSecCust] = useState<number | string>('');
+  const [secStatus, setSecStatus] = useState<string>('Normal');
+
+  // FCO Percabangan States (Manual Input)
+  const [secHasFco, setSecHasFco] = useState(false);
+  const [secFcoName, setSecFcoName] = useState('');
+  const [secFcoLength, setSecFcoLength] = useState<number | string>('');
+  const [secFcoKha, setSecFcoKha] = useState<number | string>('');
+  const [secFcoLaterals, setSecFcoLaterals] = useState<string[]>([]);
+  const [newLateralInput, setNewLateralInput] = useState('');
+
+  // Live Telemetry Monitoring States (Manual Input - No automatic prefill)
+  const [secCurrentLoad, setSecCurrentLoad] = useState<number | string>('');
+  const [secVoltageKv, setSecVoltageKv] = useState<number | string>('');
+  const [secVoltageDrop, setSecVoltageDrop] = useState<number | string>('');
+  const [secTemp, setSecTemp] = useState<number | string>('');
 
   // GH Form States
   const [ghCode, setGhCode] = useState('');
@@ -202,13 +274,27 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setSecCode(sec.sectionCode);
     setSecName(sec.sectionName);
     setSecFeeder(sec.feederName);
-    setSecSubstation(sec.substationOrGh);
-    setSecStart(sec.startPoint);
-    setSecEnd(sec.endPoint);
-    setSecGarduCount(sec.garduCount);
-    setSecLength(sec.lengthKms);
-    setSecCust(sec.customerCount ?? 0);
-    setSecStatus(sec.status);
+    setSecSubstation(sec.substationOrGh || (availableGHs[0] || availableGIs[0] || 'GH Bandara'));
+    setSecStart(sec.startPoint || '');
+    setSecEnd(sec.endPoint || '');
+    setSecGarduCount(sec.garduCount !== undefined && sec.garduCount !== null ? sec.garduCount : '');
+    setSecLength(sec.lengthKms !== undefined && sec.lengthKms !== null ? sec.lengthKms : '');
+    setSecKha(sec.khaAmpere !== undefined && sec.khaAmpere !== null ? sec.khaAmpere : '');
+    setSecBebanUtama(sec.bebanUtamaKha !== undefined ? sec.bebanUtamaKha : (sec.lengthKms ?? ''));
+    setSecBebanCabang(sec.bebanCabangKha !== undefined ? sec.bebanCabangKha : (sec.hasFcoBranch ? (sec.garduCount ?? '') : ''));
+    setSecTotalBeban(sec.totalBebanKha !== undefined ? sec.totalBebanKha : (sec.khaAmpere ?? ''));
+    setSecCust(sec.customerCount !== undefined && sec.customerCount !== null ? sec.customerCount : '');
+    setSecStatus(sec.status || 'Normal');
+    setSecHasFco(Boolean(sec.hasFcoBranch));
+    setSecFcoName(sec.fcoBranchName || '');
+    setSecFcoLength(sec.fcoLengthKms !== undefined ? sec.fcoLengthKms : '');
+    setSecFcoKha(sec.fcoKhaAmpere !== undefined ? sec.fcoKhaAmpere : '');
+    setSecFcoLaterals(sec.fcoLaterals && sec.fcoLaterals.length > 0 ? [...sec.fcoLaterals] : []);
+    setNewLateralInput('');
+    setSecCurrentLoad(sec.currentLoadAmpere !== undefined && sec.currentLoadAmpere !== null ? sec.currentLoadAmpere : '');
+    setSecVoltageKv(sec.voltageKv !== undefined && sec.voltageKv !== null ? sec.voltageKv : '');
+    setSecVoltageDrop(sec.voltageDropPercent !== undefined && sec.voltageDropPercent !== null ? sec.voltageDropPercent : '');
+    setSecTemp(sec.temperatureCelsius !== undefined && sec.temperatureCelsius !== null ? sec.temperatureCelsius : '');
   };
 
   const handleSaveSection = (e: React.FormEvent) => {
@@ -221,10 +307,23 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       substationOrGh: secSubstation.trim(),
       startPoint: secStart.trim(),
       endPoint: secEnd.trim(),
-      garduCount: Number(secGarduCount) || 0,
-      lengthKms: Number(secLength) || 0,
-      customerCount: Number(secCust) || 0,
-      status: secStatus
+      garduCount: secGarduCount !== '' ? Number(secGarduCount) : 0,
+      lengthKms: secLength !== '' ? Number(secLength) : 0,
+      khaAmpere: secKha !== '' ? Number(secKha) : 0,
+      bebanUtamaKha: secBebanUtama !== '' ? Number(secBebanUtama) : (secLength !== '' ? Number(secLength) : 0),
+      bebanCabangKha: secBebanCabang !== '' ? Number(secBebanCabang) : 0,
+      totalBebanKha: secTotalBeban !== '' ? Number(secTotalBeban) : (secKha !== '' ? Number(secKha) : 0),
+      customerCount: secCust !== '' ? Number(secCust) : 0,
+      status: secStatus || 'Normal',
+      hasFcoBranch: secHasFco,
+      fcoBranchName: secHasFco && secFcoName.trim() ? secFcoName.trim() : (secHasFco ? 'FCO Percabangan' : ''),
+      fcoLengthKms: secHasFco && secFcoLength !== '' ? Number(secFcoLength) : 0,
+      fcoKhaAmpere: secHasFco && secFcoKha !== '' ? Number(secFcoKha) : 0,
+      fcoLaterals: secHasFco && secFcoLaterals.length > 0 ? secFcoLaterals : [],
+      currentLoadAmpere: secCurrentLoad !== '' ? Number(secCurrentLoad) : 0,
+      voltageKv: secVoltageKv !== '' ? Number(secVoltageKv) : 20.0,
+      voltageDropPercent: secVoltageDrop !== '' ? Number(secVoltageDrop) : 0,
+      temperatureCelsius: secTemp !== '' ? Number(secTemp) : 0
     };
     if (onSaveMasterSection) onSaveMasterSection(payload);
     setSectionToEdit(null);
@@ -398,63 +497,63 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
         <div className="space-y-4">
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Total Penyulang</span>
-                <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-500">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Penyulang</span>
+                <div className="p-1.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
                   <Database className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
-                {masterFeeders.length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-purple-700 dark:text-purple-400">
+                {masterFeeders.length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
               </div>
             </div>
 
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Utama</span>
-                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Penyulang Utama</span>
+                <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
-                {masterFeeders.filter(f => (!f.garduHubung || f.garduHubung === '-') && (f.status || 'Utama') === 'Utama').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-blue-700 dark:text-blue-400">
+                {masterFeeders.filter(f => (!f.garduHubung || f.garduHubung === '-') && (f.status || 'Utama') === 'Utama').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
               </div>
             </div>
 
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Percabangan</span>
-                <div className="p-1.5 rounded-lg bg-yellow-500/10 text-yellow-500">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Penyulang Percabangan</span>
+                <div className="p-1.5 rounded-lg bg-yellow-500/15 text-yellow-600 dark:text-yellow-400">
                   <Activity className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-yellow-600 dark:text-yellow-400">
-                {masterFeeders.filter(f => (f.garduHubung && f.garduHubung !== '-') || f.status === 'Percabangan').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-amber-700 dark:text-yellow-400">
+                {masterFeeders.filter(f => (f.garduHubung && f.garduHubung !== '-') || f.status === 'Percabangan').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
               </div>
             </div>
 
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Operasi</span>
-                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Penyulang Operasi</span>
+                <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                   <Zap className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
-                {masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
+                {masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
               </div>
             </div>
 
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Tidak Operasi</span>
-                <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Tidak Operasi</span>
+                <div className="p-1.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
                   <AlertCircle className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-rose-600 dark:text-rose-400">
-                {masterFeeders.filter(f => f.operationalStatus === 'Tidak Operasi').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-rose-700 dark:text-rose-400">
+                {masterFeeders.filter(f => f.operationalStatus === 'Tidak Operasi').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
               </div>
             </div>
           </div>
@@ -528,60 +627,95 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                              (f.garduHubung || '').toLowerCase().includes(q);
                     })
                     .sort((a, b) => (a.feederName || a.feederCode || '').localeCompare(b.feederName || b.feederCode || '', undefined, { numeric: true }))
-                    .map((feeder, idx) => (
-                      <tr key={feeder.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
-                        <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.feederCode}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{feeder.feederName}</td>
-                        <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.substationName || '-'}</td>
-                        <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.garduHubung || '-'}</td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          {(() => {
-                            const isPercabangan = (feeder.garduHubung && feeder.garduHubung !== '-') || feeder.status === 'Percabangan';
-                            const displayStatus = isPercabangan ? 'Percabangan' : 'Utama';
-                            return (
-                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                displayStatus === 'Percabangan' 
-                                  ? 'bg-yellow-400/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30' 
-                                  : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
-                              }`}>
-                                {displayStatus}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                            feeder.operationalStatus === 'Tidak Operasi' ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
-                          }`}>
-                            {feeder.operationalStatus || 'Operasi'}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.khaAmpere ?? 0}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.lengthKms ?? 0}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.garduCount ?? 0}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.customerCount ?? 0}</td>
-                        <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.configuration || 'Looping'}</td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => openEditFeeder(feeder)}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
-                              title="Edit Penyulang"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setFeederToDelete(feeder)}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
-                              title="Hapus Penyulang"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    .map((feeder, idx) => {
+                      // Dynamically sync metrics with real sections if available
+                      const matchingSections = masterSections.filter(
+                        s => s.feederName && s.feederName.toLowerCase() === feeder.feederName.toLowerCase()
+                      );
+                      const hasSecs = matchingSections.length > 0;
+                      const realGardu = hasSecs 
+                        ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0)
+                        : (feeder.garduCount ?? 0);
+                      const realLength = hasSecs 
+                        ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1))
+                        : (feeder.lengthKms ?? 0);
+                      const realKha = hasSecs 
+                        ? (Math.max(...matchingSections.map(s => s.khaAmpere || s.totalBebanKha || 0), 0) || (feeder.khaAmpere ?? 0))
+                        : (feeder.khaAmpere ?? 0);
+                      const realCust = hasSecs 
+                        ? matchingSections.reduce((acc, s) => acc + (s.customerCount || 0), 0)
+                        : (feeder.customerCount ?? 0);
+
+                      return (
+                        <tr key={feeder.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
+                          <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.feederCode}</td>
+                          <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">
+                            <div>{feeder.feederName}</div>
+                            {hasSecs && (
+                              <div className="text-[10px] text-blue-500 font-bold mt-0.5">
+                                {matchingSections.length} Sections Sync
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.substationName || '-'}</td>
+                          <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.garduHubung || '-'}</td>
+                          <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
+                            {(() => {
+                              const isPercabangan = (feeder.garduHubung && feeder.garduHubung !== '-') || feeder.status === 'Percabangan';
+                              const displayStatus = isPercabangan ? 'Percabangan' : 'Utama';
+                              return (
+                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                  displayStatus === 'Percabangan' 
+                                    ? 'bg-yellow-400/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30' 
+                                    : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                                }`}>
+                                  {displayStatus}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
+                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                              feeder.operationalStatus === 'Tidak Operasi' ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
+                            }`}>
+                              {feeder.operationalStatus || 'Operasi'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                            {realKha}
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                            {realLength}
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                            {realGardu}
+                          </td>
+                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                            {realCust}
+                          </td>
+                          <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.configuration || 'Looping'}</td>
+                          <td className="p-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => openEditFeeder(feeder)}
+                                className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                                title="Edit Penyulang"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setFeederToDelete(feeder)}
+                                className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                                title="Hapus Penyulang"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -592,137 +726,918 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       {/* ========================================================================= */}
       {/* 2. DATA SECTION                                                          */}
       {/* ========================================================================= */}
-      {activeTab === 'section' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Section</div>
-              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">{masterSections.length} Section</div>
-            </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Gardu Section</div>
-              <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                {masterSections.reduce((acc, s) => acc + (s.garduCount || 0), 0)} Gardu
-              </div>
-            </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Panjang KMS</div>
-              <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
-                {masterSections.reduce((acc, s) => acc + (s.lengthKms || 0), 0).toFixed(1)} KMS
-              </div>
-            </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Status Operasi</div>
-              <div className="text-xl font-extrabold text-teal-600 dark:text-teal-400">
-                {masterSections.filter(s => s.status === 'Operasi').length} Aktif
-              </div>
-            </div>
-          </div>
+      {activeTab === 'section' && (() => {
+        // Feeder selection and filtering
+        const availableFeeders: string[] = Array.from(new Set(masterFeeders.map(f => f.feederName)));
+        const activeFeederName = selectedSectionFeeder === 'ALL' 
+          ? (availableFeeders[0] || 'Allang') 
+          : selectedSectionFeeder;
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari berdasarkan Kode Section, Nama, atau Penyulang..."
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
-                  isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 shadow-xs'
-                }`}
-              />
-            </div>
-            <button
-              onClick={() => {
-                setSectionToEdit(null);
-                setSecCode('');
-                setSecName('');
-                setSecFeeder(masterFeeders[0]?.feederName || 'Lateri 2');
-                setSecSubstation('GI Passo');
-                setSecStart('');
-                setSecEnd('');
-                setSecGarduCount(0);
-                setSecLength(0);
-                setSecCust(0);
-                setSecStatus('Operasi');
-                setIsAddSectionOpen(true);
-              }}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Data Section</span>
-            </button>
-          </div>
+        const matchingFeeder = masterFeeders.find(
+          f => f.feederName.toLowerCase() === activeFeederName.toLowerCase()
+        );
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
-                  <tr>
-                    <th className="p-3 text-center border-r border-slate-800/80 w-12">No</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Kode Section</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Nama Section</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Penyulang</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">GI / GH Asal</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Titik Awal (In)</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Titik Akhir (Out)</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Jml Gardu</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Panjang (kms)</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Status</th>
-                    <th className="p-3 text-center w-24">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
-                  {masterSections
-                    .filter(s => {
-                      if (!searchQuery.trim()) return true;
-                      const q = searchQuery.toLowerCase();
-                      return (s.sectionCode || '').toLowerCase().includes(q) ||
-                             (s.sectionName || '').toLowerCase().includes(q) ||
-                             (s.feederName || '').toLowerCase().includes(q);
-                    })
-                    .map((sec, idx) => (
-                      <tr key={sec.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
-                        <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{sec.sectionCode}</td>
-                        <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{sec.sectionName}</td>
-                        <td className="p-3 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80">{sec.feederName}</td>
-                        <td className="p-3 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{sec.substationOrGh}</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{sec.startPoint}</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{sec.endPoint}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{sec.garduCount}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{sec.lengthKms}</td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500">
-                            {sec.status}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => openEditSection(sec)}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
-                              title="Edit Section"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setSectionToDelete(sec)}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
-                              title="Hapus Section"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+        const feederCodeDisplay = activeFeederName.toLowerCase() === 'allang'
+          ? 'ALG-ALLANG'
+          : matchingFeeder
+            ? `${matchingFeeder.feederCode}-${matchingFeeder.feederName.toUpperCase()}`
+            : `SEC-${activeFeederName.toUpperCase()}`;
+
+        // Filter sections based on selected feeder & search
+        const feederSections = masterSections.filter(s => {
+          if (selectedSectionFeeder !== 'ALL' && s.feederName.toLowerCase() !== selectedSectionFeeder.toLowerCase()) {
+            return false;
+          }
+          if (!searchQuery.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return (s.sectionCode || '').toLowerCase().includes(q) ||
+                 (s.sectionName || '').toLowerCase().includes(q) ||
+                 (s.feederName || '').toLowerCase().includes(q) ||
+                 (s.startPoint || '').toLowerCase().includes(q) ||
+                 (s.endPoint || '').toLowerCase().includes(q);
+        }).sort((a, b) => {
+          // Sort natural ascending: SEC-01 at the top, followed by SEC-02, SEC-03, etc.
+          const extractSeq = (code: string, name: string) => {
+            const match = (code + ' ' + name).match(/sec(?:tion)?[-_\s]*(\d+)/i) || (code + ' ' + name).match(/(\d+)/);
+            return match ? parseInt(match[1], 10) : 999999;
+          };
+          const seqA = extractSeq(a.sectionCode || '', a.sectionName || '');
+          const seqB = extractSeq(b.sectionCode || '', b.sectionName || '');
+          if (seqA !== seqB) return seqA - seqB;
+          return (a.sectionCode || '').localeCompare(b.sectionCode || '', undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        // Summary KPI calculations based on real section data
+        const totalSectionCount = feederSections.length;
+        const totalGarduCount = feederSections.reduce((acc, s) => acc + (s.garduCount || 0), 0);
+        const mainLengthKms = feederSections.reduce((acc, s) => acc + (s.lengthKms || 0), 0);
+        const branchLengthKms = feederSections.reduce((acc, s) => acc + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0);
+        const totalLengthKms = mainLengthKms + branchLengthKms;
+        const totalCustomers = feederSections.reduce((acc, s) => acc + (s.customerCount || 0), 0);
+        const peakKha = Math.max(...feederSections.map(s => s.khaAmpere || s.totalBebanKha || 0), 0) || (matchingFeeder?.khaAmpere || 450);
+        const totalBebanKha = feederSections.reduce((acc, s) => acc + (s.totalBebanKha || s.khaAmpere || 0), 0);
+        const measuredCurrent = feederSections.reduce((acc, s) => acc + (s.currentLoadAmpere || s.currentLoad || 0), 0);
+        const fcoCount = feederSections.filter(s => s.hasFcoBranch).length;
+        const hasWarning = feederSections.some(s => s.status === 'Warning' || s.status === 'Kritis');
+
+        return (
+          <div className="space-y-4">
+            {/* Top Breadcrumb & Status Bar */}
+            <div className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border ${
+              isDarkMode ? 'bg-[#0B132B] border-slate-800 text-white' : 'bg-slate-50 border-slate-300/90 text-slate-900 shadow-xs'
+            }`}>
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className={isDarkMode ? 'text-slate-400 hover:text-blue-400 cursor-pointer' : 'text-slate-700 hover:text-blue-600 cursor-pointer'}>Beranda</span>
+                <span className={isDarkMode ? 'text-slate-500' : 'text-slate-400'}>&gt;</span>
+                <span className={isDarkMode ? 'text-slate-400 hover:text-blue-400 cursor-pointer' : 'text-slate-700 hover:text-blue-600 cursor-pointer'}>Penyulang</span>
+                <span className={isDarkMode ? 'text-slate-500' : 'text-slate-400'}>&gt;</span>
+                <span className={`font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                  {selectedSectionFeeder === 'ALL' ? 'Semua Penyulang' : `Penyulang ${selectedSectionFeeder}`}
+                </span>
+                <span className="text-slate-300 dark:text-slate-700 mx-1">|</span>
+                <span className={isDarkMode ? 'text-slate-400' : 'text-slate-700'}>Tab</span>
+                <span className={`font-black px-2 py-0.5 rounded-md ${
+                  isDarkMode ? 'text-blue-400 bg-blue-500/10' : 'text-blue-700 bg-blue-500/15 border border-blue-500/20'
+                }`}>
+                  Detail Jaringan & Section
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>Status Operasional:</span>
+                <span className={`font-black px-2.5 py-0.5 rounded-full text-xs ${
+                  hasWarning 
+                    ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30' 
+                    : 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                }`}>
+                  {hasWarning ? 'Warning / Perlu Inspeksi' : 'Normal / Siap Operasi'}
+                </span>
+              </div>
+            </div>
+
+            {/* 5 Real Synchronized Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Card 1: Penyulang Info */}
+              <div className={`p-4 rounded-2xl border flex flex-col justify-between min-h-[106px] transition-all ${
+                isDarkMode 
+                  ? 'bg-[#0B132B] border-slate-800 text-white' 
+                  : 'bg-slate-50/90 border-slate-300 text-slate-900 shadow-xs'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${
+                    isDarkMode ? 'text-slate-400' : 'text-slate-700'
+                  }`}>
+                    Penyulang
+                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-500 flex items-center justify-center shrink-0">
+                    <GitBranch className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className={`text-xl font-black tracking-tight truncate ${
+                    isDarkMode ? 'text-white' : 'text-slate-950'
+                  }`}>
+                    {activeFeederName.toUpperCase()}
+                  </div>
+                  <div className={`text-[11.5px] font-extrabold flex items-center gap-1.5 mt-1 ${
+                    isDarkMode ? 'text-blue-400' : 'text-blue-700'
+                  }`}>
+                    <span>{feederCodeDisplay}</span>
+                    <span>•</span>
+                    <span className={`truncate ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
+                      {matchingFeeder?.garduHubung && matchingFeeder.garduHubung !== '-' 
+                        ? matchingFeeder.garduHubung 
+                        : (matchingFeeder?.substationName && matchingFeeder.substationName !== '-' ? matchingFeeder.substationName : 'GH Bandara')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Total Section */}
+              <div className={`p-4 rounded-2xl border flex flex-col justify-between min-h-[106px] transition-all ${
+                isDarkMode 
+                  ? 'bg-[#0B132B] border-slate-800 text-white' 
+                  : 'bg-slate-50/90 border-slate-300 text-slate-900 shadow-xs'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${
+                    isDarkMode ? 'text-slate-400' : 'text-slate-700'
+                  }`}>
+                    Total Section
+                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                      {totalSectionCount}
+                    </span>
+                    <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
+                      Section
+                    </span>
+                  </div>
+                  <div className={`text-[11.5px] font-extrabold mt-1 ${
+                    isDarkMode ? 'text-indigo-400' : 'text-indigo-700'
+                  }`}>
+                    {fcoCount > 0 ? `${fcoCount} dgn Cabang FCO` : 'Jalur Utama Kontinu'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Total Gardu */}
+              <div className={`p-4 rounded-2xl border flex flex-col justify-between min-h-[106px] transition-all ${
+                isDarkMode 
+                  ? 'bg-[#0B132B] border-slate-800 text-white' 
+                  : 'bg-slate-50/90 border-slate-300 text-slate-900 shadow-xs'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${
+                    isDarkMode ? 'text-slate-400' : 'text-slate-700'
+                  }`}>
+                    Total Gardu
+                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                      {totalGarduCount}
+                    </span>
+                    <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
+                      Gardu
+                    </span>
+                  </div>
+                  <div className={`text-[11.5px] font-extrabold mt-1 ${
+                    isDarkMode ? 'text-emerald-400' : 'text-emerald-700'
+                  }`}>
+                    {totalCustomers > 0 ? `${totalCustomers.toLocaleString('id-ID')} Pelanggan Terlayani` : 'Tersinkron Real Section'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Total Panjang KMS */}
+              <div className={`p-4 rounded-2xl border flex flex-col justify-between min-h-[106px] transition-all ${
+                isDarkMode 
+                  ? 'bg-[#0B132B] border-slate-800 text-white' 
+                  : 'bg-slate-50/90 border-slate-300 text-slate-900 shadow-xs'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${
+                    isDarkMode ? 'text-slate-400' : 'text-slate-700'
+                  }`}>
+                    Total Panjang
+                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center shrink-0">
+                    <Route className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                      {totalLengthKms.toFixed(1)}
+                    </span>
+                    <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
+                      KMS
+                    </span>
+                  </div>
+                  <div className={`text-[11.5px] font-extrabold mt-1 ${
+                    isDarkMode ? 'text-amber-400' : 'text-amber-800'
+                  }`}>
+                    Utama: {mainLengthKms.toFixed(1)} km {branchLengthKms > 0 ? `| FCO: ${branchLengthKms.toFixed(1)} km` : ''}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 5: Beban KHA & Arus */}
+              <div className={`p-4 rounded-2xl border flex flex-col justify-between min-h-[106px] transition-all ${
+                isDarkMode 
+                  ? 'bg-[#0B132B] border-slate-800 text-white' 
+                  : 'bg-slate-50/90 border-slate-300 text-slate-900 shadow-xs'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-black uppercase tracking-wider ${
+                    isDarkMode ? 'text-slate-400' : 'text-slate-700'
+                  }`}>
+                    Beban KHA
+                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                      {peakKha}
+                    </span>
+                    <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
+                      A
+                    </span>
+                  </div>
+                  <div className={`text-[11.5px] font-extrabold mt-1 ${
+                    isDarkMode ? 'text-rose-400' : 'text-rose-700'
+                  }`}>
+                    {measuredCurrent > 0 ? `Arus Real: ${measuredCurrent} A` : `Total KHA: ${totalBebanKha} A`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* View Sub-Tabs: Topologi & Tabel vs Live Telemetry Monitoring */}
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSectionViewTab('topology_table')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                    sectionViewTab === 'topology_table'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                      : isDarkMode
+                        ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Network className="w-4 h-4" />
+                  <span>Topologi Skematik & Tabel Detail</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSectionViewTab('monitoring')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                    sectionViewTab === 'monitoring'
+                      ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20'
+                      : isDarkMode
+                        ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Activity className="w-4 h-4 text-amber-300" />
+                  <span>Tampilan Monitoring Section Real-time</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                </button>
+              </div>
+
+              <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-[11px]">
+                  Jalur Utama
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px]">
+                  FCO Percabangan Lateral
+                </span>
+              </div>
+            </div>
+
+            {/* Filter, Search & Add Data Controls */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari berdasarkan Kode Section, Nama, atau Penyulang..."
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 shadow-xs'
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedSectionFeeder}
+                  onChange={(e) => {
+                    setSelectedSectionFeeder(e.target.value);
+                    setSelectedSectionId(null);
+                  }}
+                  className={`px-3 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900 shadow-xs'
+                  }`}
+                >
+                  <option value="Allang">ALLANG</option>
+                  {availableFeeders
+                    .filter(f => f.toLowerCase() !== 'allang')
+                    .map(f => (
+                      <option key={f} value={f}>
+                        {f.toUpperCase()}
+                      </option>
                     ))}
-                </tbody>
-              </table>
+                  <option value="ALL">SEMUA PENYULANG</option>
+                </select>
+
+                <button
+                  onClick={() => {
+                    const targetFeeder = selectedSectionFeeder === 'ALL' ? (availableFeeders[0] || 'Allang') : selectedSectionFeeder;
+                    const fObj = masterFeeders.find(f => f.feederName.toLowerCase() === targetFeeder.toLowerCase());
+                    const defaultGiGh = (fObj?.garduHubung && fObj.garduHubung !== '-')
+                      ? fObj.garduHubung
+                      : ((fObj?.substationName && fObj.substationName !== '-') ? fObj.substationName : (availableGHs[0] || availableGIs[0] || 'GH Bandara'));
+
+                    setSectionToEdit(null);
+                    setSecFeeder(targetFeeder);
+                    setSecCode(generateSectionCode(targetFeeder));
+                    setSecName('');
+                    setSecSubstation(defaultGiGh);
+                    setSecStart('');
+                    setSecEnd('');
+                    setSecGarduCount('');
+                    setSecLength('');
+                    setSecKha('');
+                    setSecBebanUtama('');
+                    setSecBebanCabang('');
+                    setSecTotalBeban('');
+                    setSecCust('');
+                    setSecStatus('Normal');
+                    setSecHasFco(false);
+                    setSecFcoName('');
+                    setSecFcoLength('');
+                    setSecFcoKha('');
+                    setSecFcoLaterals([]);
+                    setNewLateralInput('');
+                    setSecCurrentLoad('');
+                    setSecVoltageKv('');
+                    setSecVoltageDrop('');
+                    setSecTemp('');
+                    setIsAddSectionOpen(true);
+                  }}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Section</span>
+                </button>
+              </div>
             </div>
+
+            {/* 2-Column Split View: Interactive Schematic Topology & Detailed Table */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* Left Column: Topologi Skematik Interaktif */}
+              <div className="lg:col-span-5 flex flex-col">
+                <div className={`p-4 rounded-2xl border flex-1 ${
+                  isDarkMode ? 'bg-[#070E20] border-slate-800/90' : 'bg-[#091124] border-slate-800 text-white'
+                }`}>
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-4">
+                    <h4 className="font-extrabold text-xs text-white tracking-wide flex items-center gap-2">
+                      <span>Topologi Skematik Interaktif: Penyulang {activeFeederName} (Vertical View)</span>
+                    </h4>
+                    {selectedSectionId && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSectionId(null)}
+                        className="text-[10px] font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
+                      >
+                        Reset Fokus
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Schematic Tree Canvas */}
+                  <div className="p-4 bg-[#050A18]/90 rounded-xl border border-slate-800/80">
+                    {/* Root / Pangkal Node */}
+                    <div className="flex items-center gap-2.5 text-white pb-1">
+                      <div className="w-7 h-7 rounded-lg bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-blue-400 shrink-0">
+                        <GitBranch className="w-4 h-4" />
+                      </div>
+                      <div className="font-black text-xs text-slate-100">
+                        [{feederSections[0]?.substationOrGh || matchingFeeder?.garduHubung || 'GH Bandara'} (Pangkal)]
+                      </div>
+                    </div>
+
+                    {/* Vertical Connected Nodes */}
+                    <div className="relative pl-3.5 mt-1 space-y-0">
+                      {feederSections.map((sec, idx) => {
+                        const isWarning = sec.status === 'Warning' || sec.status === 'Kritis';
+                        const isSelected = selectedSectionId === sec.id;
+                        const isLast = idx === feederSections.length - 1;
+
+                        return (
+                          <div key={sec.id} className="relative group">
+                            {/* Curved / Vertical branch stem */}
+                            <div className="flex items-center h-8 relative">
+                              <div className="w-0.5 h-full bg-cyan-500/70 absolute left-0 top-0"></div>
+                              <div className="pl-3 text-[11px] font-extrabold text-slate-300 flex items-center gap-1.5">
+                                <span>{sec.lengthKms} KMS</span>
+                                {isLast && <span className="text-[10px] text-cyan-400 font-bold">(Ujung)</span>}
+                                <span className="text-cyan-400 text-xs">v</span>
+                              </div>
+                            </div>
+
+                            {/* Node Capsule Box */}
+                            <div 
+                              onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
+                              className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                isSelected 
+                                  ? 'bg-amber-500/20 border-amber-500 shadow-md shadow-amber-500/10' 
+                                  : isWarning
+                                    ? 'bg-[#14151C] border-amber-500/60 hover:border-amber-400'
+                                    : 'bg-[#0B132B]/90 border-cyan-500/30 hover:border-cyan-400'
+                              }`}
+                            >
+                              {/* Node Indicator Dot */}
+                              <div className={`w-3.5 h-3.5 rounded-full mt-0.5 flex items-center justify-center shrink-0 ${
+                                isWarning ? 'bg-amber-500 shadow-xs shadow-amber-500' : 'bg-cyan-500 shadow-xs shadow-cyan-500'
+                              }`}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className={`font-black text-xs truncate ${isWarning ? 'text-amber-300' : 'text-slate-100'}`}>
+                                  [{sec.endPoint || sec.sectionName}]
+                                </div>
+                                <div className="text-[10.5px] font-medium text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                  <span>{sec.lengthKms} KMS</span>
+                                  <span>•</span>
+                                  <span>{sec.garduCount} Gardu</span>
+                                  <span>•</span>
+                                  <span>KHA {sec.totalBebanKha || sec.khaAmpere || 0} A</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* FCO PERCABANGAN LATERAL BRANCH (If section has FCO branch) */}
+                            {sec.hasFcoBranch && (
+                              <div className="mt-2.5 mb-2 pl-4 relative">
+                                {/* Orange Branch Connector */}
+                                <div className="absolute left-0 top-0 bottom-0 w-4 border-l-2 border-b-2 border-amber-500/80 rounded-bl-lg"></div>
+                                
+                                <div className="space-y-2">
+                                  {/* Badge: New Branched Section */}
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950 shadow-xs">
+                                      <span>&larr;</span>
+                                      <span>New Branched Section (FCO Percabangan)</span>
+                                    </span>
+                                    <span className="text-[11px] font-extrabold text-amber-400">
+                                      {sec.fcoLengthKms || 0.8} KMS
+                                    </span>
+                                  </div>
+
+                                  {/* FCO Branch Capsule */}
+                                  <div className="p-3 rounded-xl border border-amber-500/60 bg-amber-950/30 text-white space-y-1.5 shadow-lg shadow-amber-500/5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                                        <Zap className="w-3 h-3" />
+                                      </div>
+                                      <div className="font-extrabold text-xs text-amber-300">
+                                        [{sec.fcoBranchName || 'FCO Percabangan Lateral (Node)'}]
+                                      </div>
+                                    </div>
+                                    <div className="text-[10px] font-bold text-amber-400/80 pl-7 flex items-center gap-2">
+                                      <span>{sec.fcoLengthKms || 0.8} KMS</span>
+                                      <span>•</span>
+                                      <span>KHA {sec.fcoKhaAmpere || 65} A</span>
+                                    </div>
+
+                                    {/* Sub-lateral Nodes */}
+                                    {sec.fcoLaterals && sec.fcoLaterals.length > 0 && (
+                                      <div className="pt-2 pl-7 space-y-1 border-t border-amber-500/20">
+                                        {sec.fcoLaterals.map((lat, lIdx) => (
+                                          <div key={lIdx} className="text-[10.5px] font-bold text-slate-300 flex items-center gap-1.5">
+                                            <span className="text-amber-400 font-black">○</span>
+                                            <span>[{lat}]</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Jalur Utama Continuity Indicator */}
+                                  <div className="flex items-center gap-2 pt-1 pl-1 text-[11px] font-bold text-cyan-400">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></div>
+                                    <span>Jalur Utama &rarr; Berlanjut ke section berikutnya</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Data Section Detailed Table */}
+              <div className="lg:col-span-7 flex flex-col">
+                <div className={`rounded-2xl border flex-1 flex flex-col overflow-hidden shadow-xs ${
+                  isDarkMode ? 'bg-[#0B132B] border-slate-800' : 'bg-white border-slate-200'
+                }`}>
+                  <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-extrabold text-xs text-slate-900 dark:text-white">
+                        Data Section Detailed - Penyulang {activeFeederName}
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                        {feederSections.length} Sections
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                      Parameter Jaringan & Telemetri
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto flex-1">
+                    <table className="w-full text-xs text-left border-collapse">
+                      <thead className="bg-[#080E21] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
+                        <tr>
+                          <th className="p-3 text-center border-r border-slate-800/80 w-10">No</th>
+                          <th className="p-3 text-left border-r border-slate-800/80">Kode Section</th>
+                          <th className="p-3 text-left border-r border-slate-800/80">Nama Section</th>
+                          <th className="p-3 text-center border-r border-slate-800/80">Panjang (KMS)</th>
+                          <th className="p-3 text-center border-r border-slate-800/80">Jumlah Gardu</th>
+                          <th className="p-3 text-center border-r border-slate-800/80">Kapasitas KHA</th>
+                          <th className="p-3 text-center border-r border-slate-800/80">Beban Arus (A)</th>
+                          <th className="p-3 text-center border-r border-slate-800/80">Status</th>
+                          <th className="p-3 text-center w-24">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
+                        {feederSections.map((sec, idx) => {
+                          const isWarning = sec.status === 'Warning' || sec.status === 'Kritis';
+                          const isSelected = selectedSectionId === sec.id;
+                          const loadAmp = sec.currentLoadAmpere !== undefined ? sec.currentLoadAmpere : (sec.currentLoad || 0);
+                          const khaVal = sec.khaAmpere || sec.totalBebanKha || 450;
+                          const loadPct = khaVal > 0 ? Math.round((loadAmp / khaVal) * 100) : 0;
+
+                          return (
+                            <tr 
+                              key={sec.id} 
+                              onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
+                              className={`transition-colors cursor-pointer ${
+                                isSelected 
+                                  ? 'bg-amber-500/15 dark:bg-amber-500/20 text-slate-900 dark:text-white' 
+                                  : isWarning
+                                    ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                                    : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/40'
+                              }`}
+                            >
+                              <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">
+                                {idx + 1}
+                              </td>
+                              <td className="p-3 font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                                <div className="flex items-center gap-1.5">
+                                  <span>{sec.sectionCode}</span>
+                                  {sec.hasFcoBranch && (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                      FCO
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">
+                                <div>{sec.sectionName}</div>
+                                {sec.hasFcoBranch && sec.fcoBranchName && (
+                                  <div className="text-[10px] text-amber-500 font-semibold mt-0.5 flex items-center gap-1">
+                                    <GitBranch className="w-3 h-3" />
+                                    <span>{sec.fcoBranchName}</span>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                                <div>{sec.lengthKms || 0} KMS</div>
+                                {sec.hasFcoBranch && sec.fcoLengthKms ? (
+                                  <div className="text-[10px] text-amber-500 font-semibold mt-0.5">
+                                    +{sec.fcoLengthKms} km FCO
+                                  </div>
+                                ) : null}
+                              </td>
+                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                                <div>{sec.garduCount || 0} Gardu</div>
+                                {sec.customerCount ? (
+                                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                    {sec.customerCount.toLocaleString('id-ID')} Pel
+                                  </div>
+                                ) : null}
+                              </td>
+                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                                {khaVal} A
+                              </td>
+                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                                <div className="flex items-center justify-center gap-1">
+                                  <span>{loadAmp} A</span>
+                                  {loadAmp > 0 && (
+                                    <span className={`text-[10px] font-black ${
+                                      loadPct > 80 ? 'text-rose-500' : loadPct > 60 ? 'text-amber-500' : 'text-emerald-500'
+                                    }`}>
+                                      ({loadPct}%)
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80 font-bold">
+                                {isWarning ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    Warning
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                    <Check className="w-3 h-3" />
+                                    Normal
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => openEditSection(sec)}
+                                    className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                                    title="Edit Section & FCO"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
+                                    className={`p-1.5 rounded-lg cursor-pointer active:scale-90 ${
+                                      isSelected ? 'bg-amber-500 text-white' : 'hover:bg-purple-500/10 text-purple-500'
+                                    }`}
+                                    title="Fokus Topologi"
+                                  >
+                                    <Network className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setSectionToDelete(sec)}
+                                    className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                                    title="Hapus Section"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* LIVE TELEMETRY & SECTION MONITORING DISPLAY (SESUAI DATA SECTIONNYA)     */}
+            {/* ========================================================================= */}
+            {(() => {
+              const activeSection = feederSections.find(s => s.id === selectedSectionId) || feederSections[0];
+              if (!activeSection) return null;
+
+              const loadAmp = activeSection.currentLoadAmpere !== undefined ? activeSection.currentLoadAmpere : (activeSection.currentLoad ?? 0);
+              const khaMax = activeSection.totalBebanKha || activeSection.khaAmpere || 450;
+              const loadPercent = khaMax > 0 ? Math.min(Math.round((loadAmp / khaMax) * 100), 100) : 0;
+              const voltKv = activeSection.voltageKv !== undefined ? activeSection.voltageKv : 20.0;
+              const dropV = activeSection.voltageDropPercent !== undefined ? activeSection.voltageDropPercent : 0;
+              const tempC = activeSection.temperatureCelsius !== undefined ? activeSection.temperatureCelsius : 0;
+              const isThermalWarning = tempC > 60;
+              const isDropWarning = dropV > 4.0;
+              const isOverloaded = loadPercent > 80;
+
+              return (
+                <div className={`p-5 rounded-2xl border transition-all ${
+                  isDarkMode ? 'bg-[#0B132B] border-slate-800 text-white' : 'bg-white border-slate-300 shadow-sm text-slate-950'
+                }`}>
+                  {/* Monitoring Section Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                        <Gauge className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-sm text-slate-950 dark:text-white">
+                            Monitoring Telemetri: {activeSection.sectionName} ({activeSection.sectionCode})
+                          </h4>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30">
+                            Penyulang {activeSection.feederName}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mt-1">
+                          {activeSection.startPoint || 'Pangkal'} &rarr; {activeSection.endPoint || 'Ujung'} • Panjang {activeSection.lengthKms} KMS • {activeSection.garduCount} Gardu Distribusi
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-xs font-black">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span>LIVE SCADA OK</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openEditSection(activeSection)}
+                        className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span>Edit Section & FCO</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4 Telemetry Metrics Deck */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                    {/* 1. Beban Arus & Persentase KHA */}
+                    <div className={`p-4 rounded-xl border ${
+                      isOverloaded 
+                        ? 'bg-rose-500/10 border-rose-500/30' 
+                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-300/90 shadow-xs'
+                    }`}>
+                      <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 mb-2">
+                        <span className="flex items-center gap-1.5">
+                          <Zap className="w-4 h-4 text-amber-500" />
+                          <span className="text-slate-800 dark:text-slate-200">Beban Arus (Real-time)</span>
+                        </span>
+                        <span className="font-black text-slate-900 dark:text-white">{loadPercent}% KHA</span>
+                      </div>
+                      <div className="text-2xl font-black text-slate-950 dark:text-white flex items-baseline gap-1.5">
+                        <span>{loadAmp}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">/ {khaMax} A</span>
+                      </div>
+                      {/* Gauge Progress Bar */}
+                      <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full mt-2.5 overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            loadPercent > 85 ? 'bg-rose-500' : loadPercent > 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`}
+                          style={{ width: `${loadPercent}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mt-2 flex items-center justify-between">
+                        <span>Batas Aman: &lt; 70%</span>
+                        <span className={loadPercent > 85 ? 'text-rose-600 dark:text-rose-400 font-black' : 'text-emerald-700 dark:text-emerald-400 font-black'}>
+                          {loadPercent > 85 ? 'Overload' : 'Normal'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 2. Tegangan & Drop Tegangan */}
+                    <div className={`p-4 rounded-xl border ${
+                      isDropWarning 
+                        ? 'bg-amber-500/10 border-amber-500/30' 
+                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-300/90 shadow-xs'
+                    }`}>
+                      <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 mb-2">
+                        <span className="flex items-center gap-1.5">
+                          <Activity className="w-4 h-4 text-blue-500" />
+                          <span className="text-slate-800 dark:text-slate-200">Tegangan Ujung (20 kV)</span>
+                        </span>
+                        <span className="font-black text-emerald-700 dark:text-emerald-400">&plusmn;{dropV}%</span>
+                      </div>
+                      <div className="text-2xl font-black text-slate-950 dark:text-white flex items-baseline gap-1.5">
+                        <span>{voltKv}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">kV</span>
+                      </div>
+                      <div className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 mt-2">
+                        Drop Tegangan: <span className={isDropWarning ? 'text-amber-700 dark:text-amber-400 font-black' : 'text-emerald-700 dark:text-emerald-400 font-black'}>{dropV}%</span>
+                      </div>
+                      <div className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 mt-1">
+                        Standar SPLN 1:1995: Maksimal 5.0%
+                      </div>
+                    </div>
+
+                    {/* 3. Kondisi Termal & Suhu Konduktor */}
+                    <div className={`p-4 rounded-xl border ${
+                      isThermalWarning 
+                        ? 'bg-rose-500/10 border-rose-500/30' 
+                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-300/90 shadow-xs'
+                    }`}>
+                      <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 mb-2">
+                        <span className="flex items-center gap-1.5">
+                          <Thermometer className="w-4 h-4 text-rose-500" />
+                          <span className="text-slate-800 dark:text-slate-200">Suhu Konduktor</span>
+                        </span>
+                        <span className="font-black text-emerald-700 dark:text-emerald-400">Normal</span>
+                      </div>
+                      <div className="text-2xl font-black text-slate-950 dark:text-white flex items-baseline gap-1.5">
+                        <span>{tempC}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">&deg;C</span>
+                      </div>
+                      <div className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 mt-2">
+                        Ambang Kritis: &gt; 70 &deg;C
+                      </div>
+                      <div className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 mt-1">
+                        Kondisi: {tempC > 60 ? 'Waspada Overheating' : 'Dingin / Optimal'}
+                      </div>
+                    </div>
+
+                    {/* 4. Konfigurasi FCO & Beban Cabang */}
+                    <div className={`p-4 rounded-xl border ${
+                      activeSection.hasFcoBranch
+                        ? 'bg-amber-500/10 border-amber-500/30' 
+                        : isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-300/90 shadow-xs'
+                    }`}>
+                      <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 mb-2">
+                        <span className="flex items-center gap-1.5">
+                          <GitBranch className="w-4 h-4 text-amber-500" />
+                          <span className="text-slate-800 dark:text-slate-200">Percabangan FCO</span>
+                        </span>
+                        <span className="font-black text-amber-700 dark:text-amber-400">
+                          {activeSection.hasFcoBranch ? 'Ada Cabang' : 'Tanpa FCO'}
+                        </span>
+                      </div>
+                      <div className="text-xl font-black text-slate-950 dark:text-white truncate">
+                        {activeSection.hasFcoBranch ? (activeSection.fcoBranchName || 'FCO Percabangan') : 'Jalur Utama Saja'}
+                      </div>
+                      <div className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 mt-2">
+                        {activeSection.hasFcoBranch 
+                          ? `${activeSection.fcoLengthKms || 0.8} KMS • KHA ${activeSection.fcoKhaAmpere || 65} A`
+                          : 'Tidak ada lateral sekunder'
+                        }
+                      </div>
+                      <div className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 mt-1">
+                        {activeSection.fcoLaterals?.length || 0} Sub-Lateral Terdaftar
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section Details & Connected Assets Strip */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="text-xs font-black text-slate-950 dark:text-white flex items-center gap-2">
+                        <span>Detail Struktur Beban Section:</span>
+                        <span className="px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 font-black text-[11px] border border-blue-500/25">
+                          Beban Utama: {activeSection.bebanUtamaKha || activeSection.lengthKms} KMS
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-300 font-black text-[11px] border border-amber-500/25">
+                          Beban Cabang: {activeSection.bebanCabangKha || (activeSection.hasFcoBranch ? 18 : 0)} KHA
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 font-black text-[11px] border border-purple-500/25">
+                          Total Beban: {activeSection.totalBebanKha || activeSection.khaAmpere} KHA
+                        </span>
+                      </div>
+                      {activeSection.hasFcoBranch && activeSection.fcoLaterals && activeSection.fcoLaterals.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Laterals:</span>
+                          {activeSection.fcoLaterals.map((lat, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded text-[10.5px] font-black bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/30">
+                              ○ {lat}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEditSection(activeSection)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer"
+                      >
+                        Input Manual FCO
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSectionId(activeSection.id)}
+                        className="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold cursor-pointer"
+                      >
+                        Highlight Skematik
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* 3. DATA GARDU HUBUNG                                                     */}
@@ -730,25 +1645,25 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       {activeTab === 'gardu_hubung' && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Gardu Hubung</div>
-              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">{masterGarduHubung.length} GH</div>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Gardu Hubung</div>
+              <div className="text-xl font-black text-blue-700 dark:text-blue-400">{masterGarduHubung.length} GH</div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">GH Indoor / Outdoor</div>
-              <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">GH Indoor / Outdoor</div>
+              <div className="text-xl font-black text-purple-700 dark:text-purple-400">
                 {masterGarduHubung.filter(g => g.ghType === 'Indoor').length} Indoor
               </div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Outgoing Feeders</div>
-              <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Outgoing Feeders</div>
+              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
                 {masterGarduHubung.reduce((acc, g) => acc + (g.outgoingFeedersCount || 0), 0)} Feeder
               </div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Status Operasi</div>
-              <div className="text-xl font-extrabold text-teal-600 dark:text-teal-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Status Operasi</div>
+              <div className="text-xl font-black text-teal-700 dark:text-teal-400">
                 {masterGarduHubung.filter(g => g.status === 'Operasi').length} Operasi
               </div>
             </div>
@@ -861,25 +1776,25 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       {activeTab === 'gardu_distribusi' && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Gardu Distribusi</div>
-              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">{masterGarduDistribusi.length} Gardu</div>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Gardu Distribusi</div>
+              <div className="text-xl font-black text-blue-700 dark:text-blue-400">{masterGarduDistribusi.length} Gardu</div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Kapasitas Terpasang</div>
-              <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Kapasitas Terpasang</div>
+              <div className="text-xl font-black text-purple-700 dark:text-purple-400">
                 {masterGarduDistribusi.reduce((acc, g) => acc + (g.capacityKva || 0), 0)} kVA
               </div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Gardu Portal</div>
-              <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Gardu Portal</div>
+              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
                 {masterGarduDistribusi.filter(g => g.garduType === 'Portal').length} Unit
               </div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Gardu Cantol / Beton / Kios</div>
-              <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Gardu Cantol / Beton / Kios</div>
+              <div className="text-xl font-black text-amber-700 dark:text-amber-400">
                 {masterGarduDistribusi.filter(g => g.garduType !== 'Portal').length} Unit
               </div>
             </div>
@@ -996,25 +1911,25 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       {activeTab === 'pemutus' && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Total Alat Pemutus</div>
-              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">{masterPemutus.length} Unit</div>
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Alat Pemutus</div>
+              <div className="text-xl font-black text-blue-700 dark:text-blue-400">{masterPemutus.length} Unit</div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Recloser / OCR</div>
-              <div className="text-xl font-extrabold text-purple-600 dark:text-purple-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Recloser / OCR</div>
+              <div className="text-xl font-black text-purple-700 dark:text-purple-400">
                 {masterPemutus.filter(p => p.equipmentType === 'Recloser').length} Unit
               </div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">LBS Motorized / Manual</div>
-              <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">LBS Motorized / Manual</div>
+              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
                 {masterPemutus.filter(p => p.equipmentType.includes('LBS')).length} Unit
               </div>
             </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
-              <div className="text-[11px] font-bold text-slate-400 mb-1">Terhubung SCADA</div>
-              <div className="text-xl font-extrabold text-teal-600 dark:text-teal-400">
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Terhubung SCADA</div>
+              <div className="text-xl font-black text-teal-700 dark:text-teal-400">
                 {masterPemutus.filter(p => p.scadaStatus === 'Terhubung SCADA').length} Online
               </div>
             </div>
@@ -1344,7 +2259,15 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
-              <h3 className="font-extrabold text-base">{sectionToEdit ? 'Edit Data Section' : 'Tambah Data Section'}</h3>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base">{sectionToEdit ? 'Edit Data Section' : 'Tambah Data Section'}</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Isi parameter segmen / section jaringan penyulang</p>
+                </div>
+              </div>
               <button onClick={() => { setIsAddSectionOpen(false); setSectionToEdit(null); }} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
@@ -1359,7 +2282,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     onChange={e => setSecCode(e.target.value)} 
                     required 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Contoh: SEC-LTR2-01" 
+                    placeholder="Contoh: ALG-SEC-01" 
                   />
                 </div>
                 <div>
@@ -1370,96 +2293,341 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     onChange={e => setSecName(e.target.value)} 
                     required 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Nama section..." 
+                    placeholder="Contoh: GH Bandara-Namahatu" 
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
-                  <input 
-                    type="text" 
-                    value={secFeeder} 
-                    onChange={e => setSecFeeder(e.target.value)} 
-                    required 
-                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Contoh: Lateri 2" 
-                  />
+                  <select
+                    value={secFeeder}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setSecFeeder(val);
+                      if (!sectionToEdit) {
+                        setSecCode(generateSectionCode(val));
+                        const fObj = masterFeeders.find(f => f.feederName.toLowerCase() === val.toLowerCase());
+                        if (fObj) {
+                          if (fObj.garduHubung && fObj.garduHubung !== '-') {
+                            setSecSubstation(fObj.garduHubung);
+                          } else if (fObj.substationName && fObj.substationName !== '-') {
+                            setSecSubstation(fObj.substationName);
+                          }
+                        }
+                      }
+                    }}
+                    required
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    {masterFeeders.map(f => (
+                      <option key={f.id} value={f.feederName}>
+                        {f.feederName} ({f.feederCode})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">GI / GH</label>
-                  <input 
-                    type="text" 
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">GI / GH Asal</label>
+                  <select 
                     value={secSubstation} 
                     onChange={e => setSecSubstation(e.target.value)} 
-                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                  />
+                    required
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  >
+                    <option value="">-- Pilih GI / GH Asal --</option>
+                    <optgroup label="Gardu Induk (GI)">
+                      {availableGIs.map(gi => (
+                        <option key={gi} value={gi}>{gi}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Gardu Hubung (GH)">
+                      {availableGHs.map(gh => (
+                        <option key={gh} value={gh}>{gh}</option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Awal (In)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Awal (In / Pangkal Node)</label>
                   <input 
                     type="text" 
                     value={secStart} 
                     onChange={e => setSecStart(e.target.value)} 
+                    placeholder="Contoh: GH Bandara (Pangkal)"
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Akhir (Out)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Akhir (Out / Ujung Node)</label>
                   <input 
                     type="text" 
                     value={secEnd} 
                     onChange={e => setSecEnd(e.target.value)} 
+                    placeholder="Contoh: Recloser Namahatu (Node)"
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang (kms)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={secLength} 
+                    onChange={e => setSecLength(e.target.value)} 
+                    placeholder="Contoh: 1.0"
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jml Gardu</label>
                   <input 
                     type="number" 
                     value={secGarduCount} 
                     onChange={e => setSecGarduCount(e.target.value)} 
+                    placeholder="Contoh: 1"
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang (kms)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kapasitas KHA (A)</label>
                   <input 
                     type="number" 
-                    step="0.1" 
-                    value={secLength} 
-                    onChange={e => setSecLength(e.target.value)} 
+                    value={secKha} 
+                    onChange={e => {
+                      setSecKha(e.target.value);
+                      setSecTotalBeban(e.target.value);
+                    }} 
+                    placeholder="Contoh: 450"
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jml Pelanggan</label>
+                  <input 
+                    type="number" 
+                    value={secCust} 
+                    onChange={e => setSecCust(e.target.value)} 
+                    placeholder="Contoh: 350"
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
+              </div>
+
+              {/* FCO Percabangan Section */}
+              <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                      <GitBranch className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-xs text-amber-600 dark:text-amber-400">FCO Percabangan Lateral</div>
+                      <div className="text-[10.5px] text-slate-500 dark:text-slate-400">Aktifkan jika section ini memiliki percabangan FCO / lateral</div>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={secHasFco} 
+                      onChange={e => setSecHasFco(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-10 h-5 bg-slate-300 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
+                </div>
+
+                {secHasFco && (
+                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="sm:col-span-2">
+                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Node Percabangan FCO</label>
+                        <input 
+                          type="text" 
+                          value={secFcoName} 
+                          onChange={e => setSecFcoName(e.target.value)} 
+                          placeholder="Contoh: FCO Percabangan Lateral (Node)"
+                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang Cabang (kms)</label>
+                        <input 
+                          type="number" 
+                          step="0.1" 
+                          value={secFcoLength} 
+                          onChange={e => setSecFcoLength(e.target.value)} 
+                          placeholder="Contoh: 0.8"
+                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">KHA Cabang Lateral (A)</label>
+                        <input 
+                          type="number" 
+                          value={secFcoKha} 
+                          onChange={e => setSecFcoKha(e.target.value)} 
+                          placeholder="Contoh: 65"
+                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Tambah Sub-Lateral Baru</label>
+                        <div className="flex gap-1.5">
+                          <input 
+                            type="text" 
+                            value={newLateralInput} 
+                            onChange={e => setNewLateralInput(e.target.value)} 
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (newLateralInput.trim()) {
+                                  setSecFcoLaterals([...secFcoLaterals, newLateralInput.trim()]);
+                                  setNewLateralInput('');
+                                }
+                              }
+                            }}
+                            placeholder="Contoh: Lateral 3: Gardu Z"
+                            className="flex-1 p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              if (newLateralInput.trim()) {
+                                setSecFcoLaterals([...secFcoLaterals, newLateralInput.trim()]);
+                                setNewLateralInput('');
+                              }
+                            }}
+                            className="px-2.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer active:scale-95"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub-laterals list */}
+                    {secFcoLaterals && secFcoLaterals.length > 0 && (
+                      <div className="space-y-1 pt-1">
+                        <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Daftar Cabang Lateral Terdaftar:</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {secFcoLaterals.map((lat, lIdx) => (
+                            <span key={lIdx} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              <span>○ {lat}</span>
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  setSecFcoLaterals(secFcoLaterals.filter((_, i) => i !== lIdx));
+                                }}
+                                className="hover:text-rose-500 cursor-pointer ml-1"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Live Telemetry & Monitoring Parameters */}
+              <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2.5">
+                <div className="font-extrabold text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                  <Activity className="w-4 h-4" />
+                  <span>Parameter Monitoring Telemetri Section</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 block mb-1">Beban Arus (A)</label>
+                    <input 
+                      type="number" 
+                      value={secCurrentLoad} 
+                      onChange={e => setSecCurrentLoad(e.target.value)} 
+                      placeholder="Contoh: 180"
+                      className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 block mb-1">Tegangan (kV)</label>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      value={secVoltageKv} 
+                      onChange={e => setSecVoltageKv(e.target.value)} 
+                      placeholder="Contoh: 20.0"
+                      className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 block mb-1">Drop Tegangan (%)</label>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      value={secVoltageDrop} 
+                      onChange={e => setSecVoltageDrop(e.target.value)} 
+                      placeholder="Contoh: 1.5"
+                      className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-xs" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 block mb-1">Suhu (°C)</label>
+                    <input 
+                      type="number" 
+                      value={secTemp} 
+                      onChange={e => setSecTemp(e.target.value)} 
+                      placeholder="Contoh: 38"
+                      className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-xs" 
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status Kondisi</label>
                   <select 
                     value={secStatus} 
-                    onChange={e => setSecStatus(e.target.value as any)} 
+                    onChange={e => setSecStatus(e.target.value)} 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value="Normal">Normal</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Kritis">Kritis</option>
                     <option value="Operasi">Operasi</option>
                     <option value="Tidak Operasi">Tidak Operasi</option>
                     <option value="Manuver">Manuver</option>
                   </select>
                 </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jml Pelanggan (Opsional)</label>
+                  <input 
+                    type="number" 
+                    value={secCust} 
+                    onChange={e => setSecCust(e.target.value)} 
+                    placeholder="Contoh: 1250"
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
               </div>
-              <div className="flex justify-end gap-2 pt-3">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
                 <button 
                   type="button" 
                   onClick={() => { setIsAddSectionOpen(false); setSectionToEdit(null); }} 
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button 
                   type="submit" 
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer shadow-md active:scale-95 transition-all"
                 >
                   Simpan Section
                 </button>

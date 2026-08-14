@@ -13,6 +13,31 @@ import { db, handleFirestoreError, OperationType, testFirestoreConnection } from
 testFirestoreConnection();
 
 /**
+ * Sanitizes object by removing undefined fields recursively
+ * so Firestore setDoc / updateDoc never fails on unsupported undefined values.
+ */
+export function cleanFirestoreData<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return null as unknown as T;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .filter((v) => v !== undefined)
+      .map((v) => cleanFirestoreData(v)) as unknown as T;
+  }
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanFirestoreData(value);
+      }
+    }
+    return cleaned as unknown as T;
+  }
+  return obj;
+}
+
+/**
  * Syncs a Firestore collection in real-time. If the collection is empty on first load,
  * automatically populates it with the provided defaultData.
  */
@@ -33,7 +58,8 @@ export function syncCollection<T extends { id?: string; month?: string }>(
           defaultData.forEach((item, index) => {
             const docId = item.id || (item.month ? `${item.month}_2026` : `item_${index}`);
             const itemDocRef = doc(db, collectionName, docId);
-            batch.set(itemDocRef, { ...item, id: docId });
+            const dataToSave = cleanFirestoreData({ ...item, id: docId });
+            batch.set(itemDocRef, dataToSave);
           });
           await batch.commit();
         } catch (err) {
@@ -71,7 +97,7 @@ export async function saveDocument<T extends { id?: string; month?: string }>(
 ) {
   const docId = customDocId || item.id || (item.month ? `${item.month}_2026` : `doc_${Date.now()}`);
   const docRef = doc(db, collectionName, docId);
-  const dataToSave = { ...item, id: docId };
+  const dataToSave = cleanFirestoreData({ ...item, id: docId });
 
   try {
     await setDoc(docRef, dataToSave, { merge: true });
