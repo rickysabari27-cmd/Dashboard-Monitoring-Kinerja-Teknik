@@ -80,6 +80,8 @@ export function syncCollection<T extends { id?: string; month?: string }>(
       }
     },
     (error) => {
+      // Provide initial fallback data so UI remains interactive
+      onDataUpdate(defaultData);
       handleFirestoreError(error, OperationType.LIST, collectionName);
     }
   );
