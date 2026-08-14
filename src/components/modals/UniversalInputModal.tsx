@@ -117,6 +117,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     setMFeederGi(val);
     if (val && val !== '-') {
       setMFeederGh('-');
+      setMFeederStatus('Utama');
     }
   };
 
@@ -124,6 +125,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     setMFeederGh(val);
     if (val && val !== '-') {
       setMFeederGi('-');
+      setMFeederStatus('Percabangan');
     }
   };
 
@@ -242,13 +244,15 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
         status: pct > 90 ? 'Critical Overload' : 'Normal'
       });
     } else if (activeTab === 'master_data' && onSaveMasterFeeder) {
+      const finalGh = mFeederGh === '-' ? '' : mFeederGh;
+      const finalStatus = (finalGh && finalGh !== '') ? 'Percabangan' : (mFeederStatus || 'Utama');
       onSaveMasterFeeder({
         id: `MF-${Date.now()}`,
-        feederCode: mFeederCode,
-        feederName: mFeederName,
+        feederCode: mFeederCode.trim().toUpperCase(),
+        feederName: mFeederName.trim(),
         substationName: mFeederGi || '-',
-        garduHubung: mFeederGh || '-',
-        status: mFeederStatus || 'Utama',
+        garduHubung: finalGh,
+        status: finalStatus,
         operationalStatus: mFeederOpStatus || 'Operasi',
         khaAmpere: mFeederKha !== '' ? Number(mFeederKha) : 0,
         lengthKms: mFeederLength !== '' ? Number(mFeederLength) : 0,
@@ -573,18 +577,34 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Kode Penyulang</label>
-                  <input type="text" value={mFeederCode} onChange={(e) => setMFeederCode(e.target.value)} placeholder="Contoh: BDR1" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={mFeederCode} 
+                    onChange={(e) => setMFeederCode(e.target.value)} 
+                    placeholder="Contoh: BDR1" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Nama Penyulang</label>
-                  <input type="text" value={mFeederName} onChange={(e) => setMFeederName(e.target.value)} placeholder="Contoh: Bandara 1" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={mFeederName} 
+                    onChange={(e) => setMFeederName(e.target.value)} 
+                    placeholder="Contoh: Bandara 1" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Gardu Induk</label>
-                  <select value={mFeederGi} onChange={(e) => handleMFeederGiChange(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Gardu Induk</label>
+                  <select 
+                    value={mFeederGi} 
+                    onChange={(e) => handleMFeederGiChange(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="-">Pilih Gardu</option>
                     <option value="Hative Besar">Hative Besar</option>
                     <option value="GIS Passo">GIS Passo</option>
@@ -593,8 +613,12 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">GH</label>
-                  <select value={mFeederGh} onChange={(e) => handleMFeederGhChange(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">GH</label>
+                  <select 
+                    value={mFeederGh} 
+                    onChange={(e) => handleMFeederGhChange(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="-">Pilih Gardu</option>
                     <option value="GH Area">GH Area</option>
                     <option value="GH Aston">GH Aston</option>
@@ -608,15 +632,23 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Status</label>
-                  <select value={mFeederStatus} onChange={(e) => setMFeederStatus(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                  <select 
+                    value={mFeederStatus} 
+                    onChange={(e) => setMFeederStatus(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Utama">Utama</option>
                     <option value="Percabangan">Percabangan</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Status Operasional</label>
-                  <select value={mFeederOpStatus} onChange={(e) => setMFeederOpStatus(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status Operasional</label>
+                  <select 
+                    value={mFeederOpStatus} 
+                    onChange={(e) => setMFeederOpStatus(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Operasi">Operasi</option>
                     <option value="Tidak Operasi">Tidak Operasi</option>
                   </select>
@@ -624,25 +656,54 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
               </div>
               <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">KHA (A)</label>
-                  <input type="number" value={mFeederKha} onChange={(e) => setMFeederKha(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">KHA (A)</label>
+                  <input 
+                    type="number" 
+                    value={mFeederKha} 
+                    onChange={(e) => setMFeederKha(e.target.value)} 
+                    placeholder="0" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Panjang (kms)</label>
-                  <input type="number" step="0.01" value={mFeederLength} onChange={(e) => setMFeederLength(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang (kms)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={mFeederLength} 
+                    onChange={(e) => setMFeederLength(e.target.value)} 
+                    placeholder="0" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Gardu</label>
-                  <input type="number" value={mFeederGarduCount} onChange={(e) => setMFeederGarduCount(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Gardu</label>
+                  <input 
+                    type="number" 
+                    value={mFeederGarduCount} 
+                    onChange={(e) => setMFeederGarduCount(e.target.value)} 
+                    placeholder="0" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jumlah Pel</label>
-                  <input type="number" value={mFeederCust} onChange={(e) => setMFeederCust(e.target.value)} placeholder="0" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Pel</label>
+                  <input 
+                    type="number" 
+                    value={mFeederCust} 
+                    onChange={(e) => setMFeederCust(e.target.value)} 
+                    placeholder="0" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Konfigurasi</label>
-                <select value={mFeederConfig} onChange={(e) => setMFeederConfig(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold">
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Konfigurasi</label>
+                <select 
+                  value={mFeederConfig} 
+                  onChange={(e) => setMFeederConfig(e.target.value)} 
+                  className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                >
                   <option value="Looping">Looping</option>
                   <option value="Radial">Radial</option>
                 </select>

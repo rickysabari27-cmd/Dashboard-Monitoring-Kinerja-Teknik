@@ -159,8 +159,11 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setFCode(feeder.feederCode);
     setFName(feeder.feederName);
     setFGi(feeder.substationName || '-');
-    setFGh(feeder.garduHubung || '-');
-    setFStatus(feeder.status || 'Utama');
+    const ghVal = feeder.garduHubung || '-';
+    setFGh(ghVal);
+    // Any feeder from Gardu Hubung is Percabangan
+    const statusVal = (ghVal && ghVal !== '-') ? 'Percabangan' : (feeder.status || 'Utama');
+    setFStatus(statusVal);
     setFOpStatus(feeder.operationalStatus || 'Operasi');
     setFKha(feeder.khaAmpere ?? 0);
     setFLength(feeder.lengthKms ?? 0);
@@ -171,13 +174,16 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
   const handleSaveFeeder = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalGh = fGh === '-' ? '' : fGh;
+    // Rule: Semua penyulang dari Gardu Hubung adalah Percabangan
+    const finalStatus = (finalGh && finalGh !== '') ? 'Percabangan' : fStatus;
     const payload: MasterFeeder = {
       id: feederToEdit ? feederToEdit.id : `MF-${Date.now()}`,
       feederCode: fCode.trim().toUpperCase(),
       feederName: fName.trim(),
       substationName: fGi,
-      garduHubung: fGh === '-' ? '' : fGh,
-      status: fStatus,
+      garduHubung: finalGh,
+      status: finalStatus,
       operationalStatus: fOpStatus,
       khaAmpere: Number(fKha) || 0,
       lengthKms: Number(fLength) || 0,
@@ -407,24 +413,24 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Utama</span>
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                {masterFeeders.filter(f => (f.status || 'Utama') === 'Utama').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
+                {masterFeeders.filter(f => (!f.garduHubung || f.garduHubung === '-') && (f.status || 'Utama') === 'Utama').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
               </div>
             </div>
 
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Penyulang Percabangan</span>
-                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                <div className="p-1.5 rounded-lg bg-yellow-500/10 text-yellow-500">
                   <Activity className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
-                {masterFeeders.filter(f => f.status === 'Percabangan').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
+              <div className="text-xl font-extrabold text-yellow-600 dark:text-yellow-400">
+                {masterFeeders.filter(f => (f.garduHubung && f.garduHubung !== '-') || f.status === 'Percabangan').length} <span className="text-xs font-normal text-slate-400">Feeder</span>
               </div>
             </div>
 
@@ -530,11 +536,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                         <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.substationName || '-'}</td>
                         <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.garduHubung || '-'}</td>
                         <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                            feeder.status === 'Percabangan' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'
-                          }`}>
-                            {feeder.status || 'Utama'}
-                          </span>
+                          {(() => {
+                            const isPercabangan = (feeder.garduHubung && feeder.garduHubung !== '-') || feeder.status === 'Percabangan';
+                            const displayStatus = isPercabangan ? 'Percabangan' : 'Utama';
+                            return (
+                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                displayStatus === 'Percabangan' 
+                                  ? 'bg-yellow-400/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30' 
+                                  : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                              }`}>
+                                {displayStatus}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
                           <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
@@ -1126,25 +1140,50 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
               <h3 className="font-extrabold text-base">{feederToEdit ? 'Edit Data Penyulang' : 'Tambah Data Penyulang'}</h3>
-              <button onClick={() => { setIsAddFeederOpen(false); setFeederToEdit(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => { setIsAddFeederOpen(false); setFeederToEdit(null); }} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSaveFeeder} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Kode Penyulang</label>
-                  <input type="text" value={fCode} onChange={e => setFCode(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: LTR2" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={fCode} 
+                    onChange={e => setFCode(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: LTR2" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Nama Penyulang</label>
-                  <input type="text" value={fName} onChange={e => setFName(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: Lateri 2" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={fName} 
+                    onChange={e => setFName(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: Lateri 2" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Gardu Induk</label>
-                  <select value={fGi} onChange={e => { setFGi(e.target.value); if (e.target.value !== '-') setFGh('-'); }} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Gardu Induk</label>
+                  <select 
+                    value={fGi} 
+                    onChange={e => { 
+                      const val = e.target.value;
+                      setFGi(val); 
+                      if (val !== '-') {
+                        setFGh('-');
+                        setFStatus('Utama');
+                      }
+                    }} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="-">-</option>
                     <option value="GI Passo">GI Passo</option>
                     <option value="GIS Passo">GIS Passo</option>
@@ -1153,29 +1192,51 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Gardu Hubung</label>
-                  <select value={fGh} onChange={e => { setFGh(e.target.value); if (e.target.value !== '-') setFGi('-'); }} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Gardu Hubung</label>
+                  <select 
+                    value={fGh} 
+                    onChange={e => { 
+                      const val = e.target.value;
+                      setFGh(val); 
+                      if (val !== '-') {
+                        setFGi('-');
+                        setFStatus('Percabangan');
+                      }
+                    }} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="-">-</option>
+                    <option value="GH Area">GH Area</option>
+                    <option value="GH Aston">GH Aston</option>
                     <option value="GH Baguala">GH Baguala</option>
                     <option value="GH Bandara">GH Bandara</option>
-                    <option value="GH Wayame">GH Wayame</option>
-                    <option value="GH Poka">GH Poka</option>
-                    <option value="GH Aston">GH Aston</option>
+                    <option value="GH Box Pantai Galala">GH Box Pantai Galala</option>
+                    <option value="GH Box Pantai Poka">GH Box Pantai Poka</option>
                     <option value="GH Hative Kecil">GH Hative Kecil</option>
+                    <option value="GH Poka">GH Poka</option>
+                    <option value="GH Wayame">GH Wayame</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Status</label>
-                  <select value={fStatus} onChange={e => setFStatus(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                  <select 
+                    value={fStatus} 
+                    onChange={e => setFStatus(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Utama">Utama</option>
                     <option value="Percabangan">Percabangan</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Status Operasional</label>
-                  <select value={fOpStatus} onChange={e => setFOpStatus(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status Operasional</label>
+                  <select 
+                    value={fOpStatus} 
+                    onChange={e => setFOpStatus(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Operasi">Operasi</option>
                     <option value="Tidak Operasi">Tidak Operasi</option>
                   </select>
@@ -1183,21 +1244,48 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">KHA (A)</label>
-                  <input type="number" value={fKha} onChange={e => setFKha(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">KHA (A)</label>
+                  <input 
+                    type="number" 
+                    value={fKha} 
+                    onChange={e => setFKha(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Panjang (kms)</label>
-                  <input type="number" step="0.1" value={fLength} onChange={e => setFLength(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang (kms)</label>
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    value={fLength} 
+                    onChange={e => setFLength(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Jml Gardu</label>
-                  <input type="number" value={fGarduCount} onChange={e => setFGarduCount(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jml Gardu</label>
+                  <input 
+                    type="number" 
+                    value={fGarduCount} 
+                    onChange={e => setFGarduCount(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => { setIsAddFeederOpen(false); setFeederToEdit(null); }} className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold cursor-pointer">Batal</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer">Simpan Data</button>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAddFeederOpen(false); setFeederToEdit(null); }} 
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                >
+                  Simpan Data
+                </button>
               </div>
             </form>
           </div>
@@ -1257,53 +1345,104 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
               <h3 className="font-extrabold text-base">{sectionToEdit ? 'Edit Data Section' : 'Tambah Data Section'}</h3>
-              <button onClick={() => { setIsAddSectionOpen(false); setSectionToEdit(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => { setIsAddSectionOpen(false); setSectionToEdit(null); }} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSaveSection} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Kode Section</label>
-                  <input type="text" value={secCode} onChange={e => setSecCode(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: SEC-LTR2-01" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Section</label>
+                  <input 
+                    type="text" 
+                    value={secCode} 
+                    onChange={e => setSecCode(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: SEC-LTR2-01" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Nama Section</label>
-                  <input type="text" value={secName} onChange={e => setSecName(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Nama section..." />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Section</label>
+                  <input 
+                    type="text" 
+                    value={secName} 
+                    onChange={e => setSecName(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Nama section..." 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Penyulang</label>
-                  <input type="text" value={secFeeder} onChange={e => setSecFeeder(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: Lateri 2" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={secFeeder} 
+                    onChange={e => setSecFeeder(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: Lateri 2" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">GI / GH</label>
-                  <input type="text" value={secSubstation} onChange={e => setSecSubstation(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">GI / GH</label>
+                  <input 
+                    type="text" 
+                    value={secSubstation} 
+                    onChange={e => setSecSubstation(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Titik Awal (In)</label>
-                  <input type="text" value={secStart} onChange={e => setSecStart(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Awal (In)</label>
+                  <input 
+                    type="text" 
+                    value={secStart} 
+                    onChange={e => setSecStart(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Titik Akhir (Out)</label>
-                  <input type="text" value={secEnd} onChange={e => setSecEnd(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Akhir (Out)</label>
+                  <input 
+                    type="text" 
+                    value={secEnd} 
+                    onChange={e => setSecEnd(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Jml Gardu</label>
-                  <input type="number" value={secGarduCount} onChange={e => setSecGarduCount(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jml Gardu</label>
+                  <input 
+                    type="number" 
+                    value={secGarduCount} 
+                    onChange={e => setSecGarduCount(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Panjang (kms)</label>
-                  <input type="number" step="0.1" value={secLength} onChange={e => setSecLength(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang (kms)</label>
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    value={secLength} 
+                    onChange={e => setSecLength(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Status</label>
-                  <select value={secStatus} onChange={e => setSecStatus(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                  <select 
+                    value={secStatus} 
+                    onChange={e => setSecStatus(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Operasi">Operasi</option>
                     <option value="Tidak Operasi">Tidak Operasi</option>
                     <option value="Manuver">Manuver</option>
@@ -1311,8 +1450,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => { setIsAddSectionOpen(false); setSectionToEdit(null); }} className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold cursor-pointer">Batal</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer">Simpan Section</button>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAddSectionOpen(false); setSectionToEdit(null); }} 
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                >
+                  Simpan Section
+                </button>
               </div>
             </form>
           </div>
@@ -1327,51 +1477,96 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
               <h3 className="font-extrabold text-base">{ghToEdit ? 'Edit Gardu Hubung' : 'Tambah Gardu Hubung'}</h3>
-              <button onClick={() => { setIsAddGhOpen(false); setGhToEdit(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => { setIsAddGhOpen(false); setGhToEdit(null); }} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSaveGh} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Kode GH</label>
-                  <input type="text" value={ghCode} onChange={e => setGhCode(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: GH-BGL" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode GH</label>
+                  <input 
+                    type="text" 
+                    value={ghCode} 
+                    onChange={e => setGhCode(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: GH-BGL" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Nama Gardu Hubung</label>
-                  <input type="text" value={ghName} onChange={e => setGhName(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: GH Baguala" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Gardu Hubung</label>
+                  <input 
+                    type="text" 
+                    value={ghName} 
+                    onChange={e => setGhName(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: GH Baguala" 
+                  />
                 </div>
               </div>
               <div>
-                <label className="font-bold text-slate-400 block mb-1">Lokasi / Alamat</label>
-                <input type="text" value={ghLoc} onChange={e => setGhLoc(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Alamat lengkap..." />
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi / Alamat</label>
+                <input 
+                  type="text" 
+                  value={ghLoc} 
+                  onChange={e => setGhLoc(e.target.value)} 
+                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  placeholder="Alamat lengkap..." 
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Incoming Feeder</label>
-                  <input type="text" value={ghIncoming} onChange={e => setGhIncoming(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Feeder pemasok..." />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Incoming Feeder</label>
+                  <input 
+                    type="text" 
+                    value={ghIncoming} 
+                    onChange={e => setGhIncoming(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Feeder pemasok..." 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Jumlah Outgoing</label>
-                  <input type="number" value={ghOutCount} onChange={e => setGhOutCount(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Outgoing</label>
+                  <input 
+                    type="number" 
+                    value={ghOutCount} 
+                    onChange={e => setGhOutCount(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div>
-                <label className="font-bold text-slate-400 block mb-1">Daftar Outgoing Feeder</label>
-                <input type="text" value={ghOutList} onChange={e => setGhOutList(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Nama feeder keluar pisahkan koma..." />
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Daftar Outgoing Feeder</label>
+                <input 
+                  type="text" 
+                  value={ghOutList} 
+                  onChange={e => setGhOutList(e.target.value)} 
+                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  placeholder="Nama feeder keluar pisahkan koma..." 
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Tipe GH</label>
-                  <select value={ghType} onChange={e => setGhType(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Tipe GH</label>
+                  <select 
+                    value={ghType} 
+                    onChange={e => setGhType(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Indoor">Indoor</option>
                     <option value="Outdoor">Outdoor</option>
                     <option value="Compact">Compact</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Status</label>
-                  <select value={ghStatus} onChange={e => setGhStatus(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                  <select 
+                    value={ghStatus} 
+                    onChange={e => setGhStatus(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Operasi">Operasi</option>
                     <option value="Standby">Standby</option>
                     <option value="Pemeliharaan">Pemeliharaan</option>
@@ -1379,8 +1574,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => { setIsAddGhOpen(false); setGhToEdit(null); }} className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold cursor-pointer">Batal</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer">Simpan GH</button>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAddGhOpen(false); setGhToEdit(null); }} 
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                >
+                  Simpan GH
+                </button>
               </div>
             </form>
           </div>
@@ -1395,46 +1601,85 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
               <h3 className="font-extrabold text-base">{gdToEdit ? 'Edit Gardu Distribusi' : 'Tambah Gardu Distribusi'}</h3>
-              <button onClick={() => { setIsAddGdOpen(false); setGdToEdit(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => { setIsAddGdOpen(false); setGdToEdit(null); }} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSaveGd} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Kode Gardu</label>
-                  <input type="text" value={gdCode} onChange={e => setGdCode(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: BG-012" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Gardu</label>
+                  <input 
+                    type="text" 
+                    value={gdCode} 
+                    onChange={e => setGdCode(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: BG-012" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Nama Gardu</label>
-                  <input type="text" value={gdName} onChange={e => setGdName(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: Gardu Lateri Raya" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Gardu</label>
+                  <input 
+                    type="text" 
+                    value={gdName} 
+                    onChange={e => setGdName(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: Gardu Lateri Raya" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Penyulang</label>
-                  <input type="text" value={gdFeeder} onChange={e => setGdFeeder(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Nama feeder..." />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={gdFeeder} 
+                    onChange={e => setGdFeeder(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Nama feeder..." 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Section</label>
-                  <input type="text" value={gdSection} onChange={e => setGdSection(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Section</label>
+                  <input 
+                    type="text" 
+                    value={gdSection} 
+                    onChange={e => setGdSection(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Kapasitas (kVA)</label>
-                  <input type="number" value={gdKva} onChange={e => setGdKva(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kapasitas (kVA)</label>
+                  <input 
+                    type="number" 
+                    value={gdKva} 
+                    onChange={e => setGdKva(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Phasa</label>
-                  <select value={gdPhase} onChange={e => setGdPhase(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Phasa</label>
+                  <select 
+                    value={gdPhase} 
+                    onChange={e => setGdPhase(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="3 Phasa">3 Phasa</option>
                     <option value="1 Phasa">1 Phasa</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Tipe Gardu</label>
-                  <select value={gdType} onChange={e => setGdType(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Tipe Gardu</label>
+                  <select 
+                    value={gdType} 
+                    onChange={e => setGdType(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Portal">Portal</option>
                     <option value="Cantol">Cantol</option>
                     <option value="Beton">Beton</option>
@@ -1443,12 +1688,28 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
               <div>
-                <label className="font-bold text-slate-400 block mb-1">Lokasi</label>
-                <input type="text" value={gdLoc} onChange={e => setGdLoc(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi</label>
+                <input 
+                  type="text" 
+                  value={gdLoc} 
+                  onChange={e => setGdLoc(e.target.value)} 
+                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                />
               </div>
               <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => { setIsAddGdOpen(false); setGdToEdit(null); }} className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold cursor-pointer">Batal</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer">Simpan Gardu</button>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAddGdOpen(false); setGdToEdit(null); }} 
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                >
+                  Simpan Gardu
+                </button>
               </div>
             </form>
           </div>
@@ -1463,19 +1724,30 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           }`}>
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
               <h3 className="font-extrabold text-base">{pmtToEdit ? 'Edit Alat Pemutus' : 'Tambah Alat Pemutus'}</h3>
-              <button onClick={() => { setIsAddPmtOpen(false); setPmtToEdit(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => { setIsAddPmtOpen(false); setPmtToEdit(null); }} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSavePmt} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Kode Alat / Tag</label>
-                  <input type="text" value={pmtCode} onChange={e => setPmtCode(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" placeholder="Contoh: REC-LTR2-01" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Alat / Tag</label>
+                  <input 
+                    type="text" 
+                    value={pmtCode} 
+                    onChange={e => setPmtCode(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: REC-LTR2-01" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Jenis Pemutus</label>
-                  <select value={pmtType} onChange={e => setPmtType(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jenis Pemutus</label>
+                  <select 
+                    value={pmtType} 
+                    onChange={e => setPmtType(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Recloser">Recloser</option>
                     <option value="LBS Motorized">LBS Motorized</option>
                     <option value="LBS Manual">LBS Manual</option>
@@ -1487,36 +1759,65 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Penyulang</label>
-                  <input type="text" value={pmtFeeder} onChange={e => setPmtFeeder(e.target.value)} required className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
+                  <input 
+                    type="text" 
+                    value={pmtFeeder} 
+                    onChange={e => setPmtFeeder(e.target.value)} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Rating Arus (A)</label>
-                  <input type="number" value={pmtRating} onChange={e => setPmtRating(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Rating Arus (A)</label>
+                  <input 
+                    type="number" 
+                    value={pmtRating} 
+                    onChange={e => setPmtRating(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Lokasi / Tiang</label>
-                  <input type="text" value={pmtLoc} onChange={e => setPmtLoc(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi / Tiang</label>
+                  <input 
+                    type="text" 
+                    value={pmtLoc} 
+                    onChange={e => setPmtLoc(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Merk & Tipe</label>
-                  <input type="text" value={pmtBrand} onChange={e => setPmtBrand(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Merk & Tipe</label>
+                  <input 
+                    type="text" 
+                    value={pmtBrand} 
+                    onChange={e => setPmtBrand(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">SCADA Status</label>
-                  <select value={pmtScada} onChange={e => setPmtScada(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">SCADA Status</label>
+                  <select 
+                    value={pmtScada} 
+                    onChange={e => setPmtScada(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Terhubung SCADA">Terhubung SCADA</option>
                     <option value="Manual / Non-SCADA">Manual / Non-SCADA</option>
                     <option value="Gangguan Link">Gangguan Link</option>
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-400 block mb-1">Status Posisi</label>
-                  <select value={pmtStatus} onChange={e => setPmtStatus(e.target.value as any)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status Posisi</label>
+                  <select 
+                    value={pmtStatus} 
+                    onChange={e => setPmtStatus(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="Masuk / ON">Masuk / ON</option>
                     <option value="Lepas / OFF">Lepas / OFF</option>
                     <option value="Pemeliharaan">Pemeliharaan</option>
@@ -1524,8 +1825,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-3">
-                <button type="button" onClick={() => { setIsAddPmtOpen(false); setPmtToEdit(null); }} className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold cursor-pointer">Batal</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer">Simpan Pemutus</button>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAddPmtOpen(false); setPmtToEdit(null); }} 
+                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold cursor-pointer"
+                >
+                  Simpan Pemutus
+                </button>
               </div>
             </form>
           </div>
