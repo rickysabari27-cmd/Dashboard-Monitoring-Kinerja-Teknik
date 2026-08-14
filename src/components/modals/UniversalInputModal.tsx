@@ -129,6 +129,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [mSecCust, setMSecCust] = useState<number | string>('');
   const [mSecStatus, setMSecStatus] = useState<string>('Normal');
   const [mSecHasFco, setMSecHasFco] = useState(false);
+  const [mSecBranchDeviceType, setMSecBranchDeviceType] = useState<'FCO' | 'LBSM' | 'Recloser'>('FCO');
   const [mSecFcoName, setMSecFcoName] = useState('');
   const [mSecFcoLength, setMSecFcoLength] = useState<number | string>('');
   const [mSecFcoKha, setMSecFcoKha] = useState<number | string>('');
@@ -314,7 +315,8 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
         customerCount: mSecCust !== '' ? Number(mSecCust) : 0,
         status: mSecStatus || 'Normal',
         hasFcoBranch: mSecHasFco,
-        fcoBranchName: mSecHasFco ? (mSecFcoName || 'FCO Percabangan') : '',
+        branchDeviceType: mSecHasFco ? mSecBranchDeviceType : 'FCO',
+        fcoBranchName: mSecHasFco ? (mSecFcoName || `${mSecBranchDeviceType} Percabangan`) : '',
         fcoLengthKms: mSecHasFco ? (mSecFcoLength !== '' ? Number(mSecFcoLength) : 0) : 0,
         fcoKhaAmpere: mSecHasFco ? (mSecFcoKha !== '' ? Number(mSecFcoKha) : 0) : 0,
         fcoLaterals: mSecHasFco && mSecFcoLaterals.trim() 
@@ -335,6 +337,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecKha('');
       setMSecCust('');
       setMSecHasFco(false);
+      setMSecBranchDeviceType('FCO');
       setMSecFcoName('');
       setMSecFcoLength('');
       setMSecFcoKha('');
@@ -727,7 +730,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
               </div>
               <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">KHA (A)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
                   <input 
                     type="number" 
                     value={mFeederKha} 
@@ -900,7 +903,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban KHA (A)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
                   <input 
                     type="number" 
                     value={mSecKha} 
@@ -938,7 +941,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 </div>
               </div>
 
-              {/* FCO Branching Configuration */}
+              {/* Percabangan Configuration */}
               <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -950,7 +953,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                       className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
                     />
                     <label htmlFor="universalHasFco" className="font-bold text-slate-900 dark:text-white text-xs cursor-pointer">
-                      Terdapat FCO Percabangan Lateral
+                      Terdapat Percabangan Lateral
                     </label>
                   </div>
                   {mSecHasFco && (
@@ -962,17 +965,31 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
 
                 {mSecHasFco && (
                   <div className="space-y-2.5 pt-2 border-t border-amber-500/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <div className="sm:col-span-1">
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Percabangan FCO</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Peralatan Percabangan</label>
+                        <select
+                          value={mSecBranchDeviceType}
+                          onChange={(e) => setMSecBranchDeviceType(e.target.value as 'FCO' | 'LBSM' | 'Recloser')}
+                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold cursor-pointer"
+                        >
+                          <option value="FCO">FCO (Cut Out)</option>
+                          <option value="LBSM">LBSM (LBS Motorized)</option>
+                          <option value="Recloser">Recloser</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Node Percabangan</label>
                         <input
                           type="text"
                           value={mSecFcoName}
                           onChange={(e) => setMSecFcoName(e.target.value)}
-                          placeholder="Contoh: FCO Cabang Lateri"
+                          placeholder={`Contoh: ${mSecBranchDeviceType} Cabang Lateri`}
                           className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
                         />
                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
                         <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang Cabang (kms)</label>
                         <input
@@ -985,7 +1002,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">KHA FCO (A)</label>
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
                         <input
                           type="number"
                           value={mSecFcoKha}
@@ -994,16 +1011,6 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                           className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Daftar Sub-Lateral (Pisahkan dengan koma)</label>
-                      <input
-                        type="text"
-                        value={mSecFcoLaterals}
-                        onChange={(e) => setMSecFcoLaterals(e.target.value)}
-                        placeholder="Contoh: Lateral 1 Tap Passo, Lateral 2 Kampus"
-                        className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-medium"
-                      />
                     </div>
                   </div>
                 )}

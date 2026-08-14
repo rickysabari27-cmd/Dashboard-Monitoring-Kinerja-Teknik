@@ -58,13 +58,32 @@ export const WhatsAppDispatchView: React.FC<WhatsAppDispatchViewProps> = ({
   const [broadcastCategory, setBroadcastCategory] = useState<'Gangguan / Trip' | 'Penormalan' | 'SPK Lapangan' | 'Padam Terencana' | 'Emergency' | 'Lainnya'>('Gangguan / Trip');
   const [selectedTripId, setSelectedTripId] = useState<string>(trips[0]?.id || '');
   const [selectedSpkId, setSelectedSpkId] = useState<string>(spkList[0]?.id || '');
-  const [customRecipientPhone, setCustomRecipientPhone] = useState('');
-  const [customRecipientName, setCustomRecipientName] = useState('');
+  const [broadcastTargetMode, setBroadcastTargetMode] = useState<string>('WAC-01');
+  const [customBroadcastInput, setCustomBroadcastInput] = useState('');
   const [customMessageDraft, setCustomMessageDraft] = useState('');
 
   // Selected trip or spk for template
   const currentTrip = trips.find(t => t.id === selectedTripId) || trips[0];
   const currentSpk = spkList.find(s => s.id === selectedSpkId) || spkList[0];
+
+  // Helper to determine if input is phone number or group name
+  const isPhoneNumber = (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed) return false;
+    const digitsOnly = trimmed.replace(/[^0-9]/g, '');
+    if (trimmed.startsWith('+') || trimmed.startsWith('08') || trimmed.startsWith('62')) {
+      return digitsOnly.length >= 8;
+    }
+    return digitsOnly.length >= 9 && digitsOnly.length / trimmed.length > 0.6;
+  };
+
+  const cleanPhoneNumber = (val: string) => {
+    let num = val.trim().replace(/[^0-9]/g, '');
+    if (num.startsWith('0')) {
+      num = '62' + num.slice(1);
+    }
+    return num;
+  };
 
   // Build template on selection
   const generateBroadcastText = (cat: string) => {
@@ -143,7 +162,7 @@ _Mohon maaf atas ketidaknyamanan._`;
     const newMsg: WhatsAppMessage = {
       id: `WA-MSG-${Date.now()}`,
       recipientName: selectedContact.name,
-      phoneNumber: selectedContact.phoneNumber,
+      phoneNumber: selectedContact.name,
       recipientType: selectedContact.roleType,
       category: 'Lainnya',
       messageText: chatInputText,
@@ -158,14 +177,30 @@ _Mohon maaf atas ketidaknyamanan._`;
 
   const handleSendBroadcast = () => {
     const textToSend = customMessageDraft || generateBroadcastText(broadcastCategory);
-    const targetPhone = customRecipientPhone || selectedContact.phoneNumber;
-    const targetName = customRecipientName || selectedContact.name;
+    let targetTitle = '';
+    let targetPhone = '';
+    let targetType = 'Grup WhatsApp';
+
+    if (broadcastTargetMode === 'CUSTOM') {
+      if (isPhoneNumber(customBroadcastInput)) {
+        targetPhone = cleanPhoneNumber(customBroadcastInput);
+        targetTitle = `+${targetPhone}`;
+        targetType = 'Nomor Pribadi';
+      } else {
+        targetTitle = customBroadcastInput.trim() || 'Grup WhatsApp Kustom';
+        targetType = 'Grup WhatsApp';
+      }
+    } else {
+      const contact = INITIAL_WHATSAPP_CONTACTS.find(c => c.id === broadcastTargetMode) || INITIAL_WHATSAPP_CONTACTS[0];
+      targetTitle = contact.name;
+      targetType = contact.roleType;
+    }
 
     const newMsg: WhatsAppMessage = {
       id: `WA-MSG-${Date.now()}`,
-      recipientName: targetName,
-      phoneNumber: targetPhone,
-      recipientType: selectedContact.roleType,
+      recipientName: targetTitle,
+      phoneNumber: targetPhone || targetTitle,
+      recipientType: targetType,
       category: broadcastCategory,
       messageText: textToSend,
       senderName: 'Dispatcher PLN ULP Baguala',
@@ -176,12 +211,21 @@ _Mohon maaf atas ketidaknyamanan._`;
 
     onSendMessage(newMsg);
 
+    // Auto copy text
+    try {
+      navigator.clipboard.writeText(textToSend);
+    } catch (e) {
+      // ignore
+    }
+
     // Open WhatsApp Web / App
     const encoded = encodeURIComponent(textToSend);
-    let cleanPhone = targetPhone.replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
-    
-    const url = cleanPhone ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
+    let url = '';
+    if (targetPhone) {
+      url = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encoded}`;
+    } else {
+      url = `https://api.whatsapp.com/send?text=${encoded}`;
+    }
     window.open(url, '_blank');
   };
 
@@ -597,29 +641,88 @@ _Mohon maaf atas ketidaknyamanan._`;
 
               {/* Recipient Target */}
               <div>
-                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  3. Nomor WhatsApp / Grup Tujuan:
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    3. Nomor WhatsApp / Grup Tujuan:
+                  </label>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                    ✓ Sinkron WhatsApp App
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {INITIAL_WHATSAPP_CONTACTS.map(c => (
                     <button
                       key={c.id}
-                      onClick={() => {
-                        setSelectedContact(c);
-                        setCustomRecipientPhone(c.phoneNumber);
-                        setCustomRecipientName(c.name);
-                      }}
-                      className={`flex items-center gap-2 p-2 rounded-xl border text-left text-xs ${
-                        selectedContact.id === c.id
-                          ? 'border-emerald-500 bg-emerald-500/15 font-bold text-emerald-800 dark:text-emerald-300'
-                          : isDarkMode ? 'border-slate-800 bg-slate-900/60 text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-700'
+                      onClick={() => setBroadcastTargetMode(c.id)}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${
+                        broadcastTargetMode === c.id
+                          ? 'border-emerald-500 bg-emerald-500/15 font-bold text-emerald-900 dark:text-emerald-300 ring-2 ring-emerald-500/30'
+                          : isDarkMode ? 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
                       }`}
                     >
-                      <Users className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-                      <span className="truncate">{c.name}</span>
+                      <div className={`w-7 h-7 rounded-lg ${c.avatarColor} text-white flex items-center justify-center text-xs font-black shrink-0`}>
+                        <Users className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-black truncate">{c.name}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{c.roleType}</div>
+                      </div>
                     </button>
                   ))}
+
+                  <button
+                    onClick={() => setBroadcastTargetMode('CUSTOM')}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all sm:col-span-2 ${
+                      broadcastTargetMode === 'CUSTOM'
+                        ? 'border-emerald-500 bg-emerald-500/15 font-bold text-emerald-900 dark:text-emerald-300 ring-2 ring-emerald-500/30'
+                        : isDarkMode ? 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-slate-700 text-white flex items-center justify-center text-xs font-black shrink-0">
+                      <Phone className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-black">Nomor WhatsApp Bebas / Nama Grup Kustom</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Kirim ke nomor HP pribadi atau ketik nama grup tujuan bebas
+                      </div>
+                    </div>
+                  </button>
                 </div>
+
+                {broadcastTargetMode === 'CUSTOM' && (
+                  <div className="mt-2.5 p-3 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 space-y-2 animate-in fade-in">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="text-slate-700 dark:text-slate-300">
+                        Ketik Nomor HP atau Nama Grup:
+                      </span>
+                      {customBroadcastInput.trim() && (
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                          isPhoneNumber(customBroadcastInput)
+                            ? 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30'
+                            : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                        }`}>
+                          {isPhoneNumber(customBroadcastInput)
+                            ? `📱 No. HP: +${cleanPhoneNumber(customBroadcastInput)}`
+                            : `👥 Grup: "${customBroadcastInput.trim()}"`
+                          }
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 081298765432 ATAU Grup K3 & Yantek Passo"
+                      value={customBroadcastInput}
+                      onChange={(e) => setCustomBroadcastInput(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs border font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
+                        isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
+                      }`}
+                    />
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      💡 <strong>Otomatis</strong>: Jika memasukkan nomor HP, WhatsApp akan membuka percakapan langsung ke nomor tersebut. Jika memasukkan nama grup, WhatsApp akan membuka pemilih chat/grup untuk mengirim pesan ke grup tersebut.
+                    </p>
+                  </div>
+                )}
               </div>
 
             </div>

@@ -23,11 +23,16 @@ interface WhatsAppModalProps {
   isOpen: boolean;
   onClose: () => void;
   isDarkMode: boolean;
-  initialCategory?: 'Gangguan / Trip' | 'Penormalan' | 'SPK Lapangan' | 'Padam Terencana' | 'Emergency' | 'Lainnya';
+  initialCategory?: string;
   initialTrip?: FeederTrip | null;
   initialSpk?: SpkTask | null;
+  selectedTrip?: FeederTrip | null;
+  selectedSpk?: SpkTask | null;
   initialFeederName?: string;
+  trips?: FeederTrip[];
+  spkList?: SpkTask[];
   onMessageSent?: (msg: WhatsAppMessage) => void;
+  onSaveMessage?: (msg: WhatsAppMessage) => void;
 }
 
 export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
@@ -37,58 +42,65 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   initialCategory = 'Gangguan / Trip',
   initialTrip,
   initialSpk,
+  selectedTrip,
+  selectedSpk,
   initialFeederName,
-  onMessageSent
+  trips = [],
+  spkList = [],
+  onMessageSent,
+  onSaveMessage
 }) => {
-  const [category, setCategory] = useState<string>(initialCategory);
+  const activeTrip = selectedTrip || initialTrip;
+  const activeSpk = selectedSpk || initialSpk;
+
+  const [category, setCategory] = useState<string>(initialCategory || 'Gangguan / Trip');
   const [selectedContactId, setSelectedContactId] = useState<string>('WAC-01');
-  const [customPhone, setCustomPhone] = useState<string>('');
-  const [recipientName, setRecipientName] = useState<string>('Grup Dispatch SCADA & Pengatur 20kV');
+  const [customInput, setCustomInput] = useState<string>('');
+  const [recipientName, setRecipientName] = useState<string>('ROW & Inspeksi Baguala');
   const [messageText, setMessageText] = useState<string>('');
   const [copied, setCopied] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [sentSuccess, setSentSuccess] = useState(false);
 
   // Template variables state
-  const [feederName, setFeederName] = useState(initialFeederName || initialTrip?.feederName || 'LATERI 2');
-  const [substation, setSubstation] = useState(initialTrip?.substation || 'GI Passo (20kV)');
-  const [tripDate, setTripDate] = useState(initialTrip?.tripDate || new Date().toISOString().split('T')[0]);
-  const [tripTime, setTripTime] = useState(initialTrip?.tripTime || '14:20');
-  const [recoveryTime, setRecoveryTime] = useState(initialTrip?.recoveryTime || '15:30');
-  const [relayType, setRelayType] = useState(initialTrip?.relayType || 'GFR / OCR');
-  const [currentAmp, setCurrentAmp] = useState(initialTrip?.currentAmpere?.toString() || '450');
-  const [locationKm, setLocationKm] = useState(initialTrip?.locationKm || 'Km 4.2 - Depan Kantor Desa');
-  const [cause, setCause] = useState(initialTrip?.cause || 'Dahan pohon tumbang akibat angin kencang');
-  const [affectedCust, setAffectedCust] = useState(initialTrip?.affectedCustomers?.toLocaleString('id-ID') || '4.120');
-  const [spkNo, setSpkNo] = useState(initialSpk?.spkNo || 'SPK/2026/08/BGL-015');
-  const [teamLeader, setTeamLeader] = useState(initialSpk?.teamLeader || 'Regu Yantek Passo');
-  const [jobDesc, setJobDesc] = useState(initialSpk?.title || 'Perintangan Dahan Pohon & Penggantian Isolator SUTM');
+  const [feederName, setFeederName] = useState(initialFeederName || activeTrip?.feederName || 'LATERI 2');
+  const [substation, setSubstation] = useState(activeTrip?.substation || 'GI Passo (20kV)');
+  const [tripDate, setTripDate] = useState(activeTrip?.tripDate || new Date().toISOString().split('T')[0]);
+  const [tripTime, setTripTime] = useState(activeTrip?.tripTime || '14:20');
+  const [recoveryTime, setRecoveryTime] = useState(activeTrip?.recoveryTime || '15:30');
+  const [relayType, setRelayType] = useState(activeTrip?.relayType || 'GFR / OCR');
+  const [currentAmp, setCurrentAmp] = useState(activeTrip?.currentAmpere?.toString() || '450');
+  const [locationKm, setLocationKm] = useState(activeTrip?.locationKm || 'Km 4.2 - Depan Kantor Desa');
+  const [cause, setCause] = useState(activeTrip?.cause || 'Dahan pohon tumbang akibat angin kencang');
+  const [affectedCust, setAffectedCust] = useState(activeTrip?.affectedCustomers?.toLocaleString('id-ID') || '4.120');
+  const [spkNo, setSpkNo] = useState(activeSpk?.spkNo || 'SPK/2026/08/BGL-015');
+  const [teamLeader, setTeamLeader] = useState(activeSpk?.teamLeader || 'Regu Yantek Passo');
+  const [jobDesc, setJobDesc] = useState(activeSpk?.title || 'Perintangan Dahan Pohon & Penggantian Isolator SUTM');
 
   // Sync when initial values change
   useEffect(() => {
     if (initialCategory) setCategory(initialCategory);
-    if (initialTrip) {
-      setFeederName(initialTrip.feederName);
-      setSubstation(initialTrip.substation);
-      setTripDate(initialTrip.tripDate);
-      setTripTime(initialTrip.tripTime);
-      setRecoveryTime(initialTrip.recoveryTime || '15:30');
-      setRelayType(initialTrip.relayType);
-      setCurrentAmp(initialTrip.currentAmpere?.toString() || '450');
-      setLocationKm(initialTrip.locationKm);
-      setCause(initialTrip.cause);
-      setAffectedCust(initialTrip.affectedCustomers?.toLocaleString('id-ID') || '4.120');
+    if (activeTrip) {
+      setFeederName(activeTrip.feederName);
+      setSubstation(activeTrip.substation);
+      setTripDate(activeTrip.tripDate);
+      setTripTime(activeTrip.tripTime);
+      setRecoveryTime(activeTrip.recoveryTime || '15:30');
+      setRelayType(activeTrip.relayType);
+      setCurrentAmp(activeTrip.currentAmpere?.toString() || '450');
+      setLocationKm(activeTrip.locationKm);
+      setCause(activeTrip.cause);
+      setAffectedCust(activeTrip.affectedCustomers?.toLocaleString('id-ID') || '4.120');
     }
-    if (initialSpk) {
-      setSpkNo(initialSpk.spkNo);
-      setTeamLeader(initialSpk.teamLeader);
-      setJobDesc(initialSpk.title);
-      setFeederName(initialSpk.feederName);
+    if (activeSpk) {
+      setSpkNo(activeSpk.spkNo);
+      setTeamLeader(activeSpk.teamLeader);
+      setJobDesc(activeSpk.title);
+      setFeederName(activeSpk.feederName);
     }
-    if (initialFeederName && !initialTrip && !initialSpk) {
+    if (initialFeederName && !activeTrip && !activeSpk) {
       setFeederName(initialFeederName);
     }
-  }, [initialCategory, initialTrip, initialSpk, initialFeederName]);
+  }, [initialCategory, activeTrip, activeSpk, initialFeederName]);
 
   // Generate template text whenever category or parameters change
   useEffect(() => {
@@ -162,6 +174,8 @@ _Humas PLN ULP Baguala_`);
 🚒 *Tindakan Cepat*: PMT diamankan, Regu Yantek & K3 meluncur ke TKP.
 ━━━━━━━━━━━━━━━━━━━━
 _Hubungi Call Center PLN 123 / Dispatch Baguala untuk koordinasi darurat._`);
+    } else {
+      setMessageText(`⚡ *INFORMASI KEANDALAN 20kV PLN ULP BAGUALA*\n\nStatus penyulang ${feederName.toUpperCase()} dalam pemantauan normal.`);
     }
   }, [category, feederName, substation, tripDate, tripTime, recoveryTime, relayType, currentAmp, locationKm, cause, affectedCust, spkNo, teamLeader, jobDesc]);
 
@@ -169,26 +183,33 @@ _Hubungi Call Center PLN 123 / Dispatch Baguala untuk koordinasi darurat._`);
   const handleContactSelect = (contactId: string) => {
     setSelectedContactId(contactId);
     if (contactId === 'CUSTOM') {
-      setRecipientName('Nomor Tujuan Kustom');
+      setRecipientName(customInput || 'Nomor WhatsApp Bebas / Grup');
     } else {
       const contact = INITIAL_WHATSAPP_CONTACTS.find(c => c.id === contactId);
       if (contact) {
         setRecipientName(contact.name);
-        setCustomPhone(contact.phoneNumber);
       }
     }
   };
 
-  const getTargetPhoneNumber = () => {
-    if (selectedContactId === 'CUSTOM') {
-      let num = customPhone.trim().replace(/[^0-9]/g, '');
-      if (num.startsWith('0')) {
-        num = '62' + num.slice(1);
-      }
-      return num;
+  // Helper to determine if customInput is a phone number or group name
+  const isInputPhoneNumber = (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed) return false;
+    const digitsOnly = trimmed.replace(/[^0-9]/g, '');
+    // If it starts with + or 08 or 62, or has at least 8 digits and digits make up most of string
+    if (trimmed.startsWith('+') || trimmed.startsWith('08') || trimmed.startsWith('62')) {
+      return digitsOnly.length >= 8;
     }
-    const contact = INITIAL_WHATSAPP_CONTACTS.find(c => c.id === selectedContactId);
-    return contact ? contact.phoneNumber : '';
+    return digitsOnly.length >= 9 && digitsOnly.length / trimmed.length > 0.6;
+  };
+
+  const getCleanPhoneNumber = (val: string) => {
+    let num = val.trim().replace(/[^0-9]/g, '');
+    if (num.startsWith('0')) {
+      num = '62' + num.slice(1);
+    }
+    return num;
   };
 
   const handleCopyText = async () => {
@@ -202,36 +223,68 @@ _Hubungi Call Center PLN 123 / Dispatch Baguala untuk koordinasi darurat._`);
   };
 
   const handleOpenWhatsAppDirect = () => {
-    const phone = getTargetPhoneNumber();
     const encoded = encodeURIComponent(messageText);
+    let targetPhone = '';
+    let targetTitle = recipientName;
+    let targetType = 'Grup WhatsApp';
+
+    if (selectedContactId === 'CUSTOM') {
+      if (isInputPhoneNumber(customInput)) {
+        targetPhone = getCleanPhoneNumber(customInput);
+        targetTitle = `+${targetPhone}`;
+        targetType = 'Nomor Pribadi';
+      } else {
+        targetTitle = customInput.trim() || 'Grup WhatsApp Kustom';
+        targetType = 'Grup WhatsApp';
+      }
+    } else {
+      const contact = INITIAL_WHATSAPP_CONTACTS.find(c => c.id === selectedContactId);
+      if (contact) {
+        targetTitle = contact.name;
+        targetType = contact.roleType;
+      }
+    }
+
+    // Determine WhatsApp URL:
+    // If targetPhone exists, open direct chat with that number.
+    // If it's a group, open WhatsApp share chooser with pre-filled message.
     let url = '';
-    if (phone) {
-      url = `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}`;
+    if (targetPhone) {
+      url = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encoded}`;
     } else {
       url = `https://api.whatsapp.com/send?text=${encoded}`;
     }
+
+    // Auto copy text for convenience
+    try {
+      navigator.clipboard.writeText(messageText);
+    } catch (e) {
+      // ignore
+    }
+
     window.open(url, '_blank');
 
     // Create log message
-    recordSentMessage('Terkirim');
+    recordSentMessage(targetTitle, targetPhone, targetType);
   };
 
-  const recordSentMessage = (status: 'Terkirim' | 'Diterima' | 'Dibaca' = 'Terkirim') => {
-    const phone = getTargetPhoneNumber();
+  const recordSentMessage = (targetTitle: string, targetPhone: string, targetType: string) => {
     const newMsg: WhatsAppMessage = {
       id: `WA-MSG-${Date.now()}`,
-      recipientName: recipientName || 'Kontak WhatsApp',
-      phoneNumber: phone || 'Broadcast Group',
-      recipientType: selectedContactId === 'CUSTOM' ? 'Nomor Pribadi' : 'Group Dispatch',
+      recipientName: targetTitle,
+      phoneNumber: targetPhone || targetTitle,
+      recipientType: targetType,
       category: category as any,
       senderName: 'Petugas / Team Leader Baguala',
       sentAt: new Date().toLocaleString('id-ID'),
-      status,
+      status: 'Terkirim',
       feederRelated: feederName,
       messageText
     };
 
-    if (onMessageSent) {
+    if (onSaveMessage) {
+      onSaveMessage(newMsg);
+    } else if (onMessageSent) {
       onMessageSent(newMsg);
     }
 
@@ -324,9 +377,15 @@ _Hubungi Call Center PLN 123 / Dispatch Baguala untuk koordinasi darurat._`);
 
             {/* Target Recipient Contact */}
             <div className="space-y-2">
-              <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Tujuan Pengiriman:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Tujuan Pengiriman:
+                </label>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  ✓ Sinkron WhatsApp App & Web
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {INITIAL_WHATSAPP_CONTACTS.map(contact => (
                   <button
@@ -335,16 +394,16 @@ _Hubungi Call Center PLN 123 / Dispatch Baguala untuk koordinasi darurat._`);
                     onClick={() => handleContactSelect(contact.id)}
                     className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
                       selectedContactId === contact.id
-                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300'
-                        : isDarkMode ? 'border-slate-800 bg-slate-900/50 text-slate-300' : 'border-slate-200 bg-slate-50/70 text-slate-700'
+                        ? 'border-emerald-500 bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 ring-2 ring-emerald-500/30'
+                        : isDarkMode ? 'border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700' : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg ${contact.avatarColor} text-white flex items-center justify-center text-xs font-black shrink-0`}>
+                    <div className={`w-8 h-8 rounded-lg ${contact.avatarColor} text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs`}>
                       <Users className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">{contact.name}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">+{contact.phoneNumber}</div>
+                      <div className="text-xs font-black truncate">{contact.name}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{contact.description}</div>
                     </div>
                   </button>
                 ))}
@@ -352,33 +411,58 @@ _Hubungi Call Center PLN 123 / Dispatch Baguala untuk koordinasi darurat._`);
                 <button
                   type="button"
                   onClick={() => handleContactSelect('CUSTOM')}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all sm:col-span-2 ${
                     selectedContactId === 'CUSTOM'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300'
-                      : isDarkMode ? 'border-slate-800 bg-slate-900/50 text-slate-300' : 'border-slate-200 bg-slate-50/70 text-slate-700'
+                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 ring-2 ring-emerald-500/30'
+                      : isDarkMode ? 'border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700' : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-slate-700 text-white flex items-center justify-center text-xs font-black shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-slate-700 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-xs">
                     <Phone className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold">Nomor WhatsApp Bebas</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">Ketik nomor / grup apa saja</div>
+                    <div className="text-xs font-black">Nomor WhatsApp Bebas / Nama Grup Kustom</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Kirim langsung ke nomor HP atau ketik nama grup tujuan bebas
+                    </div>
                   </div>
                 </button>
               </div>
 
               {selectedContactId === 'CUSTOM' && (
-                <div className="mt-2">
+                <div className="mt-2 p-3 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 space-y-2 animate-in fade-in">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-slate-700 dark:text-slate-300">
+                      Ketik Nomor HP atau Nama Grup:
+                    </span>
+                    {customInput.trim() && (
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                        isInputPhoneNumber(customInput)
+                          ? 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30'
+                          : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                      }`}>
+                        {isInputPhoneNumber(customInput)
+                          ? `📱 No. HP: +${getCleanPhoneNumber(customInput)}`
+                          : `👥 Grup: "${customInput.trim()}"`
+                        }
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    placeholder="Masukkan No. WhatsApp (contoh: 081234567890 / 628...)"
-                    value={customPhone}
-                    onChange={(e) => setCustomPhone(e.target.value)}
-                    className={`w-full px-3.5 py-2 rounded-xl text-xs border font-mono font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
-                      isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
+                    placeholder="Contoh: 081298765432 ATAU Grup K3 & Yantek Passo"
+                    value={customInput}
+                    onChange={(e) => {
+                      setCustomInput(e.target.value);
+                      setRecipientName(e.target.value.trim() || 'Nomor WhatsApp Bebas / Grup');
+                    }}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-xs border font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
+                      isDarkMode ? 'bg-slate-950 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
                     }`}
                   />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    💡 <strong>Otomatis</strong>: Jika memasukkan nomor HP, WhatsApp akan membuka percakapan langsung ke nomor tersebut. Jika memasukkan nama grup, WhatsApp akan membuka pemilih chat/grup untuk mengirim pesan ke grup tersebut.
+                  </p>
                 </div>
               )}
             </div>

@@ -166,8 +166,9 @@ export interface MasterSection {
   totalBebanKha?: number;
   customerCount?: number;
   status: 'Normal' | 'Warning' | 'Kritis' | 'Operasi' | 'Tidak Operasi' | 'Manuver' | string;
-  // FCO Percabangan Manual Input
+  // FCO / LBSM / Recloser Percabangan Manual Input
   hasFcoBranch?: boolean;
+  branchDeviceType?: 'FCO' | 'LBSM' | 'Recloser' | string;
   fcoBranchName?: string;
   fcoLengthKms?: number;
   fcoKhaAmpere?: number;
@@ -292,7 +293,7 @@ export interface WhatsAppContact {
   id: string;
   name: string;
   phoneNumber: string;
-  roleType: 'Group Dispatch' | 'Regu Yantek' | 'Manajemen' | 'Stakeholder' | 'Petugas Khusus';
+  roleType: string;
   avatarColor: string;
   description?: string;
 }

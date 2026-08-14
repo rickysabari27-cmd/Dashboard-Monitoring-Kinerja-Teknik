@@ -289,7 +289,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 Master Data Penyulang 20kV ULP Baguala
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Inventaris Feeder, Gardu Induk, GH, KHA, Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
+                Inventaris Feeder, Gardu Induk, GH, Beban (Amp), Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
               </p>
             </div>
           </div>
@@ -416,7 +416,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Gardu Hubung</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Status</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Status Operasional</th>
-                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">KHA (A)</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Beban (Amp)</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Panjang Jaringan (kms)</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Jumlah Gardu</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Jumlah Pel</th>
@@ -623,7 +623,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
 
                 <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">KHA (A)</label>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Beban (Amp)</label>
                     <input 
                       type="number" 
                       value={editKha} 
