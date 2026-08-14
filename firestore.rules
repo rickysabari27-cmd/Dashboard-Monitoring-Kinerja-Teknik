@@ -100,5 +100,11 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if true;
     }
+
+    // WhatsApp Messages collection
+    match /whatsapp_messages/{messageId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
   }
 }

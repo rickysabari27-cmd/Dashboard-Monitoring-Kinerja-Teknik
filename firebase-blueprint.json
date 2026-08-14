@@ -266,6 +266,24 @@
         "lastActive": { "type": "string" }
       },
       "required": ["id", "nik", "name", "role", "email"]
+    },
+    "WhatsAppMessage": {
+      "title": "WhatsAppMessage",
+      "description": "Histori dan pesan broadcast WhatsApp 20kV",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "recipientType": { "type": "string" },
+        "category": { "type": "string" },
+        "messageText": { "type": "string" },
+        "senderName": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "status": { "type": "string" },
+        "feederRelated": { "type": "string" }
+      },
+      "required": ["id", "recipientName", "phoneNumber", "category", "messageText"]
     }
   },
   "firestore": {
@@ -324,6 +342,10 @@
     "/users_access/{userId}": {
       "schema": { "$ref": "#/entities/UserAccess" },
       "description": "Koleksi pengguna dan hak akses"
+    },
+    "/whatsapp_messages/{messageId}": {
+      "schema": { "$ref": "#/entities/WhatsAppMessage" },
+      "description": "Koleksi pesan broadcast dan dispatch WhatsApp"
     }
   }
 }
