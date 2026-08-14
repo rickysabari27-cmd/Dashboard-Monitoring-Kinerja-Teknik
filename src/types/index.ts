@@ -149,6 +149,58 @@ export interface MasterFeeder {
   configuration?: string;
 }
 
+export interface MasterSection {
+  id: string;
+  sectionCode: string;
+  sectionName: string;
+  feederName: string;
+  substationOrGh: string;
+  startPoint: string;
+  endPoint: string;
+  garduCount: number;
+  lengthKms: number;
+  customerCount?: number;
+  status: 'Operasi' | 'Tidak Operasi' | 'Manuver';
+}
+
+export interface MasterGarduHubung {
+  id: string;
+  ghCode: string;
+  ghName: string;
+  location: string;
+  incomingFeeder: string;
+  outgoingFeedersCount: number;
+  outgoingFeedersList: string;
+  ghType: 'Indoor' | 'Outdoor' | 'Compact';
+  status: 'Operasi' | 'Standby' | 'Pemeliharaan';
+}
+
+export interface MasterGarduDistribusi {
+  id: string;
+  garduCode: string;
+  garduName: string;
+  feederName: string;
+  sectionName?: string;
+  capacityKva: number;
+  phase: '3 Phasa' | '1 Phasa';
+  garduType: 'Portal' | 'Cantol' | 'Beton' | 'Kios';
+  location: string;
+  customerCount?: number;
+  status: 'Operasi' | 'Tidak Operasi' | 'Pemeliharaan';
+}
+
+export interface MasterPemutus {
+  id: string;
+  equipmentCode: string;
+  equipmentType: 'Recloser' | 'LBS Motorized' | 'LBS Manual' | 'PMT' | 'FCO' | 'Disconnector (DS)';
+  feederName: string;
+  location: string;
+  brandModel: string;
+  currentRatingAmpere: number;
+  scadaStatus: 'Terhubung SCADA' | 'Manual / Non-SCADA' | 'Gangguan Link';
+  status: 'Masuk / ON' | 'Lepas / OFF' | 'Pemeliharaan';
+}
+
 export interface MaterialItem {
   id: string;
   itemCode: string;

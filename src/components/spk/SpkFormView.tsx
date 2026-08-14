@@ -125,11 +125,11 @@ const PRESET_ROW_PAGE_1: SpkFormData = {
   section: '',
   lokasi: '',
   target: '',
-  tlTeknikName: 'Muhamad Ricky Sabari',
+  tlTeknikName: '',
   tlTeknikTitle: 'TL TEKNIK',
   isApprovedTlTeknik: false,
-  managerName: 'Niken Oka Witdoretno',
-  managerTitle: 'Manager ULP Baguala',
+  managerName: '',
+  managerTitle: 'Manager ULP',
   isApprovedManager: false,
   statusPekerjaan: 'Dalam Progres'
 };
@@ -164,11 +164,11 @@ const PRESET_INSPEKSI_PAGE_2: SpkFormData = {
   section: 'Wilayah Kerja',
   lokasi: 'Tersebar Wilayah Kerja',
   target: '67 Tiang Dan 4 Gardu Distribusi',
-  tlTeknikName: 'Muhamad Ricky Sabari',
+  tlTeknikName: '',
   tlTeknikTitle: 'TL TEKNIK',
   isApprovedTlTeknik: false,
-  managerName: 'Niken Oka Witdoretno',
-  managerTitle: 'Manager ULP Baguala',
+  managerName: '',
+  managerTitle: 'Manager ULP',
   isApprovedManager: false,
   statusPekerjaan: 'Dalam Progres'
 };
@@ -201,10 +201,10 @@ const PRESET_PASSO_GARDU: SpkFormData = {
   penyulang: 'Passo',
   lokasi: 'Gardu Portal PAS-04 & PAS-09 Area Passo Transit',
   target: '2 Buah Gardu Distribusi',
-  tlTeknikName: 'Muhamad Ricky Sabari',
+  tlTeknikName: '',
   tlTeknikTitle: 'TL TEKNIK',
-  managerName: 'Niken Oka Witdoretno',
-  managerTitle: 'Manager ULP Baguala',
+  managerName: '',
+  managerTitle: 'Manager ULP',
   statusPekerjaan: 'Selesai'
 };
 
@@ -235,10 +235,10 @@ const PRESET_LATERI_THERMO: SpkFormData = {
   penyulang: 'LATERI 2',
   lokasi: 'Jalur Utama LATERI 2 (Tiang #10 s/d Tiang #88)',
   target: '52 Titik Sambungan FCO & Jumper',
-  tlTeknikName: 'Muhamad Ricky Sabari',
+  tlTeknikName: '',
   tlTeknikTitle: 'TL TEKNIK',
-  managerName: 'Niken Oka Witdoretno',
-  managerTitle: 'Manager ULP Baguala',
+  managerName: '',
+  managerTitle: 'Manager ULP',
   statusPekerjaan: 'Selesai (Dengan Catatan)'
 };
 
@@ -278,24 +278,26 @@ const parseNomorSpk = (fullNomor: string, categoryHeader: string) => {
     detectedMiddle = 'PK.TEK/HAR/ULP.BGL';
   }
 
-  const parts = clean.split('/');
-  if (parts.length >= 4) {
-    const nomorUrut = parts[0].trim();
-    const tahun = parts[parts.length - 1].trim();
-    const bulan = parts[parts.length - 2].trim();
-    const tengah = parts.slice(1, parts.length - 2).join('/').trim();
-    return {
-      nomorUrut,
-      tengah: tengah || detectedMiddle,
-      bulan,
-      tahun
-    };
+  if (clean.includes('/')) {
+    const parts = clean.split('/');
+    if (parts.length >= 4) {
+      const nomorUrut = parts[0].trim();
+      const tahun = parts[parts.length - 1].trim();
+      const bulan = parts[parts.length - 2].trim();
+      const tengah = parts.slice(1, parts.length - 2).join('/').trim();
+      return {
+        nomorUrut,
+        tengah: tengah || detectedMiddle,
+        bulan,
+        tahun: tahun || '2026'
+      };
+    }
   }
 
   return {
-    nomorUrut: clean || '013',
+    nomorUrut: clean || '',
     tengah: detectedMiddle,
-    bulan: 'VIII',
+    bulan: '',
     tahun: '2026'
   };
 };
@@ -437,10 +439,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
       section: '',
       lokasi: '',
       target: '',
-      tlTeknikName: 'Muhamad Ricky Sabari',
+      tlTeknikName: '',
       tlTeknikTitle: 'TL TEKNIK',
-      managerName: 'Niken Oka Witdoretno',
-      managerTitle: 'Manager ULP Baguala',
+      managerName: '',
+      managerTitle: 'Manager ULP',
       statusPekerjaan: 'Dalam Progres'
     };
 
@@ -1252,7 +1254,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <div className="space-y-3">
                   <div className="space-y-2 border-b border-black/20 pb-2">
                     <div className="font-extrabold text-xs uppercase tracking-wide">
-                      {formData.nomorSpk}
+                      {formData.nomorSpk || 'NO. ....................................................'}
                     </div>
                     <div className="flex items-center justify-between text-xs font-extrabold pt-1">
                       <div>
@@ -1260,7 +1262,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         <span className="text-blue-900">{formData.tlTeknikTitle || 'TL TEKNIK'}</span>
                       </div>
                       <div>
-                        <span className="underline font-black">{formData.tlTeknikName}</span>
+                        <span className="underline font-black">{formData.tlTeknikName || '...........................................'}</span>
                       </div>
                     </div>
                   </div>
@@ -1396,7 +1398,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                       <div>
                         <div>Mengetahui</div>
-                        <div className="text-[11px] font-black text-slate-900">{formData.managerTitle}</div>
+                        <div className="text-[11px] font-black text-slate-900">{formData.managerTitle || 'Manager ULP'}</div>
                       </div>
                       <div className="my-2 min-w-[140px] flex items-center justify-center">
                         {Boolean(formData.isApprovedManager) ? (
@@ -1411,7 +1413,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           </div>
                         )}
                       </div>
-                      <div className="underline font-black">{formData.managerName}</div>
+                      <div className="underline font-black">{formData.managerName || '...........................................'}</div>
                     </div>
                   </div>
 
@@ -1637,7 +1639,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 block mb-0.5 px-1 uppercase tracking-wider">No. Urut</span>
                       <input
                         type="text"
-                        placeholder="013"
+                        placeholder="Contoh: 013"
                         value={parseNomorSpk(formData.nomorSpk, formData.kategoriHeader).nomorUrut}
                         onChange={(e) => {
                           const val = e.target.value.trim();
@@ -1646,7 +1648,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           setFormData({ ...formData, nomorSpk: nextNomor });
                         }}
                         className="w-full p-1.5 text-xs font-black text-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
-                        title="Input Nomor SPK (Manual)"
+                        title="Input Nomor Urut SPK (Manual)"
                       />
                     </div>
 
@@ -1682,6 +1684,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         className="w-full p-1.5 text-xs font-black text-center rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 cursor-pointer"
                         title="Pilih Bulan Romawi (Manual)"
                       >
+                        <option value="">Pilih Bulan</option>
                         {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'].map(rom => (
                           <option key={rom} value={rom}>{rom}</option>
                         ))}
@@ -2033,7 +2036,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         {Boolean(formData.isApprovedManager) ? 'MANAGER: APPROVED' : 'MANAGER: PENDING APPROVAL'}
                       </div>
                       <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                        Persetujuan Manager ULP Baguala
+                        Persetujuan Manager ULP
                       </div>
                     </div>
                   </div>
@@ -2047,7 +2050,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300">
-                      Mengetahui: MANAGER ULP BAGUALA
+                      Mengetahui: MANAGER ULP
                     </span>
                   </div>
                   <div>
@@ -2058,7 +2061,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       onChange={(e) => setFormData({ 
                         ...formData, 
                         managerName: e.target.value, 
-                        managerTitle: 'Manager ULP Baguala' 
+                        managerTitle: 'Manager ULP' 
                       })}
                       className="w-full p-2 text-xs font-bold rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       placeholder="Masukkan Nama Manager ULP..."
@@ -2210,7 +2213,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                     {/* Document Number & Pemberi Perintah */}
                     <div className="space-y-2 border-b border-black/20 pb-2">
                       <div className="font-extrabold text-xs uppercase tracking-wide">
-                        {formData.nomorSpk}
+                        {formData.nomorSpk || 'NO. ....................................................'}
                       </div>
                       <div className="flex items-center justify-between text-xs font-extrabold pt-1">
                         <div>
@@ -2218,7 +2221,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           <span className="text-blue-900">{formData.tlTeknikTitle || 'TL TEKNIK'}</span>
                         </div>
                         <div>
-                          <span className="underline font-black">{formData.tlTeknikName}</span>
+                          <span className="underline font-black">{formData.tlTeknikName || '...........................................'}</span>
                         </div>
                       </div>
                     </div>
@@ -2369,14 +2372,14 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                   {/* Bottom Signatures & Status Section */}
                   <div className="pt-4 space-y-4">
                     
-                    {/* SIGNATURE BLOCK (1 Signatory: Manager ULP Baguala on bottom-right) */}
+                    {/* SIGNATURE BLOCK (1 Signatory: Manager ULP on bottom-right) */}
                     <div className="flex w-full justify-end text-center text-xs font-extrabold pt-2">
                       
-                      {/* Mengetahui MANAGER ULP BAGUALA */}
+                      {/* Mengetahui MANAGER ULP */}
                       <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                         <div>
                           <div>Mengetahui</div>
-                          <div className="text-[11px] font-black text-slate-900">{formData.managerTitle}</div>
+                          <div className="text-[11px] font-black text-slate-900">{formData.managerTitle || 'Manager ULP'}</div>
                         </div>
 
                         {/* Stamp Box Matching User Request (Green border, APPROVE MANAGER, No date) */}
@@ -2394,7 +2397,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           )}
                         </div>
 
-                        <div className="underline font-black">{formData.managerName}</div>
+                        <div className="underline font-black">{formData.managerName || '...........................................'}</div>
                       </div>
 
                     </div>

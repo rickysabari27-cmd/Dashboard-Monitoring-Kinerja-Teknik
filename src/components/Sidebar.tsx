@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'pemeliharaan' as ViewMode, label: 'Pemeliharaan 20kV', icon: Wrench, badge: '4 Sub', hasSub: true },
     { id: 'spk' as ViewMode, label: 'Surat Perintah Kerja (SPK)', icon: FileText, badge: null },
     { id: 'pengukuran' as ViewMode, label: 'Pengukuran & Beban Gardu', icon: Gauge, badge: null },
-    { id: 'master_data' as ViewMode, label: 'Master Data Penyulang', icon: Database, badge: null },
+    { id: 'master_data' as ViewMode, label: 'Master Data', icon: Database, badge: '5 Data', hasSub: true },
     { id: 'saidi_saifi' as ViewMode, label: 'Kinerja SAIDI / SAIFI', icon: BarChart2, badge: null },
     { id: 'material' as ViewMode, label: 'Stok & Pemakaian Material', icon: Package, badge: null },
     { id: 'apd' as ViewMode, label: 'Alat Kerja & APD', icon: Shield, badge: null },

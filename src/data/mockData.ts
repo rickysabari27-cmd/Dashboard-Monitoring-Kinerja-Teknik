@@ -9,6 +9,10 @@ import {
   SpkTask,
   GarduMeasurement,
   MasterFeeder,
+  MasterSection,
+  MasterGarduHubung,
+  MasterGarduDistribusi,
+  MasterPemutus,
   MaterialItem,
   ApdTool,
   Vehicle,
@@ -316,6 +320,339 @@ export const INITIAL_GARDU_MEASUREMENTS: GarduMeasurement[] = [
 ];
 
 export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [];
+
+export const INITIAL_MASTER_SECTIONS: MasterSection[] = [
+  {
+    id: 'SEC-01',
+    sectionCode: 'SEC-LTR2-01',
+    sectionName: 'Section Utama Lateri - Suli',
+    feederName: 'Lateri 2',
+    substationOrGh: 'GI Passo',
+    startPoint: 'PMT Outgoing GI Passo',
+    endPoint: 'LBS Suli Atas (Pole #88)',
+    garduCount: 14,
+    lengthKms: 6.8,
+    customerCount: 1850,
+    status: 'Operasi'
+  },
+  {
+    id: 'SEC-02',
+    sectionCode: 'SEC-LTR2-02',
+    sectionName: 'Section Suli - Tial Percabangan',
+    feederName: 'Lateri 2',
+    substationOrGh: 'GI Passo',
+    startPoint: 'LBS Suli Atas (Pole #88)',
+    endPoint: 'FCO Ujung Tial Pantai',
+    garduCount: 9,
+    lengthKms: 5.4,
+    customerCount: 1200,
+    status: 'Operasi'
+  },
+  {
+    id: 'SEC-03',
+    sectionCode: 'SEC-PSO-01',
+    sectionName: 'Section Transit Passo Raya',
+    feederName: 'Passo',
+    substationOrGh: 'GIS Passo',
+    startPoint: 'Outgoing GIS Passo',
+    endPoint: 'Recloser Passo Transit',
+    garduCount: 18,
+    lengthKms: 7.2,
+    customerCount: 2950,
+    status: 'Operasi'
+  },
+  {
+    id: 'SEC-04',
+    sectionCode: 'SEC-BDR1-01',
+    sectionName: 'Section Bandara Utama Pattimura',
+    feederName: 'Bandara 1',
+    substationOrGh: 'Hative Besar',
+    startPoint: 'GI Hative Besar',
+    endPoint: 'GH Bandara',
+    garduCount: 12,
+    lengthKms: 8.5,
+    customerCount: 1400,
+    status: 'Operasi'
+  },
+  {
+    id: 'SEC-05',
+    sectionCode: 'SEC-WHR1-01',
+    sectionName: 'Section Waiheru Dalam - Nania',
+    feederName: 'Waiheru 1',
+    substationOrGh: 'GH Baguala',
+    startPoint: 'GH Baguala Cell 3',
+    endPoint: 'LBS Nania Permai',
+    garduCount: 11,
+    lengthKms: 4.9,
+    customerCount: 1650,
+    status: 'Operasi'
+  }
+];
+
+export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
+  {
+    id: 'GH-01',
+    ghCode: 'GH-BGL',
+    ghName: 'GH Baguala',
+    location: 'Jl. Wolter Monginsidi, Baguala, Ambon',
+    incomingFeeder: 'Lateri 2 (GI Passo)',
+    outgoingFeedersCount: 4,
+    outgoingFeedersList: 'Hutumuri, Lateri 1, Waiheru 1, Express',
+    ghType: 'Indoor',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-02',
+    ghCode: 'GH-BDR',
+    ghName: 'GH Bandara',
+    location: 'Kawasan Bandara Pattimura Laha',
+    incomingFeeder: 'Bandara 1 (GI Hative Besar)',
+    outgoingFeedersCount: 3,
+    outgoingFeedersList: 'ACC, Allang, Bandara Khusus',
+    ghType: 'Indoor',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-03',
+    ghCode: 'GH-WYM',
+    ghName: 'GH Wayame',
+    location: 'Jl. Ir. M. Putuhena, Wayame',
+    incomingFeeder: 'Wayame 2 (GI Hative Besar)',
+    outgoingFeedersCount: 2,
+    outgoingFeedersList: 'Wayame 1, Wayame Lokal',
+    ghType: 'Indoor',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-04',
+    ghCode: 'GH-POK',
+    ghName: 'GH Poka',
+    location: 'Kompleks Bundaran Leimena Poka',
+    incomingFeeder: 'Wayame 3 (GI Hative Besar)',
+    outgoingFeedersCount: 3,
+    outgoingFeedersList: 'Poka 1, Kampus Unpatti, Rumahtiga',
+    ghType: 'Compact',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-05',
+    ghCode: 'GH-AST',
+    ghName: 'GH Aston',
+    location: 'Kawasan Komersial Passo Transit',
+    incomingFeeder: 'Passo (GIS Passo)',
+    outgoingFeedersCount: 2,
+    outgoingFeedersList: 'Hotel Aston, Mall ACC',
+    ghType: 'Indoor',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-06',
+    ghCode: 'GH-HTK',
+    ghName: 'GH Hative Kecil',
+    location: 'Jl. Jenderal Sudirman Hative Kecil',
+    incomingFeeder: 'Lateri 3 (GI Passo)',
+    outgoingFeedersCount: 2,
+    outgoingFeedersList: 'Galala, Hative Bawah',
+    ghType: 'Indoor',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-07',
+    ghCode: 'GH-BXP',
+    ghName: 'GH Box Pantai Galala',
+    location: 'Pesisir Jembatan Merah Putih Galala',
+    incomingFeeder: 'Lateri 1 (GH Baguala)',
+    outgoingFeedersCount: 2,
+    outgoingFeedersList: 'JMP Penerangan, Galala Pesisir',
+    ghType: 'Compact',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-08',
+    ghCode: 'GH-BXK',
+    ghName: 'GH Box Pantai Poka',
+    location: 'Pesisir Jembatan Merah Putih Poka',
+    incomingFeeder: 'Wayame 1 (GH Wayame)',
+    outgoingFeedersCount: 2,
+    outgoingFeedersList: 'Poka Pantai, Rumahtiga Bawah',
+    ghType: 'Compact',
+    status: 'Operasi'
+  },
+  {
+    id: 'GH-09',
+    ghCode: 'GH-ARA',
+    ghName: 'GH Area',
+    location: 'Kompleks Kantor PLN UP3 Ambon',
+    incomingFeeder: 'Passo (GIS Passo)',
+    outgoingFeedersCount: 3,
+    outgoingFeedersList: 'Feeder Kota, Sirimau Express',
+    ghType: 'Indoor',
+    status: 'Operasi'
+  }
+];
+
+export const INITIAL_MASTER_GD: MasterGarduDistribusi[] = [
+  {
+    id: 'GD-01',
+    garduCode: 'BG-012',
+    garduName: 'Gardu Lateri Raya',
+    feederName: 'Lateri 2',
+    sectionName: 'Section Utama Lateri - Suli',
+    capacityKva: 160,
+    phase: '3 Phasa',
+    garduType: 'Portal',
+    location: 'Jl. Wolter Monginsidi No. 45 Lateri',
+    customerCount: 142,
+    status: 'Operasi'
+  },
+  {
+    id: 'GD-02',
+    garduCode: 'BG-045',
+    garduName: 'Gardu Pasar Tulehu',
+    feederName: 'Hutumuri',
+    sectionName: 'Section Pasar Tulehu',
+    capacityKva: 250,
+    phase: '3 Phasa',
+    garduType: 'Portal',
+    location: 'Kawasan Pelabuhan Speed Tulehu',
+    customerCount: 210,
+    status: 'Operasi'
+  },
+  {
+    id: 'GD-03',
+    garduCode: 'PAS-04',
+    garduName: 'Gardu Transit Passo Mall',
+    feederName: 'Passo',
+    sectionName: 'Section Transit Passo Raya',
+    capacityKva: 200,
+    phase: '3 Phasa',
+    garduType: 'Beton',
+    location: 'Depan Mall ACC Passo',
+    customerCount: 85,
+    status: 'Operasi'
+  },
+  {
+    id: 'GD-04',
+    garduCode: 'PAS-09',
+    garduName: 'Gardu Terminal Passo',
+    feederName: 'Passo',
+    sectionName: 'Section Transit Passo Raya',
+    capacityKva: 100,
+    phase: '3 Phasa',
+    garduType: 'Portal',
+    location: 'Pintu Keluar Terminal Transit Passo',
+    customerCount: 96,
+    status: 'Operasi'
+  },
+  {
+    id: 'GD-05',
+    garduCode: 'BDR-03',
+    garduName: 'Gardu Radar Bandara',
+    feederName: 'Bandara 1',
+    sectionName: 'Section Bandara Utama Pattimura',
+    capacityKva: 250,
+    phase: '3 Phasa',
+    garduType: 'Kios',
+    location: 'Kompleks Radar Navigasi Udara Laha',
+    customerCount: 18,
+    status: 'Operasi'
+  },
+  {
+    id: 'GD-06',
+    garduCode: 'WYM-05',
+    garduName: 'Gardu Kampus Pertanian',
+    feederName: 'Wayame 1',
+    sectionName: 'Section Poka - Rumahtiga',
+    capacityKva: 160,
+    phase: '3 Phasa',
+    garduType: 'Portal',
+    location: 'Fakultas Pertanian Unpatti Poka',
+    customerCount: 125,
+    status: 'Operasi'
+  },
+  {
+    id: 'GD-07',
+    garduCode: 'WHR-02',
+    garduName: 'Gardu Waiheru BTN',
+    feederName: 'Waiheru 1',
+    sectionName: 'Section Waiheru Dalam - Nania',
+    capacityKva: 100,
+    phase: '3 Phasa',
+    garduType: 'Cantol',
+    location: 'Kompleks Perumahan BTN Waiheru Permai',
+    customerCount: 160,
+    status: 'Operasi'
+  }
+];
+
+export const INITIAL_MASTER_PEMUTUS: MasterPemutus[] = [
+  {
+    id: 'PMT-01',
+    equipmentCode: 'REC-LTR2-01',
+    equipmentType: 'Recloser',
+    feederName: 'Lateri 2',
+    location: 'Pole #45 Depan Kantor Camat Baguala',
+    brandModel: 'NOJA Power OSM38 (38kV 800A)',
+    currentRatingAmpere: 800,
+    scadaStatus: 'Terhubung SCADA',
+    status: 'Masuk / ON'
+  },
+  {
+    id: 'PMT-02',
+    equipmentCode: 'LBS-PSO-02',
+    equipmentType: 'LBS Motorized',
+    feederName: 'Passo',
+    location: 'Pole #12 Perempatan Passo Transit',
+    brandModel: 'Schneider Ringmaster SF6 630A',
+    currentRatingAmpere: 630,
+    scadaStatus: 'Terhubung SCADA',
+    status: 'Masuk / ON'
+  },
+  {
+    id: 'PMT-03',
+    equipmentCode: 'PMT-BDR1-OUT',
+    equipmentType: 'PMT',
+    feederName: 'Bandara 1',
+    location: 'Bay Outgoing GI Hative Besar',
+    brandModel: 'ABB VD4 Vacuum 1250A',
+    currentRatingAmpere: 1250,
+    scadaStatus: 'Terhubung SCADA',
+    status: 'Masuk / ON'
+  },
+  {
+    id: 'PMT-04',
+    equipmentCode: 'LBS-SULI-01',
+    equipmentType: 'LBS Manual',
+    feederName: 'Lateri 2',
+    location: 'Pole #88 Batas Suli Atas',
+    brandModel: 'Entec Air Break Switch 630A',
+    currentRatingAmpere: 630,
+    scadaStatus: 'Manual / Non-SCADA',
+    status: 'Masuk / ON'
+  },
+  {
+    id: 'PMT-05',
+    equipmentCode: 'FCO-HTM-01',
+    equipmentType: 'FCO',
+    feederName: 'Hutumuri',
+    location: 'Percabangan Pole #112 Haturessy',
+    brandModel: 'Hubbell Chance 27kV 100A',
+    currentRatingAmpere: 100,
+    scadaStatus: 'Manual / Non-SCADA',
+    status: 'Masuk / ON'
+  },
+  {
+    id: 'PMT-06',
+    equipmentCode: 'REC-WYM2-01',
+    equipmentType: 'Recloser',
+    feederName: 'Wayame 2',
+    location: 'Pole #32 Jembatan Rumahtiga',
+    brandModel: 'Tavrida Electric Rec15',
+    currentRatingAmpere: 630,
+    scadaStatus: 'Terhubung SCADA',
+    status: 'Masuk / ON'
+  }
+];
 
 export const INITIAL_MATERIALS: MaterialItem[] = [
   { id: 'M-01', itemCode: 'MAT-PIN-20', name: 'Pin Post Insulator 20kV', category: 'Isolator', stockQty: 42, unit: 'Buah', minStock: 15, warehouseLocation: 'Gudang ULP Baguala', status: 'Aman' },

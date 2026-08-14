@@ -6,6 +6,10 @@ import {
   SpkTask,
   GarduMeasurement,
   MasterFeeder,
+  MasterSection,
+  MasterGarduHubung,
+  MasterGarduDistribusi,
+  MasterPemutus,
   MaterialItem,
   ApdTool,
   Vehicle,
@@ -23,6 +27,10 @@ import {
   INITIAL_SPK_TASKS,
   INITIAL_GARDU_MEASUREMENTS,
   INITIAL_MASTER_FEEDERS,
+  INITIAL_MASTER_SECTIONS,
+  INITIAL_MASTER_GH,
+  INITIAL_MASTER_GD,
+  INITIAL_MASTER_PEMUTUS,
   INITIAL_MATERIALS,
   INITIAL_APD_TOOLS,
   INITIAL_VEHICLES,
@@ -43,6 +51,7 @@ import { PemeliharaanView } from './components/views/PemeliharaanView';
 import { SpkFormView } from './components/spk/SpkFormView';
 import { SaidiSaifiDetailView } from './components/views/SaidiSaifiDetailView';
 import { MaterialStockView } from './components/views/MaterialStockView';
+import { MasterDataView } from './components/views/MasterDataView';
 import { UserManagementView } from './components/views/UserManagementView';
 import { LoginPage } from './components/views/LoginPage';
 
@@ -67,6 +76,10 @@ export default function App() {
   const [spkList, setSpkList] = useState<SpkTask[]>(INITIAL_SPK_TASKS);
   const [garduMeasurements, setGarduMeasurements] = useState<GarduMeasurement[]>(INITIAL_GARDU_MEASUREMENTS);
   const [masterFeeders, setMasterFeeders] = useState<MasterFeeder[]>(INITIAL_MASTER_FEEDERS);
+  const [masterSections, setMasterSections] = useState<MasterSection[]>(INITIAL_MASTER_SECTIONS);
+  const [masterGarduHubung, setMasterGarduHubung] = useState<MasterGarduHubung[]>(INITIAL_MASTER_GH);
+  const [masterGarduDistribusi, setMasterGarduDistribusi] = useState<MasterGarduDistribusi[]>(INITIAL_MASTER_GD);
+  const [masterPemutus, setMasterPemutus] = useState<MasterPemutus[]>(INITIAL_MASTER_PEMUTUS);
   const [materials, setMaterials] = useState<MaterialItem[]>(INITIAL_MATERIALS);
   const [apdTools, setApdTools] = useState<ApdTool[]>(INITIAL_APD_TOOLS);
   const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
@@ -80,6 +93,10 @@ export default function App() {
     const unsubSpk = syncCollection<SpkTask>('spk_tasks', INITIAL_SPK_TASKS, (data) => setSpkList(data));
     const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
     const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => setMasterFeeders(data));
+    const unsubSections = syncCollection<MasterSection>('master_sections', INITIAL_MASTER_SECTIONS, (data) => setMasterSections(data));
+    const unsubGh = syncCollection<MasterGarduHubung>('master_gardu_hubung', INITIAL_MASTER_GH, (data) => setMasterGarduHubung(data));
+    const unsubGd = syncCollection<MasterGarduDistribusi>('master_gardu_distribusi', INITIAL_MASTER_GD, (data) => setMasterGarduDistribusi(data));
+    const unsubPmt = syncCollection<MasterPemutus>('master_pemutus', INITIAL_MASTER_PEMUTUS, (data) => setMasterPemutus(data));
     const unsubMaterials = syncCollection<MaterialItem>('materials', INITIAL_MATERIALS, (data) => setMaterials(data));
     const unsubApd = syncCollection<ApdTool>('apd_tools', INITIAL_APD_TOOLS, (data) => setApdTools(data));
     const unsubVehicles = syncCollection<Vehicle>('vehicles', INITIAL_VEHICLES, (data) => setVehicles(data));
@@ -91,6 +108,10 @@ export default function App() {
       unsubSpk();
       unsubGardu();
       unsubFeeders();
+      unsubSections();
+      unsubGh();
+      unsubGd();
+      unsubPmt();
       unsubMaterials();
       unsubApd();
       unsubVehicles();
@@ -211,6 +232,90 @@ export default function App() {
     });
     saveDocument('master_feeders', newFeeder, newFeeder.id);
     showToast(`Data Penyulang ${newFeeder.feederName} (${newFeeder.feederCode}) berhasil disimpan!`);
+  };
+
+  const handleSaveMasterSection = (newSec: MasterSection) => {
+    setMasterSections(prev => {
+      const idx = prev.findIndex(s => s.id === newSec.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newSec;
+        return updated;
+      }
+      return [newSec, ...prev];
+    });
+    saveDocument('master_sections', newSec, newSec.id);
+    showToast(`Data Section ${newSec.sectionName} (${newSec.sectionCode}) berhasil disimpan!`);
+  };
+
+  const handleDeleteMasterSection = (secId: string) => {
+    const target = masterSections.find(s => s.id === secId);
+    setMasterSections(prev => prev.filter(s => s.id !== secId));
+    deleteDocument('master_sections', secId);
+    showToast(`Data Section ${target ? target.sectionName : ''} berhasil dihapus!`);
+  };
+
+  const handleSaveMasterGarduHubung = (newGh: MasterGarduHubung) => {
+    setMasterGarduHubung(prev => {
+      const idx = prev.findIndex(g => g.id === newGh.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newGh;
+        return updated;
+      }
+      return [newGh, ...prev];
+    });
+    saveDocument('master_gardu_hubung', newGh, newGh.id);
+    showToast(`Data Gardu Hubung ${newGh.ghName} (${newGh.ghCode}) berhasil disimpan!`);
+  };
+
+  const handleDeleteMasterGarduHubung = (ghId: string) => {
+    const target = masterGarduHubung.find(g => g.id === ghId);
+    setMasterGarduHubung(prev => prev.filter(g => g.id !== ghId));
+    deleteDocument('master_gardu_hubung', ghId);
+    showToast(`Data Gardu Hubung ${target ? target.ghName : ''} berhasil dihapus!`);
+  };
+
+  const handleSaveMasterGarduDistribusi = (newGd: MasterGarduDistribusi) => {
+    setMasterGarduDistribusi(prev => {
+      const idx = prev.findIndex(g => g.id === newGd.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newGd;
+        return updated;
+      }
+      return [newGd, ...prev];
+    });
+    saveDocument('master_gardu_distribusi', newGd, newGd.id);
+    showToast(`Data Gardu Distribusi ${newGd.garduName} (${newGd.garduCode}) berhasil disimpan!`);
+  };
+
+  const handleDeleteMasterGarduDistribusi = (gdId: string) => {
+    const target = masterGarduDistribusi.find(g => g.id === gdId);
+    setMasterGarduDistribusi(prev => prev.filter(g => g.id !== gdId));
+    deleteDocument('master_gardu_distribusi', gdId);
+    showToast(`Data Gardu Distribusi ${target ? target.garduName : ''} berhasil dihapus!`);
+  };
+
+  const handleSaveMasterPemutus = (newPmt: MasterPemutus) => {
+    setMasterPemutus(prev => {
+      const idx = prev.findIndex(p => p.id === newPmt.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newPmt;
+        return updated;
+      }
+      return [newPmt, ...prev];
+    });
+    saveDocument('master_pemutus', newPmt, newPmt.id);
+    showToast(`Data Alat Pemutus ${newPmt.equipmentCode} (${newPmt.equipmentType}) berhasil disimpan!`);
+  };
+
+  const handleDeleteMasterPemutus = (pmtId: string) => {
+    const target = masterPemutus.find(p => p.id === pmtId);
+    setMasterPemutus(prev => prev.filter(p => p.id !== pmtId));
+    deleteDocument('master_pemutus', pmtId);
+    showToast(`Data Alat Pemutus ${target ? target.equipmentCode : ''} berhasil dihapus!`);
   };
 
   const handleUpdateSaidi = (
@@ -467,7 +572,29 @@ export default function App() {
             />
           )}
 
-          {(currentView === 'material' || currentView === 'apd' || currentView === 'kendaraan' || currentView === 'master_data' || currentView === 'pengukuran') && (
+          {currentView === 'master_data' && (
+            <MasterDataView 
+              isDarkMode={isDarkMode}
+              masterFeeders={masterFeeders}
+              masterSections={masterSections}
+              masterGarduHubung={masterGarduHubung}
+              masterGarduDistribusi={masterGarduDistribusi}
+              masterPemutus={masterPemutus}
+              onSaveMasterFeeder={handleSaveMasterFeeder}
+              onDeleteMasterFeeder={handleDeleteMasterFeeder}
+              onSaveMasterSection={handleSaveMasterSection}
+              onDeleteMasterSection={handleDeleteMasterSection}
+              onSaveMasterGarduHubung={handleSaveMasterGarduHubung}
+              onDeleteMasterGarduHubung={handleDeleteMasterGarduHubung}
+              onSaveMasterGarduDistribusi={handleSaveMasterGarduDistribusi}
+              onDeleteMasterGarduDistribusi={handleDeleteMasterGarduDistribusi}
+              onSaveMasterPemutus={handleSaveMasterPemutus}
+              onDeleteMasterPemutus={handleDeleteMasterPemutus}
+              onOpenUniversalInput={handleOpenUniversalInput}
+            />
+          )}
+
+          {(currentView === 'material' || currentView === 'apd' || currentView === 'kendaraan' || currentView === 'pengukuran') && (
             <MaterialStockView 
               isDarkMode={isDarkMode}
               currentView={currentView}
