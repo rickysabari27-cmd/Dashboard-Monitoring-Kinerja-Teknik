@@ -116,7 +116,62 @@ export default function App() {
     const unsubSaidi = syncCollection<MonthlySaidiSaifiData>('saidi_saifi', MONTHLY_SAIDI_SAIFI_2026, (data) => setMonthlySaidiData(data));
     const unsubSpk = syncCollection<SpkTask>('spk_tasks', INITIAL_SPK_TASKS, (data) => setSpkList(data));
     const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
-    const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => setMasterFeeders(data));
+    const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => {
+      // Clean up Halong if present in Firestore
+      data.forEach(item => {
+        if (item.feederCode === 'HLG' || item.feederName.toLowerCase() === 'halong' || item.id === 'MF-HLG') {
+          deleteDocument('master_feeders', item.id);
+        }
+      });
+
+      const filtered = data.filter(item => 
+        item.feederCode !== 'HLG' && 
+        item.feederName.toLowerCase() !== 'halong' && 
+        item.id !== 'MF-HLG'
+      );
+
+      const processedData = filtered.map(item => {
+        let updated = { ...item };
+        let needsSave = false;
+
+        // Sync with masterGarduDistribusi if matching GD items exist
+        const matchingGds = (masterGarduDistribusi || []).filter(g => 
+          g.feederName && g.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
+        );
+
+        if (matchingGds.length > 0) {
+          const realGdCount = matchingGds.length;
+          const realKva = matchingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
+          const realCust = matchingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
+          if (item.garduCount !== realGdCount) {
+            updated.garduCount = realGdCount;
+            needsSave = true;
+          }
+          if (item.capacityKva !== realKva) {
+            updated.capacityKva = realKva;
+            needsSave = true;
+          }
+          if (item.customerCount !== realCust) {
+            updated.customerCount = realCust;
+            needsSave = true;
+          }
+        }
+
+        if (needsSave) {
+          saveDocument('master_feeders', updated);
+        }
+        return updated;
+      });
+
+      INITIAL_MASTER_FEEDERS.forEach(init => {
+        if (!processedData.some(d => d.feederName.toLowerCase() === init.feederName.toLowerCase() || d.feederCode.toLowerCase() === init.feederCode.toLowerCase())) {
+          saveDocument('master_feeders', init);
+          processedData.push(init);
+        }
+      });
+
+      setMasterFeeders(processedData);
+    });
     const unsubSections = syncCollection<MasterSection>('master_sections', INITIAL_MASTER_SECTIONS, (data) => setMasterSections(data));
     const unsubGh = syncCollection<MasterGarduHubung>('master_gardu_hubung', INITIAL_MASTER_GH, (data) => setMasterGarduHubung(data));
     const unsubGd = syncCollection<MasterGarduDistribusi>('master_gardu_distribusi', INITIAL_MASTER_GD, (data) => {
@@ -338,6 +393,29 @@ export default function App() {
       return [newGd, ...prev];
     });
     saveDocument('master_gardu_distribusi', newGd, newGd.id);
+
+    // Auto-sync parent feeder totals in master_feeders
+    if (newGd.feederName) {
+      const feederName = newGd.feederName.trim();
+      const allGds = [...masterGarduDistribusi.filter(g => g.id !== newGd.id), newGd];
+      const matchingGds = allGds.filter(g => g.feederName && g.feederName.trim().toLowerCase() === feederName.toLowerCase());
+      const totalKva = matchingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
+      const totalCust = matchingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
+
+      const parentFeeder = masterFeeders.find(f => f.feederName.trim().toLowerCase() === feederName.toLowerCase());
+      if (parentFeeder) {
+        const updatedFeeder: MasterFeeder = {
+          ...parentFeeder,
+          garduCount: matchingGds.length,
+          capacityKva: totalKva,
+          khaAmpere: totalKva,
+          customerCount: totalCust
+        };
+        setMasterFeeders(prev => prev.map(f => f.id === parentFeeder.id ? updatedFeeder : f));
+        saveDocument('master_feeders', updatedFeeder, parentFeeder.id);
+      }
+    }
+
     showToast(`Data Gardu Distribusi ${newGd.garduName} (${newGd.garduCode}) berhasil disimpan!`);
   };
 
@@ -345,6 +423,27 @@ export default function App() {
     const target = masterGarduDistribusi.find(g => g.id === gdId);
     setMasterGarduDistribusi(prev => prev.filter(g => g.id !== gdId));
     deleteDocument('master_gardu_distribusi', gdId);
+
+    if (target && target.feederName) {
+      const feederName = target.feederName.trim();
+      const remainingGds = masterGarduDistribusi.filter(g => g.id !== gdId && g.feederName && g.feederName.trim().toLowerCase() === feederName.toLowerCase());
+      const totalKva = remainingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
+      const totalCust = remainingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
+
+      const parentFeeder = masterFeeders.find(f => f.feederName.trim().toLowerCase() === feederName.toLowerCase());
+      if (parentFeeder) {
+        const updatedFeeder: MasterFeeder = {
+          ...parentFeeder,
+          garduCount: remainingGds.length,
+          capacityKva: totalKva,
+          khaAmpere: totalKva,
+          customerCount: totalCust
+        };
+        setMasterFeeders(prev => prev.map(f => f.id === parentFeeder.id ? updatedFeeder : f));
+        saveDocument('master_feeders', updatedFeeder, parentFeeder.id);
+      }
+    }
+
     showToast(`Data Gardu Distribusi ${target ? target.garduName : ''} berhasil dihapus!`);
   };
 

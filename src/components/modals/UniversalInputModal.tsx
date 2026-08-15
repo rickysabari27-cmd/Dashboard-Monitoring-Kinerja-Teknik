@@ -409,6 +409,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
         status: finalStatus,
         operationalStatus: mFeederOpStatus || 'Operasi',
         khaAmpere: mFeederKha !== '' ? Number(mFeederKha) : 0,
+        capacityKva: mFeederKha !== '' ? Number(mFeederKha) : 0,
         lengthKms: mFeederLength !== '' ? Number(mFeederLength) : 0,
         garduCount: mFeederGarduCount !== '' ? Number(mFeederGarduCount) : 0,
         customerCount: mFeederCust !== '' ? Number(mFeederCust) : 0,
@@ -596,12 +597,12 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                       ))
                     ) : (
                       <>
-                        <option value="LATERI 1">LATERI 1 (0 Plg)</option>
-                        <option value="LATERI 2">LATERI 2 (0 Plg)</option>
-                        <option value="LATERI 3">LATERI 3 (0 Plg)</option>
+                        <option value="LATERI 1">LATERI 1 (3.820 Plg)</option>
+                        <option value="LATERI 2">LATERI 2 (5.310 Plg)</option>
+                        <option value="LATERI 3">LATERI 3 (3.100 Plg)</option>
                         <option value="TULEHU">TULEHU (0 Plg)</option>
-                        <option value="ALLANG">ALLANG (0 Plg)</option>
-                        <option value="PASSO">PASSO (0 Plg)</option>
+                        <option value="ALLANG">ALLANG (4.120 Plg)</option>
+                        <option value="PASSO">PASSO (2.950 Plg)</option>
                       </>
                     )}
                   </select>

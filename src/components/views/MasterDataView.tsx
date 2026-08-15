@@ -273,10 +273,17 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     const statusVal = (ghVal && ghVal !== '-') ? 'Percabangan' : (feeder.status || 'Utama');
     setFStatus(statusVal);
     setFOpStatus(feeder.operationalStatus || 'Operasi');
-    setFKha(feeder.khaAmpere ?? 0);
+
+    const matchingGds = masterGarduDistribusi.filter(
+      g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
+    );
+    const totalKvaGds = matchingGds.reduce((acc, g) => acc + (Number(g.capacityKva) || 0), 0);
+    const totalCustGds = matchingGds.reduce((acc, g) => acc + (Number(g.customerCount) || 0), 0);
+
+    setFKha(matchingGds.length > 0 ? totalKvaGds : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0));
     setFLength(feeder.lengthKms ?? 0);
-    setFGarduCount(feeder.garduCount ?? 0);
-    setFCust(feeder.customerCount ?? 0);
+    setFGarduCount(matchingGds.length > 0 ? matchingGds.length : (feeder.garduCount ?? 0));
+    setFCust(matchingGds.length > 0 ? totalCustGds : (feeder.customerCount ?? 0));
     setFConfig(feeder.configuration || 'Looping');
   };
 
@@ -294,6 +301,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       status: finalStatus,
       operationalStatus: fOpStatus,
       khaAmpere: Number(fKha) || 0,
+      capacityKva: Number(fKha) || 0,
       lengthKms: Number(fLength) || 0,
       garduCount: Number(fGarduCount) || 0,
       customerCount: Number(fCust) || 0,
@@ -696,6 +704,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                         g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
                       );
                       const totalKvaGds = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
+                      const totalCustGds = matchingGds.reduce((acc, g) => acc + (g.customerCount || 0), 0);
                       const hasSecs = matchingSections.length > 0;
                       
                       const realGardu = matchingGds.length > 0 
@@ -706,10 +715,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                         ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1))
                         : (feeder.lengthKms ?? 0);
                       
-                      const realKvaGardu = totalKvaGds > 0 ? totalKvaGds : (feeder.khaAmpere ?? 0);
-                      const realCust = hasSecs 
-                        ? matchingSections.reduce((acc, s) => acc + (s.customerCount || 0), 0)
-                        : (feeder.customerCount ?? 0);
+                      const realKvaGardu = matchingGds.length > 0 
+                        ? totalKvaGds 
+                        : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0);
+                      const realCust = matchingGds.length > 0
+                        ? totalCustGds
+                        : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.customerCount || 0), 0) : (feeder.customerCount ?? 0));
 
                       return (
                         <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
