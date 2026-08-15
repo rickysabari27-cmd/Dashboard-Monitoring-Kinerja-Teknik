@@ -26,6 +26,7 @@ export interface FeederTrip {
   currentAmpere: number;
   kwPadam?: number;
   locationKm: string;
+  coordinates?: string;
   cause: string;
   category: 'Tree/ROW' | 'Equipment Failure' | 'Lightning' | 'Animal' | 'Human Error' | 'Unknown';
   affectedCustomers: number;
@@ -36,6 +37,13 @@ export interface FeederTrip {
   ensKwh: number;
   financialLossIdr: number;
   status: 'Resolved' | 'Under Investigation' | 'Pending Action';
+  // Arus Gangguan
+  iNol?: number;
+  iL1?: number;
+  iL2?: number;
+  iL3?: number;
+  estimatedDistanceKm?: number;
+  faultTypeDetected?: string;
 }
 
 export interface FeederHealth {

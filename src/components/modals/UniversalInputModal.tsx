@@ -26,6 +26,7 @@ interface UniversalInputModalProps {
   onClose: () => void;
   defaultTab?: ViewMode | string;
   isDarkMode: boolean;
+  masterFeeders?: MasterFeeder[];
   onSaveTrip?: (trip: any) => void;
   onSaveSpk?: (spk: any) => void;
   onSaveInspection?: (inspection: any) => void;
@@ -46,6 +47,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   onClose,
   defaultTab = 'trips',
   isDarkMode,
+  masterFeeders = [],
   onSaveTrip,
   onSaveSpk,
   onSaveInspection,
@@ -90,15 +92,21 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
 
   // Form States
   // 1. Trips
-  const [tripFeeder, setTripFeeder] = useState('LATERI 2');
-  const [tripDate, setTripDate] = useState('2026-08-10');
-  const [tripTime, setTripTime] = useState('14:20');
+  const [tripFeeder, setTripFeeder] = useState('');
+  const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tripTime, setTripTime] = useState('');
+  const [recoveryTime, setRecoveryTime] = useState('');
   const [tripRelay, setTripRelay] = useState('GFR / OCR');
-  const [tripLocation, setTripLocation] = useState('Km 6.4 - Passo');
-  const [tripCause, setTripCause] = useState('Dahan pohon sagu sentuh SUTM Phasa S');
+  const [tripLocation, setTripLocation] = useState('');
+  const [tripCoordinates, setTripCoordinates] = useState('');
+  const [tripCause, setTripCause] = useState('');
   const [tripCategory, setTripCategory] = useState('Tree/ROW');
-  const [tripCustomers, setTripCustomers] = useState(3400);
-  const [tripEns, setTripEns] = useState(4200);
+  const [tripCustomers, setTripCustomers] = useState<string>('');
+  const [tripAmpere, setTripAmpere] = useState<string>('');
+  const [tripINol, setTripINol] = useState<string>('');
+  const [tripIL1, setTripIL1] = useState<string>('');
+  const [tripIL2, setTripIL2] = useState<string>('');
+  const [tripIL3, setTripIL3] = useState<string>('');
 
   // 2. SPK
   const [spkNo, setSpkNo] = useState(`SPK/BAG/2026/08/0${Math.floor(Math.random() * 80 + 10)}`);
@@ -258,23 +266,88 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     e.preventDefault();
 
     if (activeTab === 'trips' && onSaveTrip) {
+      let durationMins = 0;
+      if (tripTime && recoveryTime) {
+        const [h1, m1] = tripTime.split(':').map(Number);
+        const [h2, m2] = recoveryTime.split(':').map(Number);
+        if (!isNaN(h1) && !isNaN(m1) && !isNaN(h2) && !isNaN(m2)) {
+          let mins1 = h1 * 60 + m1;
+          let mins2 = h2 * 60 + m2;
+          if (mins2 < mins1) mins2 += 24 * 60;
+          durationMins = mins2 - mins1;
+        }
+      }
+
+      const ampVal = Number(tripAmpere) || 0;
+      const kwVal = ampVal > 0 ? Math.round(Math.sqrt(3) * 20 * ampVal * 0.95) : 0;
+      const durHours = durationMins / 60;
+      const ensVal = Math.round(kwVal * durHours);
+      const affCust = Number(tripCustomers) || 0;
+      const totalUlp = 45200;
+      const saidiH = totalUlp > 0 ? (durHours * affCust) / totalUlp : 0;
+      const saidiM = saidiH * 60;
+      const saifiC = totalUlp > 0 ? affCust / totalUlp : 0;
+
+      const iNolNum = Number(tripINol) || 0;
+      const iL1Num = Number(tripIL1) || 0;
+      const iL2Num = Number(tripIL2) || 0;
+      const iL3Num = Number(tripIL3) || 0;
+      const maxI = Math.max(iNolNum, iL1Num, iL2Num, iL3Num);
+
+      let estDist: number | undefined = undefined;
+      let faultType: string | undefined = undefined;
+
+      if (maxI > 0) {
+        let iFault = maxI;
+        if (iNolNum >= 15) {
+          faultType = 'Gangguan 1 Phasa ke Tanah (GFR)';
+          iFault = iNolNum;
+        } else if (iL1Num > 30 && iL2Num > 30 && iL3Num > 30) {
+          faultType = 'Gangguan 3 Phasa Simetris (OCR)';
+          iFault = (iL1Num + iL2Num + iL3Num) / 3;
+        } else {
+          faultType = 'Gangguan 2 Phasa / Phasa-Phasa (OCR)';
+        }
+
+        const V_phase = 11547;
+        const zLine = 0.41;
+        let dist = V_phase / (iFault * zLine);
+        if (ampVal > 0 && iFault > ampVal) {
+          const net = iFault - (ampVal * 0.25);
+          if (net > 0) dist = V_phase / (net * zLine);
+        }
+        estDist = Number(Math.min(Math.max(dist, 0.2), 40.0).toFixed(2));
+      }
+
       onSaveTrip({
-        id: `TRIP-2026-00${Math.floor(Math.random() * 900 + 100)}`,
-        feederName: tripFeeder,
+        id: `TRIP-INPUT-${Date.now()}`,
+        feederName: tripFeeder || (masterFeeders[0]?.feederName || ''),
         substation: 'GI Passo (20kV)',
         tripDate,
         tripTime,
-        recoveryTime: '15:30',
-        durationMinutes: 70,
+        recoveryTime,
+        durationMinutes: durationMins,
         relayType: tripRelay as any,
-        currentAmpere: 380,
+        currentAmpere: ampVal,
+        kwPadam: kwVal,
         locationKm: tripLocation,
+        coordinates: tripCoordinates,
         cause: tripCause,
         category: tripCategory as any,
-        affectedCustomers: Number(tripCustomers),
-        ensKwh: Number(tripEns),
-        financialLossIdr: Number(tripEns) * 1444.7,
-        status: 'Resolved'
+        affectedCustomers: affCust,
+        totalUlpCustomers: totalUlp,
+        saidiHours: Number(saidiH.toFixed(4)),
+        saidiMinutes: Number(saidiM.toFixed(2)),
+        saifiCount: Number(saifiC.toFixed(4)),
+        ensKwh: ensVal,
+        financialLossIdr: Math.round(ensVal * 1444.7),
+        status: 'Resolved',
+        iNol: iNolNum,
+        iL1: iL1Num,
+        iL2: iL2Num,
+        iL3: iL3Num,
+        estimatedDistanceKm: estDist,
+        faultTypeDetected: faultType
       });
     } else if (activeTab === 'spk' && onSaveSpk) {
       onSaveSpk({
@@ -499,18 +572,38 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
           {activeTab === 'trips' && (
             <div className="space-y-3">
               <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 font-semibold mb-3">
-                Input Kejadian Gangguan & Trip Feeder Penyulang 20kV
+                Input Kejadian Gangguan & Trip Feeder Penyulang 20kV (Manual Input)
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Penyulang / Feeder</label>
-                  <select value={tripFeeder} onChange={(e) => setTripFeeder(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
-                    <option value="LATERI 1">LATERI 1</option>
-                    <option value="LATERI 2">LATERI 2</option>
-                    <option value="LATERI 3">LATERI 3</option>
-                    <option value="TULEHU">TULEHU</option>
-                    <option value="ALLANG">ALLANG</option>
-                    <option value="PASSO">PASSO</option>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Penyulang / Feeder (Master Data)</label>
+                  <select 
+                    value={tripFeeder} 
+                    onChange={(e) => {
+                      const selName = e.target.value;
+                      setTripFeeder(selName);
+                      const found = masterFeeders.find(f => f.feederName === selName);
+                      const custCount = found?.customerCount !== undefined && found?.customerCount !== null ? found.customerCount : 0;
+                      setTripCustomers(custCount.toString());
+                    }} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                  >
+                    {masterFeeders.length > 0 ? (
+                      masterFeeders.map(f => (
+                        <option key={f.feederName} value={f.feederName}>
+                          {f.feederName} ({f.customerCount !== undefined && f.customerCount !== null ? f.customerCount.toLocaleString('id-ID') : 0} Plg)
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="LATERI 1">LATERI 1 (0 Plg)</option>
+                        <option value="LATERI 2">LATERI 2 (0 Plg)</option>
+                        <option value="LATERI 3">LATERI 3 (0 Plg)</option>
+                        <option value="TULEHU">TULEHU (0 Plg)</option>
+                        <option value="ALLANG">ALLANG (0 Plg)</option>
+                        <option value="PASSO">PASSO (0 Plg)</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 <div>
@@ -522,33 +615,67 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Tanggal Trip</label>
                   <input type="date" value={tripDate} onChange={(e) => setTripDate(e.target.value)} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
                 </div>
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jam Trip</label>
-                  <input type="text" value={tripTime} onChange={(e) => setTripTime(e.target.value)} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
+                  <input type="time" value={tripTime} onChange={(e) => setTripTime(e.target.value)} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
                 </div>
-              </div>
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Titik Lokasi Km SUTM</label>
-                <input type="text" value={tripLocation} onChange={(e) => setTripLocation(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
-              </div>
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Uraian Penyebab Gangguan</label>
-                <textarea rows={2} value={tripCause} onChange={(e) => setTripCause(e.target.value)} className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium" />
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Jam Masuk</label>
+                  <input type="time" value={recoveryTime} onChange={(e) => setRecoveryTime(e.target.value)} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Pelanggan Terdampak</label>
-                  <input type="number" value={tripCustomers} onChange={(e) => setTripCustomers(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Beban Arus (Ampere / A)</label>
+                  <input type="number" value={tripAmpere} onChange={(e) => setTripAmpere(e.target.value)} placeholder="e.g. 380" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Estimasi ENS (kWh)</label>
-                  <input type="number" value={tripEns} onChange={(e) => setTripEns(Number(e.target.value))} className="w-full p-2 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Pelanggan Terdampak</label>
+                  <input type="number" value={tripCustomers} onChange={(e) => setTripCustomers(e.target.value)} placeholder="e.g. 5310" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Titik Lokasi Km SUTM</label>
+                  <input type="text" value={tripLocation} onChange={(e) => setTripLocation(e.target.value)} placeholder="e.g. Km 6.2 Passo Dalam" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Koordinat Lokasi (Lat, Long)</label>
+                  <input type="text" value={tripCoordinates} onChange={(e) => setTripCoordinates(e.target.value)} placeholder="e.g. -3.6285, 128.2214" className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-mono text-cyan-600 dark:text-cyan-400 font-semibold" />
+                </div>
+              </div>
+
+              {/* Form Arus Gangguan INOL, L1, L2, L3 */}
+              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
+                <label className="font-bold text-purple-700 dark:text-purple-300 block text-xs">Form Arus Gangguan (Ampere):</label>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold text-rose-500 block">INOL</span>
+                    <input type="number" value={tripINol} onChange={(e) => setTripINol(e.target.value)} placeholder="INOL" className="w-full p-2 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-rose-600 dark:text-rose-400 font-black" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-500 block">L1</span>
+                    <input type="number" value={tripIL1} onChange={(e) => setTripIL1(e.target.value)} placeholder="L1" className="w-full p-2 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 font-black" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-yellow-500 block">L2</span>
+                    <input type="number" value={tripIL2} onChange={(e) => setTripIL2(e.target.value)} placeholder="L2" className="w-full p-2 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-yellow-600 dark:text-yellow-400 font-black" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-500 block">L3</span>
+                    <input type="number" value={tripIL3} onChange={(e) => setTripIL3(e.target.value)} placeholder="L3" className="w-full p-2 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-blue-600 dark:text-blue-400 font-black" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Uraian Penyebab Gangguan</label>
+                <textarea rows={2} value={tripCause} onChange={(e) => setTripCause(e.target.value)} placeholder="Tuliskan penyebab gangguan..." className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium" />
               </div>
             </div>
           )}

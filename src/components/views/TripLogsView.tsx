@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FeederTrip } from '../../types';
+import { FeederTrip, MasterFeeder } from '../../types';
 import { 
   Zap, 
   Search, 
@@ -11,7 +11,10 @@ import {
   ShieldAlert, 
   CheckCircle2, 
   DollarSign,
-  MessageSquare
+  MessageSquare,
+  MapPin,
+  Cpu,
+  Activity
 } from 'lucide-react';
 
 interface TripLogsViewProps {
@@ -19,23 +22,31 @@ interface TripLogsViewProps {
   trips: FeederTrip[];
   onOpenInputGangguan: () => void;
   onOpenWhatsAppModal?: (trip?: FeederTrip) => void;
+  masterFeeders?: MasterFeeder[];
 }
 
 export const TripLogsView: React.FC<TripLogsViewProps> = ({
   isDarkMode,
   trips,
   onOpenInputGangguan,
-  onOpenWhatsAppModal
+  onOpenWhatsAppModal,
+  masterFeeders = []
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFeeder, setSelectedFeeder] = useState('ALL');
   const [selectedRelay, setSelectedRelay] = useState('ALL');
 
+  // Feeder options for filter
+  const feederOptions = masterFeeders.length > 0 
+    ? masterFeeders.map(f => f.feederName)
+    : Array.from(new Set(trips.map(t => t.feederName)));
+
   const filteredTrips = trips.filter(trip => {
     const matchesSearch = 
       trip.feederName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       trip.cause.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trip.locationKm.toLowerCase().includes(searchTerm.toLowerCase());
+      trip.locationKm.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (trip.coordinates && trip.coordinates.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesFeeder = selectedFeeder === 'ALL' || trip.feederName === selectedFeeder;
     const matchesRelay = selectedRelay === 'ALL' || trip.relayType.includes(selectedRelay);
@@ -66,7 +77,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               Log Matriks Gangguan & Trip Feeder 20kV
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Rekapitulasi Kejadian Trip, Penyebab, Relay Dominan (OCR/GFR), & Estimasi ENS
+              Rekapitulasi Trip, Arus Gangguan (INOL, L1, L2, L3), Estimasi Jarak AI, & Indeks SAIDI/SAIFI
             </p>
           </div>
         </div>
@@ -77,7 +88,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text"
-              placeholder="Cari lokasi, penyebab..."
+              placeholder="Cari lokasi, koordinat..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`pl-9 pr-3 py-1.5 rounded-xl text-xs border font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -97,10 +108,9 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
             }`}
           >
             <option value="ALL">Semua Feeder</option>
-            <option value="LATERI 2">LATERI 2</option>
-            <option value="LATERI 3">LATERI 3</option>
-            <option value="TULEHU">TULEHU</option>
-            <option value="ALLANG">ALLANG</option>
+            {feederOptions.map(fName => (
+              <option key={fName} value={fName}>{fName}</option>
+            ))}
           </select>
 
           {/* Broadcast WA Button */}
@@ -138,19 +148,20 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               <tr>
                 <th className="p-3.5">ID & Feeder</th>
                 <th className="p-3.5">Jam Trip & Masuk</th>
-                <th className="p-3.5">Relay & Arus (A)</th>
-                <th className="p-3.5">Kontribusi SAIDI / SAIFI</th>
-                <th className="p-3.5">Lokasi Km & Penyebab</th>
+                <th className="p-3.5">Arus Beban & Gangguan</th>
+                <th className="p-3.5">Estimasi Jarak AI</th>
+                <th className="p-3.5">SAIDI / SAIFI</th>
+                <th className="p-3.5">Lokasi & Koordinat</th>
                 <th className="p-3.5">Pelanggan & ENS</th>
                 <th className="p-3.5 text-right">Kerugian & Status</th>
-                <th className="p-3.5 text-center">Broadcast WA</th>
+                <th className="p-3.5 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {filteredTrips.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500 dark:text-slate-400">
-                    Tidak ada data trip gangguan yang cocok dengan filter.
+                  <td colSpan={9} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                    Belum ada data trip gangguan. Silakan klik <strong>+ Catat Trip Baru</strong> untuk menginput data secara manual.
                   </td>
                 </tr>
               ) : (
@@ -160,7 +171,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                   const saidiHours = trip.saidiHours ?? Number(((durationHours * trip.affectedCustomers) / totalUlp).toFixed(4));
                   const saidiMins = trip.saidiMinutes ?? Number((saidiHours * 60).toFixed(2));
                   const saifiVal = trip.saifiCount ?? Number((trip.affectedCustomers / totalUlp).toFixed(4));
-                  const kw = trip.kwPadam || Math.round(1.73205 * 20 * trip.currentAmpere * 0.85);
+                  const kw = trip.kwPadam || Math.round(Math.sqrt(3) * 20 * trip.currentAmpere * 0.95);
 
                   return (
                     <tr key={trip.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -178,23 +189,45 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                       <td className="p-3.5">
                         <div className="text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1">
                           <Clock className="w-3 h-3 text-rose-500" />
-                          <span>{trip.tripTime}</span>
+                          <span>{trip.tripTime || '-'}</span>
                           <span className="text-slate-400">→</span>
-                          <span className="text-emerald-600 dark:text-emerald-400">{trip.recoveryTime || '11:45'}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">{trip.recoveryTime || '-'}</span>
                         </div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                           {trip.tripDate} • <span className="font-extrabold text-amber-600 dark:text-amber-400">{trip.durationMinutes} m ({durationHours.toFixed(2)} j)</span>
                         </div>
                       </td>
 
-                      {/* Relay & Arus */}
+                      {/* Relay & Arus Gangguan */}
                       <td className="p-3.5">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 inline-block">
                           {trip.relayType}
                         </span>
                         <div className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold mt-1">
-                          {trip.currentAmpere} A <span className="text-slate-400">({kw.toLocaleString()} kW)</span>
+                          Beban: <strong>{trip.currentAmpere} A</strong> ({kw.toLocaleString('id-ID')} kW)
                         </div>
+                        {(trip.iNol || trip.iL1 || trip.iL2 || trip.iL3) ? (
+                          <div className="text-[9px] font-mono text-purple-600 dark:text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded mt-1 border border-purple-500/20">
+                            I0:{trip.iNol || 0}A | R:{trip.iL1 || 0}A S:{trip.iL2 || 0}A T:{trip.iL3 || 0}A
+                          </div>
+                        ) : null}
+                      </td>
+
+                      {/* Estimasi Jarak AI */}
+                      <td className="p-3.5">
+                        {trip.estimatedDistanceKm ? (
+                          <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300">
+                            <div className="font-extrabold text-xs flex items-center gap-1">
+                              <Cpu className="w-3 h-3 text-purple-500" />
+                              <span>{trip.estimatedDistanceKm} km</span>
+                            </div>
+                            <div className="text-[9px] text-slate-500 dark:text-slate-400">
+                              dari Substation GI
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-normal">-</span>
+                        )}
                       </td>
 
                       {/* SAIDI / SAIFI Contribution */}
@@ -212,9 +245,15 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                       {/* Lokasi & Penyebab */}
                       <td className="p-3.5 max-w-xs">
                         <div className="font-bold text-slate-800 dark:text-slate-200 truncate" title={trip.locationKm}>
-                          📍 {trip.locationKm}
+                          📍 {trip.locationKm || 'Lokasi SUTM'}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2" title={trip.cause}>
+                        {trip.coordinates && (
+                          <div className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                            <MapPin className="w-2.5 h-2.5" />
+                            <span>{trip.coordinates}</span>
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1" title={trip.cause}>
                           {trip.cause}
                         </div>
                       </td>
@@ -245,7 +284,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                           title="Kirim Laporan Trip ini ke WhatsApp"
                         >
                           <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>Kirim WA</span>
+                          <span>WA</span>
                         </button>
                       </td>
 

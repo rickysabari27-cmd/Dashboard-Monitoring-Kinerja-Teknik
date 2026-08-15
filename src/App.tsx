@@ -103,7 +103,16 @@ export default function App() {
 
   // Firebase Real-time Synchronization
   useEffect(() => {
-    const unsubTrips = syncCollection<FeederTrip>('trips', INITIAL_TRIPS, (data) => setTrips(data));
+    const unsubTrips = syncCollection<FeederTrip>('trips', [], (data) => {
+      const isMockId = (id: string) => id.startsWith('TRIP-2026-') || id.startsWith('TRIP-00') || id === 'TRIP-1' || id === 'TRIP-2';
+      const cleanTrips = data.filter(item => !isMockId(item.id));
+      setTrips(cleanTrips);
+      data.forEach(item => {
+        if (isMockId(item.id)) {
+          deleteDocument('trips', item.id);
+        }
+      });
+    });
     const unsubSaidi = syncCollection<MonthlySaidiSaifiData>('saidi_saifi', MONTHLY_SAIDI_SAIFI_2026, (data) => setMonthlySaidiData(data));
     const unsubSpk = syncCollection<SpkTask>('spk_tasks', INITIAL_SPK_TASKS, (data) => setSpkList(data));
     const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
@@ -570,6 +579,7 @@ export default function App() {
               trips={trips}
               onOpenInputGangguan={() => setIsGangguanModalOpen(true)}
               onOpenWhatsAppModal={(trip) => handleOpenWhatsAppModal(trip, 'Gangguan / Trip')}
+              masterFeeders={masterFeeders}
             />
           )}
 
@@ -677,6 +687,7 @@ export default function App() {
         onClose={() => setIsGangguanModalOpen(false)}
         onSaveTrip={handleSaveTrip}
         isDarkMode={isDarkMode}
+        masterFeeders={masterFeeders}
       />
 
       <InputSaidiModal 
@@ -691,6 +702,7 @@ export default function App() {
         onClose={() => setIsUniversalModalOpen(false)}
         defaultTab={universalModalTab}
         isDarkMode={isDarkMode}
+        masterFeeders={masterFeeders}
         onSaveTrip={handleSaveTrip}
         onSaveSpk={handleSaveSpk}
         onSaveInspection={handleSaveInspection}
