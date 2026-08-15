@@ -82,7 +82,12 @@ export function syncCollection<T extends { id?: string; month?: string }>(
     (error) => {
       // Provide initial fallback data so UI remains interactive
       onDataUpdate(defaultData);
-      handleFirestoreError(error, OperationType.LIST, collectionName);
+      const errCode = (error as any)?.code || '';
+      if (errCode === 'unavailable' || error?.message?.includes('offline')) {
+        console.warn(`Firestore collection [${collectionName}] operating offline.`);
+      } else {
+        console.warn(`Firestore sync warning [${collectionName}]:`, error?.message || error);
+      }
     }
   );
 

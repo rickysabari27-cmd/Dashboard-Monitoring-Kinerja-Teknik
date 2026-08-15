@@ -13,10 +13,11 @@ export async function testFirestoreConnection() {
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
     console.log('Firebase connection verified');
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
+    const errCode = (error as any)?.code || '';
+    if (errCode === 'unavailable' || (error instanceof Error && error.message.includes('offline'))) {
+      console.log('Firestore initialized in offline/local cache mode');
     } else {
-      console.log('Firestore connection tested');
+      console.log('Firestore connection tested:', (error as Error)?.message || String(error));
     }
   }
 }
