@@ -4,7 +4,9 @@ import {
   MasterSection, 
   MasterGarduHubung, 
   MasterGarduDistribusi, 
-  MasterPemutus 
+  MasterPemutus,
+  BranchDevice,
+  getSectionBranches
 } from '../../types';
 import { 
   Database, 
@@ -177,16 +179,46 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const [secBebanCabang, setSecBebanCabang] = useState<number | string>('');
   const [secTotalBeban, setSecTotalBeban] = useState<number | string>('');
   const [secCust, setSecCust] = useState<number | string>('');
-  const [secStatus, setSecStatus] = useState<string>('Normal');
+  const [secStatus, setSecStatus] = useState<string>('Operasi');
 
-  // Percabangan States (Manual Input)
+  // Percabangan States (Manual Input - Multi-branch support)
   const [secHasFco, setSecHasFco] = useState(false);
-  const [secBranchDeviceType, setSecBranchDeviceType] = useState<'FCO' | 'LBSM' | 'Recloser'>('FCO');
+  const [secBranchDeviceType, setSecBranchDeviceType] = useState<'FCO' | 'LBSM' | 'Recloser' | 'PMCB'>('FCO');
   const [secFcoName, setSecFcoName] = useState('');
   const [secFcoLength, setSecFcoLength] = useState<number | string>('');
   const [secFcoKha, setSecFcoKha] = useState<number | string>('');
   const [secFcoLaterals, setSecFcoLaterals] = useState<string[]>([]);
   const [newLateralInput, setNewLateralInput] = useState('');
+  const [secFcoBranches, setSecFcoBranches] = useState<BranchDevice[]>([]);
+
+  const handleAddBranch = () => {
+    const newBr: BranchDevice = {
+      id: `br-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      branchDeviceType: 'FCO',
+      fcoBranchName: '',
+      fcoLengthKms: undefined,
+      fcoKhaAmpere: undefined,
+      fcoLaterals: []
+    };
+    setSecFcoBranches(prev => [...prev, newBr]);
+    setSecHasFco(true);
+  };
+
+  const handleRemoveBranch = (index: number) => {
+    setSecFcoBranches(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) setSecHasFco(false);
+      return updated;
+    });
+  };
+
+  const handleUpdateBranch = (index: number, key: keyof BranchDevice, val: any) => {
+    setSecFcoBranches(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [key]: val };
+      return updated;
+    });
+  };
 
   // Live Telemetry Monitoring States (Manual Input - No automatic prefill)
   const [secCurrentLoad, setSecCurrentLoad] = useState<number | string>('');
@@ -251,7 +283,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     // Rule: Semua penyulang dari Gardu Hubung adalah Percabangan
     const finalStatus = (finalGh && finalGh !== '') ? 'Percabangan' : fStatus;
     const payload: MasterFeeder = {
-      id: feederToEdit ? feederToEdit.id : `MF-${Date.now()}`,
+      id: feederToEdit ? feederToEdit.id : `MF-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       feederCode: fCode.trim().toUpperCase(),
       feederName: fName.trim(),
       substationName: fGi,
@@ -285,13 +317,24 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setSecBebanCabang(sec.bebanCabangKha !== undefined ? sec.bebanCabangKha : (sec.hasFcoBranch ? (sec.garduCount ?? '') : ''));
     setSecTotalBeban(sec.totalBebanKha !== undefined ? sec.totalBebanKha : (sec.khaAmpere ?? ''));
     setSecCust(sec.customerCount !== undefined && sec.customerCount !== null ? sec.customerCount : '');
-    setSecStatus(sec.status || 'Normal');
-    setSecHasFco(Boolean(sec.hasFcoBranch));
-    setSecBranchDeviceType((sec.branchDeviceType as any) || 'FCO');
-    setSecFcoName(sec.fcoBranchName || '');
-    setSecFcoLength(sec.fcoLengthKms !== undefined ? sec.fcoLengthKms : '');
-    setSecFcoKha(sec.fcoKhaAmpere !== undefined ? sec.fcoKhaAmpere : '');
-    setSecFcoLaterals(sec.fcoLaterals && sec.fcoLaterals.length > 0 ? [...sec.fcoLaterals] : []);
+    setSecStatus(sec.status || 'Operasi');
+
+    const branches = getSectionBranches(sec);
+    setSecFcoBranches(branches);
+    setSecHasFco(branches.length > 0);
+    if (branches.length > 0) {
+      setSecBranchDeviceType((branches[0].branchDeviceType as any) || 'FCO');
+      setSecFcoName(branches[0].fcoBranchName || '');
+      setSecFcoLength(branches[0].fcoLengthKms !== undefined ? branches[0].fcoLengthKms : '');
+      setSecFcoKha(branches[0].fcoKhaAmpere !== undefined ? branches[0].fcoKhaAmpere : '');
+      setSecFcoLaterals(branches[0].fcoLaterals && branches[0].fcoLaterals.length > 0 ? [...branches[0].fcoLaterals] : []);
+    } else {
+      setSecBranchDeviceType('FCO');
+      setSecFcoName('');
+      setSecFcoLength('');
+      setSecFcoKha('');
+      setSecFcoLaterals([]);
+    }
     setNewLateralInput('');
     setSecCurrentLoad(sec.currentLoadAmpere !== undefined && sec.currentLoadAmpere !== null ? sec.currentLoadAmpere : '');
     setSecVoltageKv(sec.voltageKv !== undefined && sec.voltageKv !== null ? sec.voltageKv : '');
@@ -301,8 +344,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
   const handleSaveSection = (e: React.FormEvent) => {
     e.preventDefault();
+    const branchesToSave = secFcoBranches.map(b => ({
+      ...b,
+      fcoBranchName: b.fcoBranchName.trim() || `${b.branchDeviceType || 'FCO'} Percabangan`
+    }));
+    const hasBranch = branchesToSave.length > 0;
+
     const payload: MasterSection = {
-      id: sectionToEdit ? sectionToEdit.id : `SEC-${Date.now()}`,
+      id: sectionToEdit ? sectionToEdit.id : `SEC-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       sectionCode: secCode.trim().toUpperCase(),
       sectionName: secName.trim(),
       feederName: secFeeder.trim(),
@@ -316,17 +365,18 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       bebanCabangKha: secBebanCabang !== '' ? Number(secBebanCabang) : 0,
       totalBebanKha: secTotalBeban !== '' ? Number(secTotalBeban) : (secKha !== '' ? Number(secKha) : 0),
       customerCount: secCust !== '' ? Number(secCust) : 0,
-      status: secStatus || 'Normal',
-      hasFcoBranch: secHasFco,
-      branchDeviceType: secHasFco ? secBranchDeviceType : 'FCO',
-      fcoBranchName: secHasFco && secFcoName.trim() ? secFcoName.trim() : (secHasFco ? `${secBranchDeviceType} Percabangan` : ''),
-      fcoLengthKms: secHasFco && secFcoLength !== '' ? Number(secFcoLength) : 0,
-      fcoKhaAmpere: secHasFco && secFcoKha !== '' ? Number(secFcoKha) : 0,
-      fcoLaterals: secHasFco && secFcoLaterals.length > 0 ? secFcoLaterals : [],
-      currentLoadAmpere: secCurrentLoad !== '' ? Number(secCurrentLoad) : 0,
-      voltageKv: secVoltageKv !== '' ? Number(secVoltageKv) : 20.0,
-      voltageDropPercent: secVoltageDrop !== '' ? Number(secVoltageDrop) : 0,
-      temperatureCelsius: secTemp !== '' ? Number(secTemp) : 0
+      status: secStatus || 'Operasi',
+      fcoBranches: branchesToSave,
+      hasFcoBranch: hasBranch,
+      branchDeviceType: hasBranch ? branchesToSave[0].branchDeviceType : 'FCO',
+      fcoBranchName: hasBranch ? branchesToSave[0].fcoBranchName : '',
+      fcoLengthKms: hasBranch ? branchesToSave[0].fcoLengthKms : undefined,
+      fcoKhaAmpere: hasBranch ? branchesToSave[0].fcoKhaAmpere : undefined,
+      fcoLaterals: hasBranch ? branchesToSave[0].fcoLaterals : [],
+      currentLoadAmpere: secCurrentLoad !== '' ? Number(secCurrentLoad) : undefined,
+      voltageKv: secVoltageKv !== '' ? Number(secVoltageKv) : undefined,
+      voltageDropPercent: secVoltageDrop !== '' ? Number(secVoltageDrop) : undefined,
+      temperatureCelsius: secTemp !== '' ? Number(secTemp) : undefined
     };
     if (onSaveMasterSection) onSaveMasterSection(payload);
     setSectionToEdit(null);
@@ -349,7 +399,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const handleSaveGh = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: MasterGarduHubung = {
-      id: ghToEdit ? ghToEdit.id : `GH-${Date.now()}`,
+      id: ghToEdit ? ghToEdit.id : `GH-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       ghCode: ghCode.trim().toUpperCase(),
       ghName: ghName.trim(),
       location: ghLoc.trim(),
@@ -382,7 +432,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const handleSaveGd = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: MasterGarduDistribusi = {
-      id: gdToEdit ? gdToEdit.id : `GD-${Date.now()}`,
+      id: gdToEdit ? gdToEdit.id : `GD-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       garduCode: gdCode.trim().toUpperCase(),
       garduName: gdName.trim(),
       feederName: gdFeeder.trim(),
@@ -415,7 +465,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const handleSavePmt = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: MasterPemutus = {
-      id: pmtToEdit ? pmtToEdit.id : `PMT-${Date.now()}`,
+      id: pmtToEdit ? pmtToEdit.id : `PMT-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       equipmentCode: pmtCode.trim().toUpperCase(),
       equipmentType: pmtType,
       feederName: pmtFeeder.trim(),
@@ -611,7 +661,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     <th className="p-3 text-center border-r border-slate-800/80">Gardu Hubung</th>
                     <th className="p-3 text-center border-r border-slate-800/80">Status</th>
                     <th className="p-3 text-center border-r border-slate-800/80">Status Operasional</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Beban (Amp)</th>
+                    <th className="p-3 text-center border-r border-slate-800/80">kVA Gardu</th>
                     <th className="p-3 text-center border-r border-slate-800/80">Panjang Jaringan (kms)</th>
                     <th className="p-3 text-center border-r border-slate-800/80">Jumlah Gardu</th>
                     <th className="p-3 text-center border-r border-slate-800/80">Jumlah Pel</th>
@@ -631,26 +681,31 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     })
                     .sort((a, b) => (a.feederName || a.feederCode || '').localeCompare(b.feederName || b.feederCode || '', undefined, { numeric: true }))
                     .map((feeder, idx) => {
-                      // Dynamically sync metrics with real sections if available
+                      // Dynamically sync metrics with real sections and gardu distribusi
                       const matchingSections = masterSections.filter(
                         s => s.feederName && s.feederName.toLowerCase() === feeder.feederName.toLowerCase()
                       );
+                      const matchingGds = masterGarduDistribusi.filter(
+                        g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
+                      );
+                      const totalKvaGds = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
                       const hasSecs = matchingSections.length > 0;
-                      const realGardu = hasSecs 
-                        ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0)
-                        : (feeder.garduCount ?? 0);
+                      
+                      const realGardu = matchingGds.length > 0 
+                        ? matchingGds.length 
+                        : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0) : (feeder.garduCount ?? 0));
+                      
                       const realLength = hasSecs 
                         ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1))
                         : (feeder.lengthKms ?? 0);
-                      const realKha = hasSecs 
-                        ? (Math.max(...matchingSections.map(s => s.khaAmpere || s.totalBebanKha || 0), 0) || (feeder.khaAmpere ?? 0))
-                        : (feeder.khaAmpere ?? 0);
+                      
+                      const realKvaGardu = totalKvaGds > 0 ? totalKvaGds : (feeder.khaAmpere ?? 0);
                       const realCust = hasSecs 
                         ? matchingSections.reduce((acc, s) => acc + (s.customerCount || 0), 0)
                         : (feeder.customerCount ?? 0);
 
                       return (
-                        <tr key={feeder.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                        <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
                           <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
                           <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.feederCode}</td>
                           <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">
@@ -686,7 +741,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                             </span>
                           </td>
                           <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                            {realKha}
+                            {realKvaGardu} kVA
                           </td>
                           <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
                             {realLength}
@@ -771,18 +826,30 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           return (a.sectionCode || '').localeCompare(b.sectionCode || '', undefined, { numeric: true, sensitivity: 'base' });
         });
 
-        // Summary KPI calculations based on real section data
-        const totalSectionCount = isUnselected ? 0 : feederSections.length;
-        const totalGarduCount = isUnselected ? 0 : feederSections.reduce((acc, s) => acc + (s.garduCount || 0), 0);
-        const mainLengthKms = isUnselected ? 0 : feederSections.reduce((acc, s) => acc + (s.lengthKms || 0), 0);
-        const branchLengthKms = isUnselected ? 0 : feederSections.reduce((acc, s) => acc + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0);
+        // Summary KPI calculations based on real section data (Accumulates all sections when unselected/initial view)
+        const sectionsForKpi = isUnselected
+          ? masterSections.filter(s => {
+              if (!searchQuery.trim()) return true;
+              const q = searchQuery.toLowerCase();
+              return (s.sectionCode || '').toLowerCase().includes(q) ||
+                     (s.sectionName || '').toLowerCase().includes(q) ||
+                     (s.feederName || '').toLowerCase().includes(q) ||
+                     (s.startPoint || '').toLowerCase().includes(q) ||
+                     (s.endPoint || '').toLowerCase().includes(q);
+            })
+          : feederSections;
+
+        const totalSectionCount = sectionsForKpi.length;
+        const totalGarduCount = sectionsForKpi.reduce((acc, s) => acc + (s.garduCount || 0), 0);
+        const mainLengthKms = sectionsForKpi.reduce((acc, s) => acc + (s.lengthKms || 0), 0);
+        const branchLengthKms = sectionsForKpi.reduce((acc, s) => acc + getSectionBranches(s).reduce((bAcc, b) => bAcc + (b.fcoLengthKms || 0), 0), 0);
         const totalLengthKms = mainLengthKms + branchLengthKms;
-        const totalCustomers = isUnselected ? 0 : feederSections.reduce((acc, s) => acc + (s.customerCount || 0), 0);
-        const peakKha = isUnselected ? 0 : (Math.max(...feederSections.map(s => s.khaAmpere || s.totalBebanKha || 0), 0) || (matchingFeeder?.khaAmpere || 0));
-        const totalBebanKha = isUnselected ? 0 : feederSections.reduce((acc, s) => acc + (s.totalBebanKha || s.khaAmpere || 0), 0);
-        const measuredCurrent = isUnselected ? 0 : feederSections.reduce((acc, s) => acc + (s.currentLoadAmpere || s.currentLoad || 0), 0);
-        const fcoCount = isUnselected ? 0 : feederSections.filter(s => s.hasFcoBranch).length;
-        const hasWarning = isUnselected ? false : feederSections.some(s => s.status === 'Warning' || s.status === 'Kritis');
+        const totalCustomers = sectionsForKpi.reduce((acc, s) => acc + (s.customerCount || 0), 0);
+        const peakKha = (Math.max(...sectionsForKpi.map(s => s.khaAmpere || s.totalBebanKha || 0), 0) || (matchingFeeder?.khaAmpere || 0));
+        const totalBebanKha = sectionsForKpi.reduce((acc, s) => acc + (s.totalBebanKha || s.khaAmpere || 0), 0);
+        const measuredCurrent = sectionsForKpi.reduce((acc, s) => acc + (s.currentLoadAmpere || s.currentLoad || 0), 0);
+        const totalBranchCount = sectionsForKpi.reduce((acc, s) => acc + getSectionBranches(s).length, 0);
+        const hasWarning = sectionsForKpi.some(s => s.status === 'Warning' || s.status === 'Kritis');
 
         return (
           <div className="space-y-4">
@@ -840,13 +907,13 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   <div className={`text-xl font-black tracking-tight truncate ${
                     isDarkMode ? 'text-white' : 'text-slate-950'
                   }`}>
-                    {activeFeederName.toUpperCase()}
+                    {isUnselected ? 'SEMUA PENYULANG' : activeFeederName.toUpperCase()}
                   </div>
                   <div className={`text-[11.5px] font-extrabold flex items-center gap-1.5 mt-1 ${
                     isDarkMode ? 'text-blue-400' : 'text-blue-700'
                   }`}>
                     {isUnselected ? (
-                      <span>-</span>
+                      <span>Total {masterFeeders.length} Penyulang</span>
                     ) : (
                       <>
                         <span>{feederCodeDisplay}</span>
@@ -890,7 +957,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   <div className={`text-[11.5px] font-extrabold mt-1 ${
                     isDarkMode ? 'text-indigo-400' : 'text-indigo-700'
                   }`}>
-                    {fcoCount > 0 ? `${fcoCount} dgn Cabang FCO` : 'Jalur Utama Kontinu'}
+                    {totalBranchCount > 0 ? `${totalBranchCount} Perc. Lateral` : '0 Perc. Lateral'}
                   </div>
                 </div>
               </div>
@@ -961,7 +1028,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
 
-              {/* Card 5: Beban KHA & Arus */}
+              {/* Card 5: Kapasitas Gardu (kVA) */}
               <div className={`p-4 rounded-2xl border flex flex-col justify-between min-h-[106px] transition-all ${
                 isDarkMode 
                   ? 'bg-[#0B132B] border-slate-800 text-white' 
@@ -971,26 +1038,38 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   <span className={`text-[11px] font-black uppercase tracking-wider ${
                     isDarkMode ? 'text-slate-400' : 'text-slate-700'
                   }`}>
-                    Beban (Amp)
+                    kVA Gardu
                   </span>
                   <div className="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
-                    <Activity className="w-4 h-4" />
+                    <Zap className="w-4 h-4" />
                   </div>
                 </div>
                 <div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
-                      {peakKha}
-                    </span>
-                    <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
-                      A
-                    </span>
-                  </div>
-                  <div className={`text-[11.5px] font-extrabold mt-1 ${
-                    isDarkMode ? 'text-rose-400' : 'text-rose-700'
-                  }`}>
-                    {measuredCurrent > 0 ? `Arus Real: ${measuredCurrent} A` : `Total (Amp): ${totalBebanKha} A`}
-                  </div>
+                  {(() => {
+                    const matchingGds = isUnselected ? [] : masterGarduDistribusi.filter(
+                      g => g.feederName && g.feederName.trim().toLowerCase() === selectedSectionFeeder.trim().toLowerCase()
+                    );
+                    const totalKva = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
+                    const displayKva = totalKva > 0 ? totalKva : peakKha;
+
+                    return (
+                      <>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-950'}`}>
+                            {displayKva}
+                          </span>
+                          <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>
+                            kVA
+                          </span>
+                        </div>
+                        <div className={`text-[11.5px] font-extrabold mt-1 ${
+                          isDarkMode ? 'text-rose-400' : 'text-rose-700'
+                        }`}>
+                          {matchingGds.length > 0 ? `${matchingGds.length} Gardu Terdaftar (Tersinkron)` : (measuredCurrent > 0 ? `Arus Real: ${measuredCurrent} A` : `Estimasi: ${displayKva} kVA`)}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1097,6 +1176,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     setSecCust('');
                     setSecStatus('Normal');
                     setSecHasFco(false);
+                    setSecFcoBranches([]);
                     setSecBranchDeviceType('FCO');
                     setSecFcoName('');
                     setSecFcoLength('');
@@ -1162,9 +1242,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                         const isWarning = sec.status === 'Warning' || sec.status === 'Kritis';
                         const isSelected = selectedSectionId === sec.id;
                         const isLast = idx === feederSections.length - 1;
+                        const secStart = sec.startPoint || (idx > 0 ? feederSections[idx - 1].endPoint : sec.substationOrGh) || 'Pangkal';
+                        const secEnd = sec.endPoint || sec.sectionName || 'Ujung Section';
+                        const branches = getSectionBranches(sec);
 
                         return (
-                          <div key={sec.id} className="relative group">
+                          <div key={`${sec.id || 'sec'}-${idx}`} className="relative group">
                             {/* Curved / Vertical branch stem */}
                             <div className="flex items-center h-8 relative">
                               <div className="w-0.5 h-full bg-cyan-500/70 absolute left-0 top-0"></div>
@@ -1175,7 +1258,74 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                               </div>
                             </div>
 
-                            {/* Node Capsule Box */}
+                            {/* PERCABANGAN LATERAL BRANCHES (Rendered BEFORE section end node) */}
+                            {branches.length > 0 && (
+                              <div className="space-y-2">
+                                {branches.map((branch, bIdx) => (
+                                  <div key={branch.id || bIdx} className="my-2.5 pl-4 relative">
+                                    {/* Orange Branch Connector */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-4 border-l-2 border-b-2 border-amber-500/80 rounded-bl-lg"></div>
+                                    
+                                    <div className="space-y-2">
+                                      {/* Badge: New Branched Section */}
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950 shadow-xs">
+                                            <span>&larr;</span>
+                                            <span>Percabangan Lateral ({branch.branchDeviceType || 'FCO'}) {branches.length > 1 ? `#${bIdx + 1}` : ''}</span>
+                                          </span>
+                                          <span className="text-[10.5px] font-bold text-amber-400">
+                                            {branch.fcoLengthKms ? `${branch.fcoLengthKms} KMS` : ''}
+                                          </span>
+                                        </div>
+                                        <div className="text-[9.5px] font-bold text-amber-300/80 pl-0.5">
+                                          Posisi: Diantara Section [{secStart}] - [{secEnd}]
+                                        </div>
+                                      </div>
+
+                                      {/* Branch Capsule */}
+                                      <div className="p-3 rounded-xl border border-amber-500/60 bg-amber-950/30 text-white space-y-1.5 shadow-lg shadow-amber-500/5">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
+                                            <Zap className="w-3 h-3" />
+                                          </div>
+                                          <div className="font-extrabold text-xs text-amber-300">
+                                            [{branch.fcoBranchName || `${branch.branchDeviceType || 'Percabangan'} Lateral`}]
+                                          </div>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-amber-400/80 pl-7 flex items-center gap-2">
+                                          {branch.fcoLengthKms ? <span>{branch.fcoLengthKms} KMS</span> : null}
+                                          {branch.fcoLengthKms && branch.fcoKhaAmpere ? <span>•</span> : null}
+                                          {branch.fcoKhaAmpere ? <span>kVA Gardu {branch.fcoKhaAmpere} kVA</span> : null}
+                                        </div>
+
+                                        {/* Sub-lateral Nodes */}
+                                        {branch.fcoLaterals && branch.fcoLaterals.length > 0 && (
+                                          <div className="pt-2 pl-7 space-y-1 border-t border-amber-500/20">
+                                            {branch.fcoLaterals.map((lat, lIdx) => (
+                                              <div key={lIdx} className="text-[10.5px] font-bold text-slate-300 flex items-center gap-1.5">
+                                                <span className="text-amber-400 font-black">○</span>
+                                                <span>[{lat}]</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Jalur Utama Continuity Indicator to End Node */}
+                                      {bIdx === branches.length - 1 && (
+                                        <div className="flex items-center gap-2 pt-1 pl-1 text-[11px] font-bold text-cyan-400">
+                                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></div>
+                                          <span>Jalur Utama &rarr; Menuju [{secEnd}]</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Node Capsule Box (Section End Node) */}
                             <div 
                               onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
                               className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
@@ -1206,62 +1356,6 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                 </div>
                               </div>
                             </div>
-
-                            {/* PERCABANGAN LATERAL BRANCH (If section has branch) */}
-                            {sec.hasFcoBranch && (
-                              <div className="mt-2.5 mb-2 pl-4 relative">
-                                {/* Orange Branch Connector */}
-                                <div className="absolute left-0 top-0 bottom-0 w-4 border-l-2 border-b-2 border-amber-500/80 rounded-bl-lg"></div>
-                                
-                                <div className="space-y-2">
-                                  {/* Badge: New Branched Section */}
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black bg-amber-500 text-slate-950 shadow-xs">
-                                      <span>&larr;</span>
-                                      <span>New Branched Section ({sec.branchDeviceType || 'Percabangan'} Lateral)</span>
-                                    </span>
-                                    <span className="text-[11px] font-extrabold text-amber-400">
-                                      {sec.fcoLengthKms || 0.8} KMS
-                                    </span>
-                                  </div>
-
-                                  {/* Branch Capsule */}
-                                  <div className="p-3 rounded-xl border border-amber-500/60 bg-amber-950/30 text-white space-y-1.5 shadow-lg shadow-amber-500/5">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-5 h-5 rounded-md bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0">
-                                        <Zap className="w-3 h-3" />
-                                      </div>
-                                      <div className="font-extrabold text-xs text-amber-300">
-                                        [{sec.fcoBranchName || `${sec.branchDeviceType || 'Percabangan'} Lateral (Node)`}]
-                                      </div>
-                                    </div>
-                                    <div className="text-[10px] font-bold text-amber-400/80 pl-7 flex items-center gap-2">
-                                      <span>{sec.fcoLengthKms || 0.8} KMS</span>
-                                      <span>•</span>
-                                      <span>Beban {sec.fcoKhaAmpere || 65} A</span>
-                                    </div>
-
-                                    {/* Sub-lateral Nodes */}
-                                    {sec.fcoLaterals && sec.fcoLaterals.length > 0 && (
-                                      <div className="pt-2 pl-7 space-y-1 border-t border-amber-500/20">
-                                        {sec.fcoLaterals.map((lat, lIdx) => (
-                                          <div key={lIdx} className="text-[10.5px] font-bold text-slate-300 flex items-center gap-1.5">
-                                            <span className="text-amber-400 font-black">○</span>
-                                            <span>[{lat}]</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Jalur Utama Continuity Indicator */}
-                                  <div className="flex items-center gap-2 pt-1 pl-1 text-[11px] font-bold text-cyan-400">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></div>
-                                    <span>Jalur Utama &rarr; Berlanjut ke section berikutnya</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -1299,7 +1393,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                           <th className="p-3 text-left border-r border-slate-800/80">Nama Section</th>
                           <th className="p-3 text-center border-r border-slate-800/80">Panjang (KMS)</th>
                           <th className="p-3 text-center border-r border-slate-800/80">Jumlah Gardu</th>
-                          <th className="p-3 text-center border-r border-slate-800/80">Beban (Amp)</th>
+                          <th className="p-3 text-center border-r border-slate-800/80">kVA Gardu</th>
                           <th className="p-3 text-center border-r border-slate-800/80">Beban Arus (A)</th>
                           <th className="p-3 text-center border-r border-slate-800/80">Status</th>
                           <th className="p-3 text-center w-24">Aksi</th>
@@ -1328,7 +1422,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
                           return (
                             <tr 
-                              key={sec.id} 
+                              key={`${sec.id || 'sec'}-${idx}`} 
                               onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
                               className={`transition-colors cursor-pointer ${
                                 isSelected 
@@ -1342,31 +1436,45 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                 {idx + 1}
                               </td>
                               <td className="p-3 font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <span>{sec.sectionCode}</span>
-                                  {sec.hasFcoBranch && (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                                      FCO
-                                    </span>
-                                  )}
+                                  {(() => {
+                                    const brs = getSectionBranches(sec);
+                                    if (brs.length === 0) return null;
+                                    const devTypes = Array.from(new Set(brs.map(b => b.branchDeviceType || 'FCO')));
+                                    return devTypes.map(dev => (
+                                      <span key={dev} className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                        {dev}
+                                      </span>
+                                    ));
+                                  })()}
                                 </div>
                               </td>
                               <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">
                                 <div>{sec.sectionName}</div>
-                                {sec.hasFcoBranch && sec.fcoBranchName && (
-                                  <div className="text-[10px] text-amber-500 font-semibold mt-0.5 flex items-center gap-1">
-                                    <GitBranch className="w-3 h-3" />
-                                    <span>{sec.fcoBranchName}</span>
-                                  </div>
-                                )}
+                                {(() => {
+                                  const brs = getSectionBranches(sec);
+                                  if (brs.length === 0) return null;
+                                  return brs.map((br, bIdx) => (
+                                    <div key={br.id || bIdx} className="text-[10px] text-amber-500 font-semibold mt-0.5 flex items-center gap-1">
+                                      <GitBranch className="w-3 h-3 shrink-0" />
+                                      <span>↳ {br.fcoBranchName}</span>
+                                    </div>
+                                  ));
+                                })()}
                               </td>
                               <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
                                 <div>{sec.lengthKms || 0} KMS</div>
-                                {sec.hasFcoBranch && sec.fcoLengthKms ? (
-                                  <div className="text-[10px] text-amber-500 font-semibold mt-0.5">
-                                    +{sec.fcoLengthKms} km FCO
-                                  </div>
-                                ) : null}
+                                {(() => {
+                                  const brs = getSectionBranches(sec);
+                                  const totalBrKms = brs.reduce((acc, b) => acc + (b.fcoLengthKms || 0), 0);
+                                  if (totalBrKms <= 0) return null;
+                                  return (
+                                    <div className="text-[10px] text-amber-500 font-semibold mt-0.5">
+                                      +{totalBrKms.toFixed(1)} km Cabang
+                                    </div>
+                                  );
+                                })()}
                               </td>
                               <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
                                 <div>{sec.garduCount || 0} Gardu</div>
@@ -1377,7 +1485,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                 ) : null}
                               </td>
                               <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                                {khaVal} A
+                                {khaVal} kVA
                               </td>
                               <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
                                 <div className="flex items-center justify-center gap-1">
@@ -1392,15 +1500,30 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                 </div>
                               </td>
                               <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80 font-bold">
-                                {isWarning ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                {sec.status === 'Tidak Operasi' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                    <AlertCircle className="w-3.5 h-3.5" />
+                                    Tidak Operasi
+                                  </span>
+                                ) : sec.status === 'Kritis' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    Kritis
+                                  </span>
+                                ) : sec.status === 'Warning' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">
                                     <AlertTriangle className="w-3.5 h-3.5" />
                                     Warning
                                   </span>
+                                ) : sec.status === 'Manuver (Open)' || sec.status === 'Manuver' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
+                                    <GitBranch className="w-3.5 h-3.5" />
+                                    Manuver (Open)
+                                  </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                     <Check className="w-3 h-3" />
-                                    Normal
+                                    {sec.status === 'Normal' ? 'Normal' : 'Operasi'}
                                   </span>
                                 )}
                               </td>
@@ -1605,7 +1728,9 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       </div>
                       <div className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200 mt-2">
                         {activeSection.hasFcoBranch 
-                          ? `${activeSection.fcoLengthKms || 0.8} KMS • Beban ${activeSection.fcoKhaAmpere || 65} A`
+                          ? (activeSection.fcoLengthKms 
+                              ? `${activeSection.fcoLengthKms} KMS${activeSection.fcoKhaAmpere ? ` • kVA Gardu ${activeSection.fcoKhaAmpere} kVA` : ''}`
+                              : 'Lateral Sekunder (Belum Diinput KMS)')
                           : 'Tidak ada lateral sekunder'
                         }
                       </div>
@@ -1753,7 +1878,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                              (g.location || '').toLowerCase().includes(q);
                     })
                     .map((gh, idx) => (
-                      <tr key={gh.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                      <tr key={`${gh.id || 'gh'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
                         <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gh.ghCode}</td>
                         <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{gh.ghName}</td>
@@ -1887,7 +2012,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                              (g.feederName || '').toLowerCase().includes(q);
                     })
                     .map((gd, idx) => (
-                      <tr key={gd.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                      <tr key={`${gd.id || 'gd'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
                         <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gd.garduCode}</td>
                         <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{gd.garduName}</td>
@@ -2020,7 +2145,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                              (p.brandModel || '').toLowerCase().includes(q);
                     })
                     .map((pmt, idx) => (
-                      <tr key={pmt.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                      <tr key={`${pmt.id || 'pmt'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
                         <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{pmt.equipmentCode}</td>
                         <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{pmt.equipmentType}</td>
@@ -2183,7 +2308,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kapasitas Gardu (kVA)</label>
                   <input 
                     type="number" 
                     value={fKha} 
@@ -2366,8 +2491,8 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     required
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
-                    {masterFeeders.map(f => (
-                      <option key={f.id} value={f.feederName}>
+                    {masterFeeders.map((f, fIdx) => (
+                      <option key={`${f.id || f.feederName}-${fIdx}`} value={f.feederName}>
                         {f.feederName} ({f.feederCode})
                       </option>
                     ))}
@@ -2440,7 +2565,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">kVA Gardu</label>
                   <input 
                     type="number" 
                     value={secKha} 
@@ -2464,7 +2589,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
 
-              {/* Percabangan Section */}
+              {/* Percabangan Section (Multi-Branch Support) */}
               <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2473,70 +2598,97 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     </div>
                     <div>
                       <div className="font-extrabold text-xs text-amber-600 dark:text-amber-400">Percabangan Lateral</div>
-                      <div className="text-[10.5px] text-slate-500 dark:text-slate-400">Aktifkan jika section ini memiliki percabangan (FCO / LBSM / Recloser)</div>
+                      <div className="text-[10.5px] text-slate-500 dark:text-slate-400">Kelola percabangan (FCO / LBSM / Recloser / PMCB) pada section ini</div>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={secHasFco} 
-                      onChange={e => setSecHasFco(e.target.checked)} 
-                      className="sr-only peer" 
-                    />
-                    <div className="w-10 h-5 bg-slate-300 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddBranch}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Percabangan</span>
+                  </button>
                 </div>
 
-                {secHasFco && (
-                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Peralatan Percabangan</label>
-                        <select
-                          value={secBranchDeviceType}
-                          onChange={e => setSecBranchDeviceType(e.target.value as 'FCO' | 'LBSM' | 'Recloser')}
-                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs cursor-pointer"
-                        >
-                          <option value="FCO">FCO (Cut Out)</option>
-                          <option value="LBSM">LBSM (LBS Motorized)</option>
-                          <option value="Recloser">Recloser</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Node Percabangan</label>
-                        <input 
-                          type="text" 
-                          value={secFcoName} 
-                          onChange={e => setSecFcoName(e.target.value)} 
-                          placeholder={`Contoh: ${secBranchDeviceType} Percabangan Lateral`}
-                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
-                        />
-                      </div>
-                    </div>
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                  📍 Posisi: Percabangan ditempatkan diantara section [{secStart || 'Pangkal'}] &rarr; [{secEnd || 'Ujung Section'}]
+                </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang Cabang (kms)</label>
-                        <input 
-                          type="number" 
-                          step="0.1" 
-                          value={secFcoLength} 
-                          onChange={e => setSecFcoLength(e.target.value)} 
-                          placeholder="Contoh: 0.8"
-                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
-                        />
+                {secFcoBranches.length === 0 ? (
+                  <div className="text-center py-3 text-xs text-slate-400 border border-dashed border-amber-500/20 rounded-xl">
+                    Belum ada percabangan lateral pada section ini. Klik tombol <span className="font-bold text-amber-500">+ Tambah Percabangan</span> di atas untuk menambahkan.
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-1">
+                    {secFcoBranches.map((br, bIdx) => (
+                      <div key={br.id || bIdx} className="p-3 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-900/60 space-y-2.5 shadow-xs">
+                        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                          <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5" />
+                            Percabangan Lateral #{bIdx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBranch(bIdx)}
+                            className="p-1 rounded-md text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="Hapus Percabangan Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-[11px]">Peralatan Percabangan</label>
+                            <select
+                              value={br.branchDeviceType || 'FCO'}
+                              onChange={e => handleUpdateBranch(bIdx, 'branchDeviceType', e.target.value)}
+                              className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden text-xs cursor-pointer"
+                            >
+                              <option value="FCO">FCO (Cut Out)</option>
+                              <option value="LBSM">LBSM (LBS Motorized)</option>
+                              <option value="Recloser">Recloser</option>
+                              <option value="PMCB">PMCB (Pemutus CB)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-[11px]">Nama Node Percabangan</label>
+                            <input 
+                              type="text" 
+                              value={br.fcoBranchName || ''} 
+                              onChange={e => handleUpdateBranch(bIdx, 'fcoBranchName', e.target.value)} 
+                              placeholder="Contoh: Perc. Hutumuri"
+                              className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden text-xs" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-[11px]">Panjang Cabang (kms)</label>
+                            <input 
+                              type="number" 
+                              step="0.1" 
+                              value={br.fcoLengthKms !== undefined && br.fcoLengthKms !== null ? br.fcoLengthKms : ''} 
+                              onChange={e => handleUpdateBranch(bIdx, 'fcoLengthKms', e.target.value !== '' ? Number(e.target.value) : undefined)} 
+                              placeholder="Contoh: 0.8"
+                              className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden text-xs" 
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1 text-[11px]">kVA Gardu (Cabang)</label>
+                            <input 
+                              type="number" 
+                              value={br.fcoKhaAmpere !== undefined && br.fcoKhaAmpere !== null ? br.fcoKhaAmpere : ''} 
+                              onChange={e => handleUpdateBranch(bIdx, 'fcoKhaAmpere', e.target.value !== '' ? Number(e.target.value) : undefined)} 
+                              placeholder="Contoh: 160"
+                              className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden text-xs" 
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
-                        <input 
-                          type="number" 
-                          value={secFcoKha} 
-                          onChange={e => setSecFcoKha(e.target.value)} 
-                          placeholder="Contoh: 65"
-                          className="w-full p-2 rounded-lg border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500 text-xs" 
-                        />
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -2600,12 +2752,11 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     onChange={e => setSecStatus(e.target.value)} 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="Normal">Normal</option>
-                    <option value="Warning">Warning</option>
-                    <option value="Kritis">Kritis</option>
                     <option value="Operasi">Operasi</option>
                     <option value="Tidak Operasi">Tidak Operasi</option>
-                    <option value="Manuver">Manuver</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Kritis">Kritis</option>
+                    <option value="Manuver (Open)">Manuver (Open)</option>
                   </select>
                 </div>
                 <div>

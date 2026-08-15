@@ -39,13 +39,13 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
 
       {/* Grid of Feeder Health Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {feeders.map((feeder) => {
+        {feeders.map((feeder, idx) => {
           const isWarning = feeder.healthScore < 75;
           const isDanger = feeder.healthScore < 70;
 
           return (
             <div 
-              key={feeder.id}
+              key={`${feeder.id || 'feeder'}-${idx}`}
               className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
                 isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200/80 shadow-xs'
               }`}

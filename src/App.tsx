@@ -648,6 +648,7 @@ export default function App() {
               spkList={spkList}
               garduMeasurements={garduMeasurements}
               masterFeeders={masterFeeders}
+              masterGarduDistribusi={masterGarduDistribusi}
               materials={materials}
               apdTools={apdTools}
               vehicles={vehicles}

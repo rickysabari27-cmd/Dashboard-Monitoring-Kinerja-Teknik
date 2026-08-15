@@ -427,7 +427,13 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
   }
 ];
 
-export const INITIAL_MASTER_GD: MasterGarduDistribusi[] = [];
+export const INITIAL_MASTER_GD: MasterGarduDistribusi[] = [
+  { id: 'GD-01', garduCode: 'BG-012', garduName: 'Gardu Lateri Raya', feederName: 'Lateri 2', sectionName: 'LAT2-SEC-01', capacityKva: 250, phase: '3 Phasa', garduType: 'Portal', location: 'Jl. Lateri Raya', customerCount: 180, status: 'Operasi' },
+  { id: 'GD-02', garduCode: 'BG-015', garduName: 'Gardu Passo Transit', feederName: 'Lateri 2', sectionName: 'LAT2-SEC-02', capacityKva: 160, phase: '3 Phasa', garduType: 'Cantol', location: 'Passo Transit', customerCount: 140, status: 'Operasi' },
+  { id: 'GD-03', garduCode: 'BG-045', garduName: 'Gardu Pasar Tulehu', feederName: 'Tulehu', sectionName: 'TUL-SEC-01', capacityKva: 400, phase: '3 Phasa', garduType: 'Beton', location: 'Pasar Tulehu', customerCount: 320, status: 'Operasi' },
+  { id: 'GD-04', garduCode: 'BG-088', garduName: 'Gardu Allang Pesisir', feederName: 'Allang', sectionName: 'ALG-SEC-01', capacityKva: 160, phase: '3 Phasa', garduType: 'Portal', location: 'Allang Pesisir', customerCount: 95, status: 'Operasi' },
+  { id: 'GD-05', garduCode: 'BG-102', garduName: 'Gardu Wayame Indah', feederName: 'Wayame 1', sectionName: 'WYM-SEC-01', capacityKva: 250, phase: '3 Phasa', garduType: 'Portal', location: 'Wayame', customerCount: 210, status: 'Operasi' }
+];
 
 export const INITIAL_MASTER_PEMUTUS: MasterPemutus[] = [];
 

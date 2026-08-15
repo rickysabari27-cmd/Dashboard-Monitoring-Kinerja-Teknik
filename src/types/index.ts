@@ -150,6 +150,15 @@ export interface MasterFeeder {
   configuration?: string;
 }
 
+export interface BranchDevice {
+  id?: string;
+  branchDeviceType: 'FCO' | 'LBSM' | 'Recloser' | 'PMCB' | string;
+  fcoBranchName: string;
+  fcoLengthKms?: number;
+  fcoKhaAmpere?: number;
+  fcoLaterals?: string[];
+}
+
 export interface MasterSection {
   id: string;
   sectionCode: string;
@@ -166,18 +175,36 @@ export interface MasterSection {
   totalBebanKha?: number;
   customerCount?: number;
   status: 'Normal' | 'Warning' | 'Kritis' | 'Operasi' | 'Tidak Operasi' | 'Manuver' | string;
-  // FCO / LBSM / Recloser Percabangan Manual Input
+  // FCO / LBSM / Recloser / PMCB Percabangan Manual Input
   hasFcoBranch?: boolean;
-  branchDeviceType?: 'FCO' | 'LBSM' | 'Recloser' | string;
+  branchDeviceType?: 'FCO' | 'LBSM' | 'Recloser' | 'PMCB' | string;
   fcoBranchName?: string;
   fcoLengthKms?: number;
   fcoKhaAmpere?: number;
   fcoLaterals?: string[]; // Daftar nama sub-cabang lateral manual
+  fcoBranches?: BranchDevice[]; // Multi-percabangan lateral per section
   // Live Telemetry Monitoring Fields
   currentLoadAmpere?: number;
   voltageKv?: number;
   voltageDropPercent?: number;
   temperatureCelsius?: number;
+}
+
+export function getSectionBranches(sec: Partial<MasterSection>): BranchDevice[] {
+  if (sec.fcoBranches && sec.fcoBranches.length > 0) {
+    return sec.fcoBranches;
+  }
+  if (sec.hasFcoBranch) {
+    return [{
+      id: 'branch-legacy',
+      branchDeviceType: sec.branchDeviceType || 'FCO',
+      fcoBranchName: sec.fcoBranchName || `${sec.branchDeviceType || 'FCO'} Percabangan`,
+      fcoLengthKms: sec.fcoLengthKms,
+      fcoKhaAmpere: sec.fcoKhaAmpere,
+      fcoLaterals: sec.fcoLaterals || []
+    }];
+  }
+  return [];
 }
 
 export interface MasterGarduHubung {

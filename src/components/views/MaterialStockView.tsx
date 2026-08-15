@@ -4,6 +4,7 @@ import {
   SpkTask, 
   GarduMeasurement, 
   MasterFeeder, 
+  MasterGarduDistribusi,
   MaterialItem, 
   ApdTool, 
   Vehicle, 
@@ -39,6 +40,7 @@ interface MaterialStockViewProps {
   spkList?: SpkTask[];
   garduMeasurements?: GarduMeasurement[];
   masterFeeders?: MasterFeeder[];
+  masterGarduDistribusi?: MasterGarduDistribusi[];
   materials?: MaterialItem[];
   apdTools?: ApdTool[];
   vehicles?: Vehicle[];
@@ -54,6 +56,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
   spkList = [],
   garduMeasurements = [],
   masterFeeders = [],
+  masterGarduDistribusi = [],
   materials = [],
   apdTools = [],
   vehicles = [],
@@ -289,7 +292,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 Master Data Penyulang 20kV ULP Baguala
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Inventaris Feeder, Gardu Induk, GH, Beban (Amp), Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
+                Inventaris Feeder, Gardu Induk, GH, Kapasitas Gardu (kVA), Panjang Jaringan KMS, Jumlah Gardu & Pelanggan
               </p>
             </div>
           </div>
@@ -416,7 +419,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Gardu Hubung</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Status</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Status Operasional</th>
-                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Beban (Amp)</th>
+                <th className="p-3 border-r border-slate-800 text-center font-bold text-white">kVA Gardu</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Panjang Jaringan (kms)</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Jumlah Gardu</th>
                 <th className="p-3 border-r border-slate-800 text-center font-bold text-white">Jumlah Pel</th>
@@ -444,9 +447,14 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
               ) : (
                 sortedFeeders.map((feeder, idx) => {
                   const displayStatus = feeder.status && feeder.status !== 'Aktif / Operasi' ? feeder.status : 'Utama';
+                  const matchingGds = (masterGarduDistribusi || []).filter(
+                    g => g.feederName && g.feederName.trim().toLowerCase() === (feeder.feederName || '').trim().toLowerCase()
+                  );
+                  const feederTotalKva = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
+                  const displayGarduCount = matchingGds.length > 0 ? matchingGds.length : (feeder.garduCount ?? 0);
 
                   return (
-                    <tr key={feeder.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-semibold text-slate-700 dark:text-slate-300">
                         {idx + 1}
                       </td>
@@ -469,13 +477,13 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                         {feeder.operationalStatus || 'Operasi'}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
-                        {feeder.khaAmpere ?? 0}
+                        {feederTotalKva} kVA
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
                         {feeder.lengthKms?.toString().replace('.', ',') || 0}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
-                        {feeder.garduCount ?? 0}
+                        {displayGarduCount}
                       </td>
                       <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center font-bold text-slate-900 dark:text-white">
                         {feeder.customerCount ?? 0}
@@ -623,7 +631,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
 
                 <div className="grid grid-cols-4 gap-3">
                   <div>
-                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Beban (Amp)</label>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Kapasitas Gardu (kVA)</label>
                     <input 
                       type="number" 
                       value={editKha} 

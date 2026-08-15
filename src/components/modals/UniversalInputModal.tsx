@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ViewMode } from '../../types';
+import { ViewMode, BranchDevice, getSectionBranches } from '../../types';
 import { 
   X, 
   Zap, 
@@ -15,7 +15,10 @@ import {
   Users, 
   TrendingUp, 
   CheckCircle2,
-  PlusCircle
+  PlusCircle,
+  Plus,
+  Trash2,
+  GitBranch
 } from 'lucide-react';
 
 interface UniversalInputModalProps {
@@ -61,6 +64,26 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   useEffect(() => {
     if (defaultTab) {
       setActiveTab(defaultTab);
+    }
+    if (isOpen) {
+      setMSecCode('');
+      setMSecName('');
+      setMSecStart('');
+      setMSecEnd('');
+      setMSecGarduCount('');
+      setMSecLength('');
+      setMSecKha('');
+      setMSecCust('');
+      setMSecHasFco(false);
+      setMSecFcoBranches([]);
+      setMSecBranchDeviceType('FCO');
+      setMSecFcoName('');
+      setMSecFcoLength('');
+      setMSecFcoKha('');
+      setMSecFcoLaterals('');
+      setMSecCurrentLoad('');
+      setMSecVoltageDrop('');
+      setMSecTemperature('');
     }
   }, [defaultTab, isOpen]);
 
@@ -127,13 +150,43 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [mSecLength, setMSecLength] = useState<number | string>('');
   const [mSecKha, setMSecKha] = useState<number | string>('');
   const [mSecCust, setMSecCust] = useState<number | string>('');
-  const [mSecStatus, setMSecStatus] = useState<string>('Normal');
+  const [mSecStatus, setMSecStatus] = useState<string>('Operasi');
   const [mSecHasFco, setMSecHasFco] = useState(false);
-  const [mSecBranchDeviceType, setMSecBranchDeviceType] = useState<'FCO' | 'LBSM' | 'Recloser'>('FCO');
+  const [mSecBranchDeviceType, setMSecBranchDeviceType] = useState<'FCO' | 'LBSM' | 'Recloser' | 'PMCB'>('FCO');
   const [mSecFcoName, setMSecFcoName] = useState('');
   const [mSecFcoLength, setMSecFcoLength] = useState<number | string>('');
   const [mSecFcoKha, setMSecFcoKha] = useState<number | string>('');
   const [mSecFcoLaterals, setMSecFcoLaterals] = useState('');
+  const [mSecFcoBranches, setMSecFcoBranches] = useState<BranchDevice[]>([]);
+
+  const handleMAddBranch = () => {
+    const newBr: BranchDevice = {
+      id: `br-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      branchDeviceType: 'FCO',
+      fcoBranchName: '',
+      fcoLengthKms: undefined,
+      fcoKhaAmpere: undefined,
+      fcoLaterals: []
+    };
+    setMSecFcoBranches(prev => [...prev, newBr]);
+    setMSecHasFco(true);
+  };
+
+  const handleMRemoveBranch = (index: number) => {
+    setMSecFcoBranches(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) setMSecHasFco(false);
+      return updated;
+    });
+  };
+
+  const handleMUpdateBranch = (index: number, key: keyof BranchDevice, val: any) => {
+    setMSecFcoBranches(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [key]: val };
+      return updated;
+    });
+  };
   const [mSecCurrentLoad, setMSecCurrentLoad] = useState<number | string>('');
   const [mSecVoltageDrop, setMSecVoltageDrop] = useState<number | string>('');
   const [mSecTemperature, setMSecTemperature] = useState<number | string>('');
@@ -273,7 +326,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       const finalGh = mFeederGh === '-' ? '' : mFeederGh;
       const finalStatus = (finalGh && finalGh !== '') ? 'Percabangan' : (mFeederStatus || 'Utama');
       onSaveMasterFeeder({
-        id: `MF-${Date.now()}`,
+        id: `MF-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         feederCode: mFeederCode.trim().toUpperCase(),
         feederName: mFeederName.trim(),
         substationName: mFeederGi || '-',
@@ -298,8 +351,14 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMFeederGarduCount('');
       setMFeederCust('');
     } else if (activeTab === 'master_section' && onSaveMasterSection) {
+      const branchesToSave = mSecFcoBranches.map(b => ({
+        ...b,
+        fcoBranchName: b.fcoBranchName.trim() || `${b.branchDeviceType || 'FCO'} Percabangan`
+      }));
+      const hasBranch = branchesToSave.length > 0;
+
       onSaveMasterSection({
-        id: `SEC-${Date.now()}`,
+        id: `SEC-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         sectionCode: mSecCode || `SEC-${Math.floor(Math.random() * 900 + 100)}`,
         sectionName: mSecName || 'Section Baru',
         feederName: mSecFeeder || 'ALLANG',
@@ -313,20 +372,19 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
         bebanCabangKha: 0,
         totalBebanKha: mSecKha !== '' ? Number(mSecKha) : 0,
         customerCount: mSecCust !== '' ? Number(mSecCust) : 0,
-        status: mSecStatus || 'Normal',
-        hasFcoBranch: mSecHasFco,
-        branchDeviceType: mSecHasFco ? mSecBranchDeviceType : 'FCO',
-        fcoBranchName: mSecHasFco ? (mSecFcoName || `${mSecBranchDeviceType} Percabangan`) : '',
-        fcoLengthKms: mSecHasFco ? (mSecFcoLength !== '' ? Number(mSecFcoLength) : 0) : 0,
-        fcoKhaAmpere: mSecHasFco ? (mSecFcoKha !== '' ? Number(mSecFcoKha) : 0) : 0,
-        fcoLaterals: mSecHasFco && mSecFcoLaterals.trim() 
-          ? mSecFcoLaterals.split(',').map(s => s.trim()).filter(Boolean)
-          : [],
-        currentLoad: mSecCurrentLoad !== '' ? Number(mSecCurrentLoad) : 0,
-        currentLoadAmpere: mSecCurrentLoad !== '' ? Number(mSecCurrentLoad) : 0,
-        voltageKv: 20.0,
-        voltageDropPercent: mSecVoltageDrop !== '' ? Number(mSecVoltageDrop) : 0,
-        temperatureCelsius: mSecTemperature !== '' ? Number(mSecTemperature) : 0
+        status: mSecStatus || 'Operasi',
+        fcoBranches: branchesToSave,
+        hasFcoBranch: hasBranch,
+        branchDeviceType: hasBranch ? branchesToSave[0].branchDeviceType : 'FCO',
+        fcoBranchName: hasBranch ? branchesToSave[0].fcoBranchName : '',
+        fcoLengthKms: hasBranch ? branchesToSave[0].fcoLengthKms : undefined,
+        fcoKhaAmpere: hasBranch ? branchesToSave[0].fcoKhaAmpere : undefined,
+        fcoLaterals: hasBranch ? branchesToSave[0].fcoLaterals : [],
+        currentLoad: mSecCurrentLoad !== '' ? Number(mSecCurrentLoad) : undefined,
+        currentLoadAmpere: mSecCurrentLoad !== '' ? Number(mSecCurrentLoad) : undefined,
+        voltageKv: mSecVoltageKv !== '' ? Number(mSecVoltageKv) : undefined,
+        voltageDropPercent: mSecVoltageDrop !== '' ? Number(mSecVoltageDrop) : undefined,
+        temperatureCelsius: mSecTemperature !== '' ? Number(mSecTemperature) : undefined
       });
       setMSecCode('');
       setMSecName('');
@@ -337,6 +395,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecKha('');
       setMSecCust('');
       setMSecHasFco(false);
+      setMSecFcoBranches([]);
       setMSecBranchDeviceType('FCO');
       setMSecFcoName('');
       setMSecFcoLength('');
@@ -730,7 +789,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
               </div>
               <div className="grid grid-cols-4 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kapasitas Gardu (kVA)</label>
                   <input 
                     type="number" 
                     value={mFeederKha} 
@@ -903,7 +962,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">kVA Gardu</label>
                   <input 
                     type="number" 
                     value={mSecKha} 
@@ -921,12 +980,11 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                     onChange={(e) => setMSecStatus(e.target.value)} 
                     className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                   >
-                    <option value="Normal">Normal</option>
-                    <option value="Warning">Warning</option>
-                    <option value="Kritis">Kritis</option>
                     <option value="Operasi">Operasi</option>
                     <option value="Tidak Operasi">Tidak Operasi</option>
-                    <option value="Manuver">Manuver</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Kritis">Kritis</option>
+                    <option value="Manuver (Open)">Manuver (Open)</option>
                   </select>
                 </div>
                 <div>
@@ -941,77 +999,106 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 </div>
               </div>
 
-              {/* Percabangan Configuration */}
+              {/* Percabangan Configuration (Multi-Branch Support) */}
               <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="universalHasFco"
-                      checked={mSecHasFco}
-                      onChange={(e) => setMSecHasFco(e.target.checked)}
-                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
-                    />
-                    <label htmlFor="universalHasFco" className="font-bold text-slate-900 dark:text-white text-xs cursor-pointer">
-                      Terdapat Percabangan Lateral
-                    </label>
+                    <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                      <GitBranch className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-xs text-amber-600 dark:text-amber-400">Percabangan Lateral</div>
+                      <div className="text-[10.5px] text-slate-500 dark:text-slate-400">Tambah percabangan (FCO / LBSM / Recloser / PMCB) pada section ini</div>
+                    </div>
                   </div>
-                  {mSecHasFco && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300">
-                      Percabangan Aktif
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleMAddBranch}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Percabangan</span>
+                  </button>
                 </div>
 
-                {mSecHasFco && (
-                  <div className="space-y-2.5 pt-2 border-t border-amber-500/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Peralatan Percabangan</label>
-                        <select
-                          value={mSecBranchDeviceType}
-                          onChange={(e) => setMSecBranchDeviceType(e.target.value as 'FCO' | 'LBSM' | 'Recloser')}
-                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold cursor-pointer"
-                        >
-                          <option value="FCO">FCO (Cut Out)</option>
-                          <option value="LBSM">LBSM (LBS Motorized)</option>
-                          <option value="Recloser">Recloser</option>
-                        </select>
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                  📍 Posisi: Percabangan ditempatkan diantara section [{mSecStart || 'Pangkal'}] &rarr; [{mSecEnd || 'Ujung Section'}]
+                </div>
+
+                {mSecFcoBranches.length === 0 ? (
+                  <div className="text-center py-3 text-xs text-slate-400 border border-dashed border-amber-500/20 rounded-xl">
+                    Belum ada percabangan lateral pada section ini. Klik tombol <span className="font-bold text-amber-500">+ Tambah Percabangan</span> di atas untuk menambahkan.
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-1">
+                    {mSecFcoBranches.map((br, bIdx) => (
+                      <div key={br.id || bIdx} className="p-3 rounded-xl border border-amber-500/30 bg-white dark:bg-slate-900/60 space-y-2.5 shadow-xs">
+                        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                          <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Zap className="w-3.5 h-3.5" />
+                            Percabangan Lateral #{bIdx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleMRemoveBranch(bIdx)}
+                            className="p-1 rounded-md text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                            title="Hapus Percabangan Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Peralatan Percabangan</label>
+                            <select
+                              value={br.branchDeviceType || 'FCO'}
+                              onChange={(e) => handleMUpdateBranch(bIdx, 'branchDeviceType', e.target.value)}
+                              className="w-full p-2 text-xs rounded-lg border bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold cursor-pointer"
+                            >
+                              <option value="FCO">FCO (Cut Out)</option>
+                              <option value="LBSM">LBSM (LBS Motorized)</option>
+                              <option value="Recloser">Recloser</option>
+                              <option value="PMCB">PMCB (Pemutus CB)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Node Percabangan</label>
+                            <input
+                              type="text"
+                              value={br.fcoBranchName || ''}
+                              onChange={(e) => handleMUpdateBranch(bIdx, 'fcoBranchName', e.target.value)}
+                              placeholder="Contoh: Perc. Hutumuri"
+                              className="w-full p-2 text-xs rounded-lg border bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang Cabang (kms)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={br.fcoLengthKms !== undefined && br.fcoLengthKms !== null ? br.fcoLengthKms : ''}
+                              onChange={(e) => handleMUpdateBranch(bIdx, 'fcoLengthKms', e.target.value !== '' ? Number(e.target.value) : undefined)}
+                              placeholder="Contoh: 0.8"
+                              className="w-full p-2 text-xs rounded-lg border bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">kVA Gardu (Cabang)</label>
+                            <input
+                              type="number"
+                              value={br.fcoKhaAmpere !== undefined && br.fcoKhaAmpere !== null ? br.fcoKhaAmpere : ''}
+                              onChange={(e) => handleMUpdateBranch(bIdx, 'fcoKhaAmpere', e.target.value !== '' ? Number(e.target.value) : undefined)}
+                              placeholder="Contoh: 65"
+                              className="w-full p-2 text-xs rounded-lg border bg-slate-50 dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Node Percabangan</label>
-                        <input
-                          type="text"
-                          value={mSecFcoName}
-                          onChange={(e) => setMSecFcoName(e.target.value)}
-                          placeholder={`Contoh: ${mSecBranchDeviceType} Cabang Lateri`}
-                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Panjang Cabang (kms)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={mSecFcoLength}
-                          onChange={(e) => setMSecFcoLength(e.target.value)}
-                          placeholder="Contoh: 0.8"
-                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban (Amp)</label>
-                        <input
-                          type="number"
-                          value={mSecFcoKha}
-                          onChange={(e) => setMSecFcoKha(e.target.value)}
-                          placeholder="Contoh: 65"
-                          className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold"
-                        />
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>

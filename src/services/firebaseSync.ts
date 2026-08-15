@@ -70,11 +70,11 @@ export function syncCollection<T extends { id?: string; month?: string }>(
         const items: T[] = [];
         snapshot.docs.forEach((d, idx) => {
           const itemData = d.data();
-          const id = d.id || itemData.id || `doc_${idx}`;
-          if (!seen.has(id)) {
-            seen.add(id);
-            items.push({ ...itemData, id } as T);
-          }
+          const docId = d.id || itemData.id || `doc_${idx}`;
+          const rawId = itemData.id || docId;
+          const finalId = seen.has(rawId) ? `${rawId}_${idx}` : rawId;
+          seen.add(finalId);
+          items.push({ ...itemData, id: finalId } as T);
         });
         onDataUpdate(items);
       }
