@@ -82,6 +82,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecFcoKha('');
       setMSecFcoLaterals('');
       setMSecCurrentLoad('');
+      setMSecVoltageKv('');
       setMSecVoltageDrop('');
       setMSecTemperature('');
     }
@@ -188,6 +189,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     });
   };
   const [mSecCurrentLoad, setMSecCurrentLoad] = useState<number | string>('');
+  const [mSecVoltageKv, setMSecVoltageKv] = useState<number | string>('');
   const [mSecVoltageDrop, setMSecVoltageDrop] = useState<number | string>('');
   const [mSecTemperature, setMSecTemperature] = useState<number | string>('');
 
@@ -402,6 +404,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecFcoKha('');
       setMSecFcoLaterals('');
       setMSecCurrentLoad('');
+      setMSecVoltageKv('');
       setMSecVoltageDrop('');
       setMSecTemperature('');
     } else if (activeTab === 'saidi_saifi' && onSaveSaidi) {
@@ -1108,7 +1111,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 <span className="font-bold text-slate-900 dark:text-white text-xs block">
                   Parameter Telemetri Monitoring Section
                 </span>
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-4 gap-2.5">
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Beban Arus (A)</label>
                     <input
@@ -1116,6 +1119,17 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                       value={mSecCurrentLoad}
                       onChange={(e) => setMSecCurrentLoad(e.target.value)}
                       placeholder="Contoh: 180"
+                      className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Tegangan (kV)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={mSecVoltageKv}
+                      onChange={(e) => setMSecVoltageKv(e.target.value)}
+                      placeholder="Contoh: 20.1"
                       className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white font-bold"
                     />
                   </div>

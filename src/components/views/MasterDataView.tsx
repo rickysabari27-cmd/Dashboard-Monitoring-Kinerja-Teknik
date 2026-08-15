@@ -652,21 +652,21 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
+                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="p-3 text-center border-r border-slate-800/80 w-12">No</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Kode Penyulang</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Nama Penyulang</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Gardu Induk</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Gardu Hubung</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Status</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Status Operasional</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">kVA Gardu</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Panjang Jaringan (kms)</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Jumlah Gardu</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Jumlah Pel</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Konfigurasi</th>
-                    <th className="p-3 text-center w-24">Aksi</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Nama Penyulang</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu Induk (GI)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu Hubung (GH)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Jalur</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Status</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Pnjang (KMS)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu (BH)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu (KVA)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Pelanggan</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Konfigurasi</th>
+                    <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
@@ -706,24 +706,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
                       return (
                         <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
-                          <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{feeder.feederCode}</td>
-                          <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">
-                            <div>{feeder.feederName}</div>
-                            {hasSecs && (
-                              <div className="text-[10px] text-blue-500 font-bold mt-0.5">
-                                {matchingSections.length} Sections Sync
-                              </div>
-                            )}
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
+                          <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.feederCode}</td>
+                          <td className="px-2 py-2 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            {feeder.feederName}
                           </td>
-                          <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.substationName || '-'}</td>
-                          <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.garduHubung || '-'}</td>
-                          <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
+                          <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.substationName || '-'}</td>
+                          <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.garduHubung || '-'}</td>
+                          <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
                             {(() => {
                               const isPercabangan = (feeder.garduHubung && feeder.garduHubung !== '-') || feeder.status === 'Percabangan';
                               const displayStatus = isPercabangan ? 'Percabangan' : 'Utama';
                               return (
-                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
                                   displayStatus === 'Percabangan' 
                                     ? 'bg-yellow-400/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30' 
                                     : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
@@ -733,41 +728,41 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                               );
                             })()}
                           </td>
-                          <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                          <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
                               feeder.operationalStatus === 'Tidak Operasi' ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'
                             }`}>
-                              {feeder.operationalStatus || 'Operasi'}
+                              {feeder.operationalStatus === 'Tidak Operasi' ? 'Tidak Operasi' : 'Operasi'}
                             </span>
                           </td>
-                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                            {realKvaGardu} kVA
-                          </td>
-                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                             {realLength}
                           </td>
-                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                             {realGardu}
                           </td>
-                          <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            {realKvaGardu} kVA
+                          </td>
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                             {realCust}
                           </td>
-                          <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{feeder.configuration || 'Looping'}</td>
-                          <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                          <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.configuration || 'Looping'}</td>
+                          <td className="px-1 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => openEditFeeder(feeder)}
-                                className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                                className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
                                 title="Edit Penyulang"
                               >
-                                <Pencil className="w-4 h-4" />
+                                <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => setFeederToDelete(feeder)}
-                                className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                                className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
                                 title="Hapus Penyulang"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -1200,7 +1195,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             {/* 2-Column Split View: Interactive Schematic Topology & Detailed Table */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Left Column: Topologi Skematik Interaktif */}
-              <div className="lg:col-span-5 flex flex-col">
+              <div className="lg:col-span-5 xl:col-span-4 flex flex-col">
                 <div className={`p-4 rounded-2xl border flex-1 ${
                   isDarkMode ? 'bg-[#070E20] border-slate-800/90' : 'bg-[#091124] border-slate-800 text-white'
                 }`}>
@@ -1366,11 +1361,11 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               </div>
 
               {/* Right Column: Data Section Detailed Table */}
-              <div className="lg:col-span-7 flex flex-col">
+              <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
                 <div className={`rounded-2xl border flex-1 flex flex-col overflow-hidden shadow-xs ${
                   isDarkMode ? 'bg-[#0B132B] border-slate-800' : 'bg-white border-slate-200'
                 }`}>
-                  <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <h4 className="font-extrabold text-xs text-slate-900 dark:text-white">
                         Data Section Detailed - Penyulang {activeFeederName}
@@ -1386,17 +1381,17 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
                   <div className="overflow-x-auto flex-1">
                     <table className="w-full text-xs text-left border-collapse">
-                      <thead className="bg-[#080E21] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
+                      <thead className="bg-[#080E21] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
                         <tr>
-                          <th className="p-3 text-center border-r border-slate-800/80 w-10">No</th>
-                          <th className="p-3 text-left border-r border-slate-800/80">Kode Section</th>
-                          <th className="p-3 text-left border-r border-slate-800/80">Nama Section</th>
-                          <th className="p-3 text-center border-r border-slate-800/80">Panjang (KMS)</th>
-                          <th className="p-3 text-center border-r border-slate-800/80">Jumlah Gardu</th>
-                          <th className="p-3 text-center border-r border-slate-800/80">kVA Gardu</th>
-                          <th className="p-3 text-center border-r border-slate-800/80">Beban Arus (A)</th>
-                          <th className="p-3 text-center border-r border-slate-800/80">Status</th>
-                          <th className="p-3 text-center w-24">Aksi</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
+                          <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode Section</th>
+                          <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">Nama Section</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Panjang</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">kVA</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Beban (A)</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Status</th>
+                          <th className="px-1.5 py-2.5 text-center w-20">Aksi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
@@ -1432,66 +1427,66 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                     : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/40'
                               }`}
                             >
-                              <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">
+                              <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                                 {idx + 1}
                               </td>
-                              <td className="p-3 font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                                <div className="flex items-center gap-1.5 flex-wrap">
+                              <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                                <div className="flex items-center justify-center gap-1 flex-wrap">
                                   <span>{sec.sectionCode}</span>
                                   {(() => {
                                     const brs = getSectionBranches(sec);
                                     if (brs.length === 0) return null;
                                     const devTypes = Array.from(new Set(brs.map(b => b.branchDeviceType || 'FCO')));
                                     return devTypes.map(dev => (
-                                      <span key={dev} className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                                      <span key={dev} className="px-1 py-0.5 rounded text-[8.5px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30">
                                         {dev}
                                       </span>
                                     ));
                                   })()}
                                 </div>
                               </td>
-                              <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">
+                              <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                                 <div>{sec.sectionName}</div>
                                 {(() => {
                                   const brs = getSectionBranches(sec);
                                   if (brs.length === 0) return null;
                                   return brs.map((br, bIdx) => (
-                                    <div key={br.id || bIdx} className="text-[10px] text-amber-500 font-semibold mt-0.5 flex items-center gap-1">
-                                      <GitBranch className="w-3 h-3 shrink-0" />
+                                    <div key={br.id || bIdx} className="text-[9.5px] text-amber-500 font-semibold mt-0.5 flex items-center gap-1">
+                                      <GitBranch className="w-2.5 h-2.5 shrink-0" />
                                       <span>↳ {br.fcoBranchName}</span>
                                     </div>
                                   ));
                                 })()}
                               </td>
-                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                              <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                                 <div>{sec.lengthKms || 0} KMS</div>
                                 {(() => {
                                   const brs = getSectionBranches(sec);
                                   const totalBrKms = brs.reduce((acc, b) => acc + (b.fcoLengthKms || 0), 0);
                                   if (totalBrKms <= 0) return null;
                                   return (
-                                    <div className="text-[10px] text-amber-500 font-semibold mt-0.5">
-                                      +{totalBrKms.toFixed(1)} km Cabang
+                                    <div className="text-[9.5px] text-amber-500 font-semibold mt-0.5">
+                                      +{totalBrKms.toFixed(1)} km
                                     </div>
                                   );
                                 })()}
                               </td>
-                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                                <div>{sec.garduCount || 0} Gardu</div>
+                              <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                                <div>{sec.garduCount || 0} G</div>
                                 {sec.customerCount ? (
-                                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                  <div className="text-[9.5px] text-slate-400 font-medium mt-0.5">
                                     {sec.customerCount.toLocaleString('id-ID')} Pel
                                   </div>
                                 ) : null}
                               </td>
-                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
+                              <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                                 {khaVal} kVA
                               </td>
-                              <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">
-                                <div className="flex items-center justify-center gap-1">
+                              <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                                <div className="flex items-center justify-center gap-0.5 flex-wrap">
                                   <span>{loadAmp} A</span>
                                   {loadAmp > 0 && (
-                                    <span className={`text-[10px] font-black ${
+                                    <span className={`text-[9.5px] font-black ${
                                       loadPct > 80 ? 'text-rose-500' : loadPct > 60 ? 'text-amber-500' : 'text-emerald-500'
                                     }`}>
                                       ({loadPct}%)
@@ -1499,42 +1494,42 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                   )}
                                 </div>
                               </td>
-                              <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80 font-bold">
+                              <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px] font-bold">
                                 {sec.status === 'Tidak Operasi' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                                    <AlertCircle className="w-3.5 h-3.5" />
-                                    Tidak Operasi
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                    <AlertCircle className="w-3 h-3 shrink-0" />
+                                    Off
                                   </span>
                                 ) : sec.status === 'Kritis' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
-                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
+                                    <AlertTriangle className="w-3 h-3 shrink-0" />
                                     Kritis
                                   </span>
                                 ) : sec.status === 'Warning' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                                    <AlertTriangle className="w-3.5 h-3.5" />
-                                    Warning
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+                                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                                    Warn
                                   </span>
                                 ) : sec.status === 'Manuver (Open)' || sec.status === 'Manuver' ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
-                                    <GitBranch className="w-3.5 h-3.5" />
-                                    Manuver (Open)
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
+                                    <GitBranch className="w-3 h-3 shrink-0" />
+                                    Manuver
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                    <Check className="w-3 h-3" />
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                    <Check className="w-3 h-3 shrink-0" />
                                     {sec.status === 'Normal' ? 'Normal' : 'Operasi'}
                                   </span>
                                 )}
                               </td>
-                              <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-center gap-1.5">
+                              <td className="px-1 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-center gap-1">
                                   <button
                                     onClick={() => openEditSection(sec)}
-                                    className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                                    className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
                                     title="Edit Section & FCO"
                                   >
-                                    <Pencil className="w-4 h-4" />
+                                    <Pencil className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
@@ -1854,18 +1849,18 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
+                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="p-3 text-center border-r border-slate-800/80 w-12">No</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Kode GH</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Nama Gardu Hubung</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Lokasi / Wilayah</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Incoming Feeder</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Jumlah Outgoing</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Daftar Feeder Keluar</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Tipe GH</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Status</th>
-                    <th className="p-3 text-center w-24">Aksi</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode GH</th>
+                    <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">Nama GH</th>
+                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Lokasi</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Feeder In</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Outgoing</th>
+                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Feeder Out</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Tipe</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Status</th>
+                    <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
@@ -1879,34 +1874,34 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     })
                     .map((gh, idx) => (
                       <tr key={`${gh.id || 'gh'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
-                        <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gh.ghCode}</td>
-                        <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{gh.ghName}</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{gh.location}</td>
-                        <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{gh.incomingFeeder}</td>
-                        <td className="p-3 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80">{gh.outgoingFeedersCount} Feeder</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{gh.outgoingFeedersList}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gh.ghType}</td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500">
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
+                        <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghCode}</td>
+                        <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghName}</td>
+                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.location}</td>
+                        <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.incomingFeeder}</td>
+                        <td className="px-1.5 py-2 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.outgoingFeedersCount} Fd</td>
+                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.outgoingFeedersList}</td>
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghType}</td>
+                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-500/10 text-emerald-500">
                             {gh.status}
                           </span>
                         </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="px-1 py-2 text-center">
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => openEditGh(gh)}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                              className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
                               title="Edit GH"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setGhToDelete(gh)}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                              className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
                               title="Hapus GH"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -1987,19 +1982,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
+                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="p-3 text-center border-r border-slate-800/80 w-12">No</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Kode Gardu</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Nama Gardu</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Penyulang</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Section</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Kapasitas</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Phasa</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Tipe Gardu</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Lokasi</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Status</th>
-                    <th className="p-3 text-center w-24">Aksi</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode</th>
+                    <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">Nama Gardu</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Penyulang</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Section</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Kapasitas</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Phasa</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Tipe</th>
+                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Lokasi</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Status</th>
+                    <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
@@ -2013,35 +2008,35 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     })
                     .map((gd, idx) => (
                       <tr key={`${gd.id || 'gd'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
-                        <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gd.garduCode}</td>
-                        <td className="p-3 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{gd.garduName}</td>
-                        <td className="p-3 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80">{gd.feederName}</td>
-                        <td className="p-3 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{gd.sectionName || '-'}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gd.capacityKva} kVA</td>
-                        <td className="p-3 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{gd.phase}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{gd.garduType}</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{gd.location}</td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500">
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
+                        <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.garduCode}</td>
+                        <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.garduName}</td>
+                        <td className="px-2 py-2 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.feederName}</td>
+                        <td className="px-2 py-2 text-center text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.sectionName || '-'}</td>
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.capacityKva} kVA</td>
+                        <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.phase}</td>
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.garduType}</td>
+                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gd.location}</td>
+                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-500/10 text-emerald-500">
                             {gd.status}
                           </span>
                         </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="px-1 py-2 text-center">
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => openEditGd(gd)}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                              className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
                               title="Edit Gardu"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setGdToDelete(gd)}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                              className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
                               title="Hapus Gardu"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -2120,18 +2115,18 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[11px] tracking-wider border-b border-slate-800">
+                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="p-3 text-center border-r border-slate-800/80 w-12">No</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Kode Alat / Tag</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Jenis Pemutus</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Penyulang</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Lokasi / Tiang</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Merk & Tipe</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Rating (A)</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">SCADA Status</th>
-                    <th className="p-3 text-center border-r border-slate-800/80">Status Posisi</th>
-                    <th className="p-3 text-center w-24">Aksi</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode Tag</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Jenis</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Penyulang</th>
+                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Lokasi/Tiang</th>
+                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Merk/Tipe</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Rating</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">SCADA</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Posisi</th>
+                    <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
@@ -2146,40 +2141,40 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     })
                     .map((pmt, idx) => (
                       <tr key={`${pmt.id || 'pmt'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{idx + 1}</td>
-                        <td className="p-3 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{pmt.equipmentCode}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80">{pmt.equipmentType}</td>
-                        <td className="p-3 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80">{pmt.feederName}</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{pmt.location}</td>
-                        <td className="p-3 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80">{pmt.brandModel}</td>
-                        <td className="p-3 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80">{pmt.currentRatingAmpere} A</td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
+                        <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.equipmentCode}</td>
+                        <td className="px-2 py-2 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.equipmentType}</td>
+                        <td className="px-2 py-2 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.feederName}</td>
+                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.location}</td>
+                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.brandModel}</td>
+                        <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.currentRatingAmpere} A</td>
+                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                          <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
                             pmt.scadaStatus === 'Terhubung SCADA' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400'
                           }`}>
-                            {pmt.scadaStatus}
+                            {pmt.scadaStatus === 'Terhubung SCADA' ? 'SCADA' : 'Manual'}
                           </span>
                         </td>
-                        <td className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80">
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-500">
+                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-blue-500/10 text-blue-500">
                             {pmt.status}
                           </span>
                         </td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="px-1 py-2 text-center">
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => openEditPmt(pmt)}
-                              className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                              className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
                               title="Edit Pemutus"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setPmtToDelete(pmt)}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                              className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
                               title="Hapus Pemutus"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
