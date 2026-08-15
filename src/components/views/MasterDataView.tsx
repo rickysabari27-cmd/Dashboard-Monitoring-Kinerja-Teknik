@@ -21,6 +21,7 @@ import {
   Building2, 
   ShieldCheck, 
   SlidersHorizontal,
+  MapPin,
   Activity,
   AlertCircle,
   AlertTriangle,
@@ -230,8 +231,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const [ghCode, setGhCode] = useState('');
   const [ghName, setGhName] = useState('');
   const [ghLoc, setGhLoc] = useState('');
+  const [ghCoordinates, setGhCoordinates] = useState('');
+  const [ghInCount, setGhInCount] = useState<number | string>('');
   const [ghIncoming, setGhIncoming] = useState('');
-  const [ghOutCount, setGhOutCount] = useState<number | string>(0);
+  const [ghOutCount, setGhOutCount] = useState<number | string>('');
   const [ghOutList, setGhOutList] = useState('');
   const [ghType, setGhType] = useState<'Indoor' | 'Outdoor' | 'Compact'>('Indoor');
   const [ghStatus, setGhStatus] = useState<'Operasi' | 'Standby' | 'Pemeliharaan'>('Operasi');
@@ -389,8 +392,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setGhCode(gh.ghCode);
     setGhName(gh.ghName);
     setGhLoc(gh.location);
+    setGhCoordinates(gh.coordinates || '');
+    setGhInCount(gh.incomingFeedersCount ?? '');
     setGhIncoming(gh.incomingFeeder);
-    setGhOutCount(gh.outgoingFeedersCount);
+    setGhOutCount(gh.outgoingFeedersCount ?? '');
     setGhOutList(gh.outgoingFeedersList);
     setGhType(gh.ghType);
     setGhStatus(gh.status);
@@ -403,8 +408,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       ghCode: ghCode.trim().toUpperCase(),
       ghName: ghName.trim(),
       location: ghLoc.trim(),
+      coordinates: ghCoordinates.trim(),
+      incomingFeedersCount: ghInCount !== '' ? Number(ghInCount) : 0,
       incomingFeeder: ghIncoming.trim(),
-      outgoingFeedersCount: Number(ghOutCount) || 0,
+      outgoingFeedersCount: ghOutCount !== '' ? Number(ghOutCount) : 0,
       outgoingFeedersList: ghOutList.trim(),
       ghType: ghType,
       status: ghStatus
@@ -1832,8 +1839,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 setGhCode('');
                 setGhName('');
                 setGhLoc('');
+                setGhCoordinates('');
+                setGhInCount('');
                 setGhIncoming('');
-                setGhOutCount(0);
+                setGhOutCount('');
                 setGhOutList('');
                 setGhType('Indoor');
                 setGhStatus('Operasi');
@@ -1851,16 +1860,16 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               <table className="w-full text-xs text-left border-collapse">
                 <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
                   <tr>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
-                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode GH</th>
-                    <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">Nama GH</th>
-                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Lokasi</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Feeder In</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Outgoing</th>
-                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Feeder Out</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Tipe</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Status</th>
-                    <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80 w-10">NO</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">KODE GH</th>
+                    <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">NAMA GH</th>
+                    <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">LOKASI</th>
+                    <th className="px-2.5 py-2.5 text-center border-r border-slate-800/80">KOORDINAT LOKASI</th>
+                    <th className="px-2.5 py-2.5 text-center border-r border-slate-800/80">FEEDER INC</th>
+                    <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">FEEDER OUT</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">TIPE</th>
+                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">STATUS</th>
+                    <th className="px-2 py-2.5 text-center w-16">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
@@ -1870,20 +1879,46 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       const q = searchQuery.toLowerCase();
                       return (g.ghCode || '').toLowerCase().includes(q) ||
                              (g.ghName || '').toLowerCase().includes(q) ||
-                             (g.location || '').toLowerCase().includes(q);
+                             (g.location || '').toLowerCase().includes(q) ||
+                             (g.coordinates || '').toLowerCase().includes(q) ||
+                             (g.incomingFeeder || '').toLowerCase().includes(q) ||
+                             (g.outgoingFeedersList || '').toLowerCase().includes(q);
                     })
                     .map((gh, idx) => (
                       <tr key={`${gh.id || 'gh'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
+                        <td className="px-2 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
                         <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghCode}</td>
                         <td className="px-2.5 py-2 font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghName}</td>
-                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.location}</td>
-                        <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.incomingFeeder}</td>
-                        <td className="px-1.5 py-2 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.outgoingFeedersCount} Fd</td>
-                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.outgoingFeedersList}</td>
-                        <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghType}</td>
-                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
-                          <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-500/10 text-emerald-500">
+                        <td className="px-2.5 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.location}</td>
+                        <td className="px-2.5 py-2 text-center font-mono text-[10.5px] border-r border-slate-200 dark:border-slate-800/80">
+                          {gh.coordinates ? (
+                            <span className="inline-flex items-center gap-1 text-slate-800 dark:text-slate-200 font-semibold bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/80">
+                              <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                              {gh.coordinates}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-600 text-[10px]">-</span>
+                          )}
+                        </td>
+                        <td className="px-2.5 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                          <div className="font-semibold text-slate-900 dark:text-slate-100">{gh.incomingFeeder}</div>
+                          {gh.incomingFeedersCount ? (
+                            <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400">({gh.incomingFeedersCount} Feeder)</div>
+                          ) : null}
+                        </td>
+                        <td className="px-2.5 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                          <div className="font-semibold text-slate-900 dark:text-slate-100">{gh.outgoingFeedersList}</div>
+                          {gh.outgoingFeedersCount ? (
+                            <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">({gh.outgoingFeedersCount} Feeder)</div>
+                          ) : null}
+                        </td>
+                        <td className="px-2 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{gh.ghType}</td>
+                        <td className="px-2 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                          <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-bold ${
+                            gh.status === 'Operasi' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                            gh.status === 'Standby' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                            'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                          }`}>
                             {gh.status}
                           </span>
                         </td>
@@ -2800,68 +2835,93 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
             <form onSubmit={handleSaveGh} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode GH</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode GH (Kode Gardu Hubung)</label>
                   <input 
                     type="text" 
                     value={ghCode} 
                     onChange={e => setGhCode(e.target.value)} 
                     required 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Contoh: GH-BGL" 
+                    placeholder="Masukkan kode GH..." 
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama Gardu Hubung</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nama GH (Nama Gardu Hubung)</label>
                   <input 
                     type="text" 
                     value={ghName} 
                     onChange={e => setGhName(e.target.value)} 
                     required 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Contoh: GH Baguala" 
+                    placeholder="Masukkan nama GH..." 
                   />
                 </div>
               </div>
-              <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi / Alamat</label>
-                <input 
-                  type="text" 
-                  value={ghLoc} 
-                  onChange={e => setGhLoc(e.target.value)} 
-                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                  placeholder="Alamat lengkap..." 
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Incoming Feeder</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi (Lokasi GH)</label>
+                  <input 
+                    type="text" 
+                    value={ghLoc} 
+                    onChange={e => setGhLoc(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Masukkan lokasi GH..." 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Koordinat Lokasi (Lat, Long)</label>
+                  <input 
+                    type="text" 
+                    value={ghCoordinates} 
+                    onChange={e => setGhCoordinates(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Masukkan koordinat (Lat, Long)..." 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Incoming Feeder</label>
+                  <input 
+                    type="number" 
+                    value={ghInCount} 
+                    onChange={e => setGhInCount(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Masukkan jumlah..."
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Feeder Inc (Daftar Feeder Masuk)</label>
                   <input 
                     type="text" 
                     value={ghIncoming} 
                     onChange={e => setGhIncoming(e.target.value)} 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Feeder pemasok..." 
+                    placeholder="Masukkan nama feeder masuk..." 
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Outgoing</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jumlah Outgoing Feeder</label>
                   <input 
                     type="number" 
                     value={ghOutCount} 
                     onChange={e => setGhOutCount(e.target.value)} 
-                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Masukkan jumlah..."
                   />
                 </div>
-              </div>
-              <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Daftar Outgoing Feeder</label>
-                <input 
-                  type="text" 
-                  value={ghOutList} 
-                  onChange={e => setGhOutList(e.target.value)} 
-                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                  placeholder="Nama feeder keluar pisahkan koma..." 
-                />
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Feeder Out (Daftar Feeder Keluar)</label>
+                  <input 
+                    type="text" 
+                    value={ghOutList} 
+                    onChange={e => setGhOutList(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Masukkan nama feeder keluar..." 
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

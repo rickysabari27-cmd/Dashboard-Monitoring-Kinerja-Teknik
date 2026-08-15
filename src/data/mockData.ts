@@ -331,6 +331,8 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-BGL',
     ghName: 'GH Baguala',
     location: 'Jl. Wolter Monginsidi, Baguala, Ambon',
+    coordinates: '-3.6285, 128.2214',
+    incomingFeedersCount: 1,
     incomingFeeder: 'Lateri 2 (GI Passo)',
     outgoingFeedersCount: 4,
     outgoingFeedersList: 'Hutumuri, Lateri 1, Waiheru 1, Express',
@@ -342,6 +344,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-BDR',
     ghName: 'GH Bandara',
     location: 'Kawasan Bandara Pattimura Laha',
+    coordinates: '-3.7102, 128.0895',
     incomingFeeder: 'Bandara 1 (GI Hative Besar)',
     outgoingFeedersCount: 3,
     outgoingFeedersList: 'ACC, Allang, Bandara Khusus',
@@ -353,6 +356,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-WYM',
     ghName: 'GH Wayame',
     location: 'Jl. Ir. M. Putuhena, Wayame',
+    coordinates: '-3.6582, 128.1630',
     incomingFeeder: 'Wayame 2 (GI Hative Besar)',
     outgoingFeedersCount: 2,
     outgoingFeedersList: 'Wayame 1, Wayame Lokal',
@@ -364,6 +368,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-POK',
     ghName: 'GH Poka',
     location: 'Kompleks Bundaran Leimena Poka',
+    coordinates: '-3.6521, 128.1904',
     incomingFeeder: 'Wayame 3 (GI Hative Besar)',
     outgoingFeedersCount: 3,
     outgoingFeedersList: 'Poka 1, Kampus Unpatti, Rumahtiga',
@@ -375,6 +380,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-AST',
     ghName: 'GH Aston',
     location: 'Kawasan Komersial Passo Transit',
+    coordinates: '-3.6310, 128.2180',
     incomingFeeder: 'Passo (GIS Passo)',
     outgoingFeedersCount: 2,
     outgoingFeedersList: 'Hotel Aston, Mall ACC',
@@ -386,6 +392,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-HTK',
     ghName: 'GH Hative Kecil',
     location: 'Jl. Jenderal Sudirman Hative Kecil',
+    coordinates: '-3.6812, 128.1951',
     incomingFeeder: 'Lateri 3 (GI Passo)',
     outgoingFeedersCount: 2,
     outgoingFeedersList: 'Galala, Hative Bawah',
@@ -397,6 +404,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-BXP',
     ghName: 'GH Box Pantai Galala',
     location: 'Pesisir Jembatan Merah Putih Galala',
+    coordinates: '-3.6645, 128.1928',
     incomingFeeder: 'Lateri 1 (GH Baguala)',
     outgoingFeedersCount: 2,
     outgoingFeedersList: 'JMP Penerangan, Galala Pesisir',
@@ -408,6 +416,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-BXK',
     ghName: 'GH Box Pantai Poka',
     location: 'Pesisir Jembatan Merah Putih Poka',
+    coordinates: '-3.6598, 128.1901',
     incomingFeeder: 'Wayame 1 (GH Wayame)',
     outgoingFeedersCount: 2,
     outgoingFeedersList: 'Poka Pantai, Rumahtiga Bawah',
@@ -419,6 +428,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
     ghCode: 'GH-ARA',
     ghName: 'GH Area',
     location: 'Kompleks Kantor PLN UP3 Ambon',
+    coordinates: '-3.6930, 128.1812',
     incomingFeeder: 'Passo (GIS Passo)',
     outgoingFeedersCount: 3,
     outgoingFeedersList: 'Feeder Kota, Sirimau Express',
@@ -427,13 +437,7 @@ export const INITIAL_MASTER_GH: MasterGarduHubung[] = [
   }
 ];
 
-export const INITIAL_MASTER_GD: MasterGarduDistribusi[] = [
-  { id: 'GD-01', garduCode: 'BG-012', garduName: 'Gardu Lateri Raya', feederName: 'Lateri 2', sectionName: 'LAT2-SEC-01', capacityKva: 250, phase: '3 Phasa', garduType: 'Portal', location: 'Jl. Lateri Raya', customerCount: 180, status: 'Operasi' },
-  { id: 'GD-02', garduCode: 'BG-015', garduName: 'Gardu Passo Transit', feederName: 'Lateri 2', sectionName: 'LAT2-SEC-02', capacityKva: 160, phase: '3 Phasa', garduType: 'Cantol', location: 'Passo Transit', customerCount: 140, status: 'Operasi' },
-  { id: 'GD-03', garduCode: 'BG-045', garduName: 'Gardu Pasar Tulehu', feederName: 'Tulehu', sectionName: 'TUL-SEC-01', capacityKva: 400, phase: '3 Phasa', garduType: 'Beton', location: 'Pasar Tulehu', customerCount: 320, status: 'Operasi' },
-  { id: 'GD-04', garduCode: 'BG-088', garduName: 'Gardu Allang Pesisir', feederName: 'Allang', sectionName: 'ALG-SEC-01', capacityKva: 160, phase: '3 Phasa', garduType: 'Portal', location: 'Allang Pesisir', customerCount: 95, status: 'Operasi' },
-  { id: 'GD-05', garduCode: 'BG-102', garduName: 'Gardu Wayame Indah', feederName: 'Wayame 1', sectionName: 'WYM-SEC-01', capacityKva: 250, phase: '3 Phasa', garduType: 'Portal', location: 'Wayame', customerCount: 210, status: 'Operasi' }
-];
+export const INITIAL_MASTER_GD: MasterGarduDistribusi[] = [];
 
 export const INITIAL_MASTER_PEMUTUS: MasterPemutus[] = [];
 

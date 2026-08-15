@@ -212,6 +212,8 @@ export interface MasterGarduHubung {
   ghCode: string;
   ghName: string;
   location: string;
+  coordinates?: string;
+  incomingFeedersCount?: number;
   incomingFeeder: string;
   outgoingFeedersCount: number;
   outgoingFeedersList: string;

@@ -110,7 +110,15 @@ export default function App() {
     const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => setMasterFeeders(data));
     const unsubSections = syncCollection<MasterSection>('master_sections', INITIAL_MASTER_SECTIONS, (data) => setMasterSections(data));
     const unsubGh = syncCollection<MasterGarduHubung>('master_gardu_hubung', INITIAL_MASTER_GH, (data) => setMasterGarduHubung(data));
-    const unsubGd = syncCollection<MasterGarduDistribusi>('master_gardu_distribusi', INITIAL_MASTER_GD, (data) => setMasterGarduDistribusi(data));
+    const unsubGd = syncCollection<MasterGarduDistribusi>('master_gardu_distribusi', INITIAL_MASTER_GD, (data) => {
+      const filteredGd = data.filter(item => !['GD-01', 'GD-02', 'GD-03', 'GD-04', 'GD-05'].includes(item.id));
+      setMasterGarduDistribusi(filteredGd);
+      data.forEach(item => {
+        if (['GD-01', 'GD-02', 'GD-03', 'GD-04', 'GD-05'].includes(item.id)) {
+          deleteDocument('master_gardu_distribusi', item.id);
+        }
+      });
+    });
     const unsubPmt = syncCollection<MasterPemutus>('master_pemutus', INITIAL_MASTER_PEMUTUS, (data) => setMasterPemutus(data));
     const unsubMaterials = syncCollection<MaterialItem>('materials', INITIAL_MATERIALS, (data) => setMaterials(data));
     const unsubApd = syncCollection<ApdTool>('apd_tools', INITIAL_APD_TOOLS, (data) => setApdTools(data));
