@@ -6,7 +6,8 @@ import {
   MasterGarduDistribusi, 
   MasterPemutus,
   BranchDevice,
-  getSectionBranches
+  getSectionBranches,
+  getDownstreamCoveredSections
 } from '../../types';
 import { 
   Database, 
@@ -169,8 +170,8 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   // Section Form States
   const [secCode, setSecCode] = useState('');
   const [secName, setSecName] = useState('');
-  const [secFeeder, setSecFeeder] = useState('Allang');
-  const [secSubstation, setSecSubstation] = useState('GH Bandara');
+  const [secFeeder, setSecFeeder] = useState('');
+  const [secSubstation, setSecSubstation] = useState('');
   const [secStart, setSecStart] = useState('');
   const [secEnd, setSecEnd] = useState('');
   const [secGarduCount, setSecGarduCount] = useState<number | string>('');
@@ -221,11 +222,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     });
   };
 
+  // Section Pemutus Linkage
+  const [secPemutusId, setSecPemutusId] = useState<string>('');
+  const [secPemutusCode, setSecPemutusCode] = useState<string>('');
+  const [secPemutusType, setSecPemutusType] = useState<string>('');
+
   // Live Telemetry Monitoring States (Manual Input - No automatic prefill)
   const [secCurrentLoad, setSecCurrentLoad] = useState<number | string>('');
   const [secVoltageKv, setSecVoltageKv] = useState<number | string>('');
   const [secVoltageDrop, setSecVoltageDrop] = useState<number | string>('');
   const [secTemp, setSecTemp] = useState<number | string>('');
+
+  // Simulated Section Outage State for SAIDI/SAIFI Downstream Impact
+  const [simulatedOutageSectionId, setSimulatedOutageSectionId] = useState<string | null>(null);
 
   // GH Form States
   const [ghCode, setGhCode] = useState('');
@@ -253,8 +262,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
   // Pemutus Form States
   const [pmtCode, setPmtCode] = useState('');
-  const [pmtType, setPmtType] = useState<'Recloser' | 'LBS Motorized' | 'LBS Manual' | 'PMT' | 'FCO' | 'Disconnector (DS)'>('Recloser');
+  const [pmtType, setPmtType] = useState<'Recloser' | 'LBS Motorized' | 'LBS Manual' | 'PMT' | 'FCO' | 'Disconnector (DS)' | 'PMCB'>('PMCB');
   const [pmtFeeder, setPmtFeeder] = useState('');
+  const [pmtSectionId, setPmtSectionId] = useState('');
+  const [pmtSectionName, setPmtSectionName] = useState('');
   const [pmtLoc, setPmtLoc] = useState('');
   const [pmtBrand, setPmtBrand] = useState('');
   const [pmtRating, setPmtRating] = useState<number | string>(630);
@@ -329,6 +340,9 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setSecTotalBeban(sec.totalBebanKha !== undefined ? sec.totalBebanKha : (sec.khaAmpere ?? ''));
     setSecCust(sec.customerCount !== undefined && sec.customerCount !== null ? sec.customerCount : '');
     setSecStatus(sec.status || 'Operasi');
+    setSecPemutusId(sec.pemutusId || '');
+    setSecPemutusCode(sec.pemutusCode || '');
+    setSecPemutusType(sec.pemutusType || '');
 
     const branches = getSectionBranches(sec);
     setSecFcoBranches(branches);
@@ -377,6 +391,9 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       totalBebanKha: secTotalBeban !== '' ? Number(secTotalBeban) : (secKha !== '' ? Number(secKha) : 0),
       customerCount: secCust !== '' ? Number(secCust) : 0,
       status: secStatus || 'Operasi',
+      pemutusId: secPemutusId || undefined,
+      pemutusCode: secPemutusCode || undefined,
+      pemutusType: secPemutusType || undefined,
       fcoBranches: branchesToSave,
       hasFcoBranch: hasBranch,
       branchDeviceType: hasBranch ? branchesToSave[0].branchDeviceType : 'FCO',
@@ -390,6 +407,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       temperatureCelsius: secTemp !== '' ? Number(secTemp) : undefined
     };
     if (onSaveMasterSection) onSaveMasterSection(payload);
+    
+    // Auto-sync the connected MasterPemutus if selected
+    if (secPemutusId && onSaveMasterPemutus) {
+      const pObj = masterPemutus.find(p => p.id === secPemutusId);
+      if (pObj) {
+        onSaveMasterPemutus({
+          ...pObj,
+          sectionId: payload.id,
+          sectionName: payload.sectionName
+        });
+      }
+    }
+
     setSectionToEdit(null);
     setIsAddSectionOpen(false);
   };
@@ -470,6 +500,8 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setPmtCode(pmt.equipmentCode);
     setPmtType(pmt.equipmentType);
     setPmtFeeder(pmt.feederName);
+    setPmtSectionId(pmt.sectionId || '');
+    setPmtSectionName(pmt.sectionName || '');
     setPmtLoc(pmt.location);
     setPmtBrand(pmt.brandModel);
     setPmtRating(pmt.currentRatingAmpere);
@@ -479,11 +511,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
   const handleSavePmt = (e: React.FormEvent) => {
     e.preventDefault();
+    const matchedSec = masterSections.find(s => s.id === pmtSectionId);
     const payload: MasterPemutus = {
       id: pmtToEdit ? pmtToEdit.id : `PMT-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       equipmentCode: pmtCode.trim().toUpperCase(),
       equipmentType: pmtType,
       feederName: pmtFeeder.trim(),
+      sectionId: pmtSectionId || undefined,
+      sectionName: matchedSec ? matchedSec.sectionName : (pmtSectionName.trim() || undefined),
       location: pmtLoc.trim(),
       brandModel: pmtBrand.trim(),
       currentRatingAmpere: Number(pmtRating) || 0,
@@ -491,6 +526,17 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       status: pmtStatus
     };
     if (onSaveMasterPemutus) onSaveMasterPemutus(payload);
+
+    // Also auto-update the connected section if linked!
+    if (pmtSectionId && matchedSec && onSaveMasterSection) {
+      onSaveMasterSection({
+        ...matchedSec,
+        pemutusId: payload.id,
+        pemutusCode: payload.equipmentCode,
+        pemutusType: payload.equipmentType
+      });
+    }
+
     setPmtToEdit(null);
     setIsAddPmtOpen(false);
   };
@@ -1167,17 +1213,20 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
                 <button
                   onClick={() => {
-                    const targetFeeder = selectedSectionFeeder === 'ALL' ? (availableFeeders[0] || 'Allang') : selectedSectionFeeder;
-                    const fObj = masterFeeders.find(f => f.feederName.toLowerCase() === targetFeeder.toLowerCase());
+                    const targetFeeder = selectedSectionFeeder === 'ALL' ? '' : selectedSectionFeeder;
+                    const fObj = targetFeeder ? masterFeeders.find(f => f.feederName.toLowerCase() === targetFeeder.toLowerCase()) : null;
                     const defaultGiGh = (fObj?.garduHubung && fObj.garduHubung !== '-')
                       ? fObj.garduHubung
-                      : ((fObj?.substationName && fObj.substationName !== '-') ? fObj.substationName : (availableGHs[0] || availableGIs[0] || 'GH Bandara'));
+                      : ((fObj?.substationName && fObj.substationName !== '-') ? fObj.substationName : '');
 
                     setSectionToEdit(null);
                     setSecFeeder(targetFeeder);
-                    setSecCode(generateSectionCode(targetFeeder));
+                    setSecCode(targetFeeder ? generateSectionCode(targetFeeder) : '');
                     setSecName('');
                     setSecSubstation(defaultGiGh);
+                    setSecPemutusId('');
+                    setSecPemutusCode('');
+                    setSecPemutusType('');
                     setSecStart('');
                     setSecEnd('');
                     setSecGarduCount('');
@@ -1187,7 +1236,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     setSecBebanCabang('');
                     setSecTotalBeban('');
                     setSecCust('');
-                    setSecStatus('Normal');
+                    setSecStatus('Operasi');
                     setSecHasFco(false);
                     setSecFcoBranches([]);
                     setSecBranchDeviceType('FCO');
@@ -1232,6 +1281,72 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     )}
                   </div>
 
+                  {/* Section Outage & Cascading SAIDI/SAIFI Simulator Box */}
+                  {!isUnselected && feederSections.length > 0 && (
+                    <div className="mb-3 p-3 rounded-xl bg-slate-900/90 border border-indigo-500/40 text-white space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[11px] font-black text-indigo-300 flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Simulasi Lepas Pemutus & Padam Hilir (SAIDI/SAIFI)</span>
+                        </div>
+                        {simulatedOutageSectionId && (
+                          <button
+                            type="button"
+                            onClick={() => setSimulatedOutageSectionId(null)}
+                            className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 cursor-pointer"
+                          >
+                            Reset Simulasi
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-300 leading-relaxed">
+                        Jika suatu pemutus / section lepas, arus terputus dan <strong className="text-amber-300">seluruh section setelahnya (downstream) otomatis padam</strong> dan dihitung ke data SAIDI/SAIFI.
+                      </p>
+                      {simulatedOutageSectionId ? (
+                        (() => {
+                          const simIndex = feederSections.findIndex(s => s.id === simulatedOutageSectionId);
+                          if (simIndex === -1) return null;
+                          const trippedSec = feederSections[simIndex];
+                          const downstreamSecs = feederSections.slice(simIndex);
+                          const upstreamSecs = feederSections.slice(0, simIndex);
+                          const totalPadamCust = downstreamSecs.reduce((acc, s) => acc + (Number(s.customerCount) || 0), 0);
+                          const totalPadamLength = downstreamSecs.reduce((acc, s) => acc + (Number(s.lengthKms) || 0), 0);
+                          const totalUlpCust = masterFeeders.reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
+                          const totalUlp = totalUlpCust > 0 ? totalUlpCust : 45200;
+                          const simSaifi = totalPadamCust / totalUlp;
+                          const simSaidiHours = (1.5 * totalPadamCust) / totalUlp; // assuming 1.5 hr outage
+
+                          return (
+                            <div className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/50 space-y-1.5 text-xs">
+                              <div className="flex items-center justify-between text-rose-300 font-black text-[11px]">
+                                <span>⚡ Titik Lepas: {trippedSec.sectionName} ({trippedSec.pemutusCode || 'PMCB/Recloser'})</span>
+                                <span className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[9px] uppercase font-bold">Lepas / OFF</span>
+                              </div>
+                              <div className="text-[10.5px] text-slate-200">
+                                <div>• <strong>{upstreamSecs.length} Section Pangkal:</strong> <span className="text-emerald-400 font-bold">AMAN (Tetap Bertegangan)</span></div>
+                                <div>• <strong>{downstreamSecs.length} Section Hilir:</strong> <span className="text-rose-400 font-bold">PADAM TOTAL ({downstreamSecs.map(s => s.sectionCode).join(' &rarr; ')})</span></div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-rose-500/30 text-[10px]">
+                                <div className="p-1.5 rounded bg-black/40">
+                                  <div className="text-slate-400">Total Plg Padam:</div>
+                                  <div className="text-amber-300 font-extrabold text-sm">{totalPadamCust.toLocaleString('id-ID')} Pelanggan</div>
+                                </div>
+                                <div className="p-1.5 rounded bg-black/40">
+                                  <div className="text-slate-400">Estimasi SAIFI Gangguan:</div>
+                                  <div className="text-cyan-300 font-extrabold text-sm">{simSaifi.toFixed(4)} Kali/Plg</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="text-[10px] text-slate-400 italic">
+                          👉 Klik salah satu section di bawah atau tombol "Simulasi Lepas" pada tabel untuk melihat analisis padam hilir.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Schematic Tree Canvas */}
                   {isUnselected ? (
                     <div className="py-12 text-center text-slate-400 text-xs font-bold">
@@ -1259,15 +1374,27 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                         const secEnd = sec.endPoint || sec.sectionName || 'Ujung Section';
                         const branches = getSectionBranches(sec);
 
+                        // Cascading outage status check
+                        const simIndex = simulatedOutageSectionId ? feederSections.findIndex(s => s.id === simulatedOutageSectionId) : -1;
+                        const isSimulatedDownstreamPadam = simIndex !== -1 && idx >= simIndex;
+                        const isTrippedNode = simIndex !== -1 && idx === simIndex;
+
                         return (
                           <div key={`${sec.id || 'sec'}-${idx}`} className="relative group">
                             {/* Curved / Vertical branch stem */}
                             <div className="flex items-center h-8 relative">
-                              <div className="w-0.5 h-full bg-cyan-500/70 absolute left-0 top-0"></div>
+                              <div className={`w-0.5 h-full absolute left-0 top-0 ${
+                                isSimulatedDownstreamPadam ? 'bg-rose-500/80' : 'bg-cyan-500/70'
+                              }`}></div>
                               <div className="pl-3 text-[11px] font-extrabold text-slate-300 flex items-center gap-1.5">
-                                <span>{sec.lengthKms} KMS</span>
+                                <span className={isSimulatedDownstreamPadam ? 'text-rose-400' : ''}>{sec.lengthKms} KMS</span>
                                 {isLast && <span className="text-[10px] text-cyan-400 font-bold">(Ujung)</span>}
-                                <span className="text-cyan-400 text-xs">v</span>
+                                {sec.pemutusCode && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-blue-500/30 text-cyan-300 border border-cyan-500/40">
+                                    ⚡ {sec.pemutusCode} ({sec.pemutusType || 'PMCB'})
+                                  </span>
+                                )}
+                                <span className={`text-xs ${isSimulatedDownstreamPadam ? 'text-rose-400' : 'text-cyan-400'}`}>v</span>
                               </div>
                             </div>
 
@@ -1340,32 +1467,65 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
                             {/* Node Capsule Box (Section End Node) */}
                             <div 
-                              onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
+                              onClick={() => {
+                                setSelectedSectionId(isSelected ? null : sec.id);
+                                setSimulatedOutageSectionId(simulatedOutageSectionId === sec.id ? null : sec.id);
+                              }}
                               className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
-                                isSelected 
-                                  ? 'bg-amber-500/20 border-amber-500 shadow-md shadow-amber-500/10' 
-                                  : isWarning
-                                    ? 'bg-[#14151C] border-amber-500/60 hover:border-amber-400'
-                                    : 'bg-[#0B132B]/90 border-cyan-500/30 hover:border-cyan-400'
+                                isTrippedNode 
+                                  ? 'bg-rose-950/80 border-rose-500 ring-2 ring-rose-500/50 shadow-lg shadow-rose-500/20'
+                                  : isSimulatedDownstreamPadam
+                                    ? 'bg-rose-950/40 border-rose-500/60 opacity-90'
+                                    : isSelected 
+                                      ? 'bg-amber-500/20 border-amber-500 shadow-md shadow-amber-500/10' 
+                                      : isWarning
+                                        ? 'bg-[#14151C] border-amber-500/60 hover:border-amber-400'
+                                        : 'bg-[#0B132B]/90 border-cyan-500/30 hover:border-cyan-400'
                               }`}
                             >
                               {/* Node Indicator Dot */}
                               <div className={`w-3.5 h-3.5 rounded-full mt-0.5 flex items-center justify-center shrink-0 ${
-                                isWarning ? 'bg-amber-500 shadow-xs shadow-amber-500' : 'bg-cyan-500 shadow-xs shadow-cyan-500'
+                                isTrippedNode
+                                  ? 'bg-rose-500 shadow-xs shadow-rose-500 animate-pulse'
+                                  : isSimulatedDownstreamPadam
+                                    ? 'bg-rose-700'
+                                    : isWarning 
+                                      ? 'bg-amber-500 shadow-xs shadow-amber-500' 
+                                      : 'bg-cyan-500 shadow-xs shadow-cyan-500'
                               }`}>
                                 <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <div className={`font-black text-xs truncate ${isWarning ? 'text-amber-300' : 'text-slate-100'}`}>
-                                  [{sec.endPoint || sec.sectionName}]
+                                <div className="flex items-center justify-between gap-1 flex-wrap">
+                                  <div className={`font-black text-xs truncate ${
+                                    isTrippedNode ? 'text-rose-300' : isSimulatedDownstreamPadam ? 'text-rose-400' : isWarning ? 'text-amber-300' : 'text-slate-100'
+                                  }`}>
+                                    [{sec.endPoint || sec.sectionName}]
+                                  </div>
+                                  {isTrippedNode && (
+                                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-rose-500 text-white">
+                                      PEMUTUS LEPAS
+                                    </span>
+                                  )}
+                                  {isSimulatedDownstreamPadam && !isTrippedNode && (
+                                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                      PADAM HILIR
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="text-[10.5px] font-medium text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                <div className="text-[10.5px] font-medium text-slate-400 flex items-center gap-1.5 mt-0.5 flex-wrap">
                                   <span>{sec.lengthKms} KMS</span>
                                   <span>•</span>
                                   <span>{sec.garduCount} Gardu</span>
                                   <span>•</span>
-                                  <span>Beban {sec.totalBebanKha || sec.khaAmpere || 0} A</span>
+                                  <span>{sec.customerCount || 0} Plg</span>
+                                  {sec.pemutusCode && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-cyan-300 font-bold">PMT: {sec.pemutusCode}</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1404,24 +1564,25 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                           <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
                           <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode Section</th>
                           <th className="px-2.5 py-2.5 text-left border-r border-slate-800/80">Nama Section</th>
+                          <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Alat Pemutus (PMCB/REC)</th>
                           <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Panjang</th>
-                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu</th>
+                          <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu & Plg</th>
                           <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">kVA</th>
                           <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Beban (A)</th>
                           <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Status</th>
-                          <th className="px-1.5 py-2.5 text-center w-20">Aksi</th>
+                          <th className="px-1.5 py-2.5 text-center w-24">Aksi / Simulasi</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
                         {isUnselected ? (
                           <tr>
-                            <td colSpan={9} className="p-12 text-center text-slate-400 font-bold">
+                            <td colSpan={10} className="p-12 text-center text-slate-400 font-bold">
                               Silakan pilih penyulang terlebih dahulu untuk melihat data section dan jaringan.
                             </td>
                           </tr>
                         ) : feederSections.length === 0 ? (
                           <tr>
-                            <td colSpan={9} className="p-12 text-center text-slate-400 font-bold">
+                            <td colSpan={10} className="p-12 text-center text-slate-400 font-bold">
                               Tidak ada data section yang ditemukan.
                             </td>
                           </tr>
@@ -1433,16 +1594,24 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                           const khaVal = sec.khaAmpere || sec.totalBebanKha || 0;
                           const loadPct = khaVal > 0 ? Math.round((loadAmp / khaVal) * 100) : 0;
 
+                          const simIndex = simulatedOutageSectionId ? feederSections.findIndex(s => s.id === simulatedOutageSectionId) : -1;
+                          const isSimulatedPadam = simIndex !== -1 && idx >= simIndex;
+                          const isTripped = simIndex !== -1 && idx === simIndex;
+
                           return (
                             <tr 
                               key={`${sec.id || 'sec'}-${idx}`} 
                               onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
                               className={`transition-colors cursor-pointer ${
-                                isSelected 
-                                  ? 'bg-amber-500/15 dark:bg-amber-500/20 text-slate-900 dark:text-white' 
-                                  : isWarning
-                                    ? 'bg-amber-500/5 hover:bg-amber-500/10'
-                                    : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/40'
+                                isTripped
+                                  ? 'bg-rose-500/20 text-slate-900 dark:text-white font-bold'
+                                  : isSimulatedPadam
+                                    ? 'bg-rose-500/10 text-slate-900 dark:text-white'
+                                    : isSelected 
+                                      ? 'bg-amber-500/15 dark:bg-amber-500/20 text-slate-900 dark:text-white' 
+                                      : isWarning
+                                        ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                                        : 'hover:bg-blue-50/40 dark:hover:bg-slate-800/40'
                               }`}
                             >
                               <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
@@ -1475,6 +1644,20 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                     </div>
                                   ));
                                 })()}
+                              </td>
+                              <td className="px-2 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                                {sec.pemutusCode ? (
+                                  <div className="inline-flex flex-col items-center">
+                                    <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-blue-500/15 text-blue-600 dark:text-cyan-300 border border-blue-500/30">
+                                      ⚡ {sec.pemutusCode}
+                                    </span>
+                                    <span className="text-[9px] text-slate-400 font-bold">
+                                      {sec.pemutusType || 'PMCB'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 text-[10px] italic">-</span>
+                                )}
                               </td>
                               <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                                 <div>{sec.lengthKms || 0} KMS</div>
@@ -1513,7 +1696,15 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                                 </div>
                               </td>
                               <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px] font-bold">
-                                {sec.status === 'Tidak Operasi' ? (
+                                {isTripped ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white animate-pulse">
+                                    LEPAS / TRIP
+                                  </span>
+                                ) : isSimulatedPadam ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">
+                                    PADAM HILIR
+                                  </span>
+                                ) : sec.status === 'Tidak Operasi' ? (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
                                     <AlertCircle className="w-3 h-3 shrink-0" />
                                     Off
@@ -1543,27 +1734,29 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                               <td className="px-1 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-center gap-1">
                                   <button
+                                    onClick={() => setSimulatedOutageSectionId(simulatedOutageSectionId === sec.id ? null : sec.id)}
+                                    className={`p-1.5 rounded-lg cursor-pointer active:scale-90 font-black text-[10px] ${
+                                      simulatedOutageSectionId === sec.id 
+                                        ? 'bg-rose-600 text-white' 
+                                        : 'hover:bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                    }`}
+                                    title="Simulasi Lepas Section & SAIDI/SAIFI"
+                                  >
+                                    <Zap className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
                                     onClick={() => openEditSection(sec)}
-                                    className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                                    className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
                                     title="Edit Section & FCO"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedSectionId(isSelected ? null : sec.id)}
-                                    className={`p-1.5 rounded-lg cursor-pointer active:scale-90 ${
-                                      isSelected ? 'bg-amber-500 text-white' : 'hover:bg-purple-500/10 text-purple-500'
-                                    }`}
-                                    title="Fokus Topologi"
-                                  >
-                                    <Network className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => setSectionToDelete(sec)}
                                     className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
                                     title="Hapus Section"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </td>
@@ -2008,7 +2201,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 setGdToEdit(null);
                 setGdCode('');
                 setGdName('');
-                setGdFeeder(masterFeeders[0]?.feederName || 'Lateri 2');
+                setGdFeeder('');
                 setGdSection('');
                 setGdKva(160);
                 setGdPhase('3 Phasa');
@@ -2096,142 +2289,247 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       )}
 
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
       {/* 5. DATA PEMUTUS                                                          */}
       {/* ========================================================================= */}
-      {activeTab === 'pemutus' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Alat Pemutus</div>
-              <div className="text-xl font-black text-blue-700 dark:text-blue-400">{masterPemutus.length} Unit</div>
-            </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Recloser / OCR</div>
-              <div className="text-xl font-black text-purple-700 dark:text-purple-400">
-                {masterPemutus.filter(p => p.equipmentType === 'Recloser').length} Unit
-              </div>
-            </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">LBS Motorized / Manual</div>
-              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
-                {masterPemutus.filter(p => p.equipmentType.includes('LBS')).length} Unit
-              </div>
-            </div>
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Terhubung SCADA</div>
-              <div className="text-xl font-black text-teal-700 dark:text-teal-400">
-                {masterPemutus.filter(p => p.scadaStatus === 'Terhubung SCADA').length} Online
-              </div>
-            </div>
-          </div>
+      {activeTab === 'pemutus' && (() => {
+        const totalPemutus = masterPemutus.length;
+        const totalPmcb = masterPemutus.filter(p => p.equipmentType === 'PMCB').length;
+        const totalRecloser = masterPemutus.filter(p => p.equipmentType === 'Recloser').length;
+        const totalLbs = masterPemutus.filter(p => p.equipmentType && p.equipmentType.includes('LBS')).length;
+        const totalPmt = masterPemutus.filter(p => p.equipmentType === 'PMT' || p.equipmentType === 'PMT GI').length;
+        const totalFco = masterPemutus.filter(p => p.equipmentType === 'FCO' || p.equipmentType === 'SSO').length;
+        const totalScada = masterPemutus.filter(p => p.scadaStatus === 'Terhubung SCADA').length;
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari Kode Alat, Jenis, Penyulang, atau Merk..."
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
-                  isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 shadow-xs'
-                }`}
-              />
-            </div>
-            <button
-              onClick={() => {
-                setPmtToEdit(null);
-                setPmtCode('');
-                setPmtType('Recloser');
-                setPmtFeeder(masterFeeders[0]?.feederName || 'Lateri 2');
-                setPmtLoc('');
-                setPmtBrand('');
-                setPmtRating(630);
-                setPmtScada('Terhubung SCADA');
-                setPmtStatus('Masuk / ON');
-                setIsAddPmtOpen(true);
-              }}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Alat Pemutus</span>
-            </button>
-          </div>
+        const filteredPemutus = masterPemutus.filter(p => {
+          if (!searchQuery.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return (p.equipmentCode || '').toLowerCase().includes(q) ||
+                 (p.equipmentType || '').toLowerCase().includes(q) ||
+                 (p.feederName || '').toLowerCase().includes(q) ||
+                 (p.sectionName || '').toLowerCase().includes(q) ||
+                 (p.brandModel || '').toLowerCase().includes(q);
+        });
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
-                  <tr>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
-                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode Tag</th>
-                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Jenis</th>
-                    <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Penyulang</th>
-                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Lokasi/Tiang</th>
-                    <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Merk/Tipe</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Rating</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">SCADA</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Posisi</th>
-                    <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
-                  {masterPemutus
-                    .filter(p => {
-                      if (!searchQuery.trim()) return true;
-                      const q = searchQuery.toLowerCase();
-                      return (p.equipmentCode || '').toLowerCase().includes(q) ||
-                             (p.equipmentType || '').toLowerCase().includes(q) ||
-                             (p.feederName || '').toLowerCase().includes(q) ||
-                             (p.brandModel || '').toLowerCase().includes(q);
-                    })
-                    .map((pmt, idx) => (
-                      <tr key={`${pmt.id || 'pmt'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
-                        <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.equipmentCode}</td>
-                        <td className="px-2 py-2 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.equipmentType}</td>
-                        <td className="px-2 py-2 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.feederName}</td>
-                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.location}</td>
-                        <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.brandModel}</td>
-                        <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.currentRatingAmpere} A</td>
-                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
-                          <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
-                            pmt.scadaStatus === 'Terhubung SCADA' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400'
-                          }`}>
-                            {pmt.scadaStatus === 'Terhubung SCADA' ? 'SCADA' : 'Manual'}
-                          </span>
-                        </td>
-                        <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
-                          <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-blue-500/10 text-blue-500">
-                            {pmt.status}
-                          </span>
-                        </td>
-                        <td className="px-1 py-2 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => openEditPmt(pmt)}
-                              className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
-                              title="Edit Pemutus"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setPmtToDelete(pmt)}
-                              className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
-                              title="Hapus Pemutus"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+        return (
+          <div className="space-y-4">
+            {/* Header Metrics: Total Pemutus, only categories that have values > 0, and Terhubung SCADA */}
+            <div className="flex flex-wrap gap-3">
+              <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                <div className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">Total Alat Pemutus</div>
+                <div className="text-xl font-black text-blue-700 dark:text-blue-400">{totalPemutus} Unit</div>
+              </div>
+
+              {totalPmcb > 0 && (
+                <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                  <div className="text-[11px] font-black text-blue-800 dark:text-blue-200 uppercase tracking-wider mb-1">PMCB</div>
+                  <div className="text-xl font-black text-blue-700 dark:text-blue-400">{totalPmcb} Unit</div>
+                </div>
+              )}
+
+              {totalRecloser > 0 && (
+                <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                  <div className="text-[11px] font-black text-purple-800 dark:text-purple-200 uppercase tracking-wider mb-1">Recloser / OCR</div>
+                  <div className="text-xl font-black text-purple-700 dark:text-purple-400">{totalRecloser} Unit</div>
+                </div>
+              )}
+
+              {totalLbs > 0 && (
+                <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                  <div className="text-[11px] font-black text-emerald-800 dark:text-emerald-200 uppercase tracking-wider mb-1">LBS Motor / Manual</div>
+                  <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">{totalLbs} Unit</div>
+                </div>
+              )}
+
+              {totalPmt > 0 && (
+                <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                  <div className="text-[11px] font-black text-amber-800 dark:text-amber-200 uppercase tracking-wider mb-1">PMT GI</div>
+                  <div className="text-xl font-black text-amber-700 dark:text-amber-400">{totalPmt} Unit</div>
+                </div>
+              )}
+
+              {totalFco > 0 && (
+                <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                  <div className="text-[11px] font-black text-orange-800 dark:text-orange-200 uppercase tracking-wider mb-1">FCO / SSO</div>
+                  <div className="text-xl font-black text-orange-700 dark:text-orange-400">{totalFco} Unit</div>
+                </div>
+              )}
+
+              <div className={`flex-1 min-w-[130px] p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+                <div className="text-[11px] font-black text-teal-800 dark:text-teal-200 uppercase tracking-wider mb-1">Terhubung SCADA</div>
+                <div className="text-xl font-black text-teal-700 dark:text-teal-400">{totalScada} Online</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari Kode Alat, Jenis, Penyulang, atau Merk..."
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+                    isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 shadow-xs'
+                  }`}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  setPmtToEdit(null);
+                  setPmtCode('');
+                  setPmtType('PMCB');
+                  setPmtFeeder('');
+                  setPmtSectionId('');
+                  setPmtSectionName('');
+                  setPmtLoc('');
+                  setPmtBrand('');
+                  setPmtRating(630);
+                  setPmtScada('Terhubung SCADA');
+                  setPmtStatus('Masuk / ON');
+                  setIsAddPmtOpen(true);
+                }}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Alat Pemutus</span>
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead className="bg-[#0B132B] text-white font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 w-8">No</th>
+                      <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Kode Tag</th>
+                      <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Jenis</th>
+                      <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Penyulang</th>
+                      <th className="px-2 py-2.5 text-center border-r border-slate-800/80">Koneksi Section</th>
+                      <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Lokasi/Tiang</th>
+                      <th className="px-2 py-2.5 text-left border-r border-slate-800/80">Merk/Tipe</th>
+                      <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Rating</th>
+                      <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">SCADA</th>
+                      <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Posisi</th>
+                      <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 bg-white dark:bg-[#070D1E]">
+                    {masterPemutus.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="py-12 px-4 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                              <SlidersHorizontal className="w-6 h-6" />
+                            </div>
+                            <p className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                              Belum Ada Data Alat Pemutus
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                              Data peralatan pemutus (PMCB, Recloser, LBS, dll) masih kosong dan siap diinput secara manual. Silakan klik tombol <b>"+ Tambah Alat Pemutus"</b> di atas.
+                            </p>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
+                    ) : filteredPemutus.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="py-8 px-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          Tidak ada data pemutus yang cocok dengan pencarian "{searchQuery}".
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPemutus.map((pmt, idx) => (
+                        <tr key={`${pmt.id || 'pmt'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
+                          <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.equipmentCode}</td>
+                          <td className="px-2 py-2 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              pmt.equipmentType === 'PMCB' 
+                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                                : pmt.equipmentType === 'Recloser' 
+                                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            }`}>
+                              {pmt.equipmentType}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-center font-bold text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.feederName}</td>
+                          <td className="px-2 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            {(() => {
+                              const cov = getDownstreamCoveredSections(pmt.feederName, pmt.sectionId || pmt.sectionName, masterSections);
+                              if (pmt.sectionName || pmt.sectionId) {
+                                return (
+                                  <div className="flex flex-col items-center justify-center gap-0.5 max-w-[210px] mx-auto">
+                                    <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-extrabold border border-indigo-500/30 text-[10px] leading-tight text-center">
+                                      {pmt.sectionName || cov.shortLabel} - Ujung Jaringan
+                                    </span>
+                                    <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
+                                      {cov.coveredSections.length > 1 
+                                        ? `Mengkover ${cov.coveredSections.length} Section (${cov.totalGardu} GD)` 
+                                        : 's/d Ujung Jaringan'}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                  <span className="text-slate-500 dark:text-slate-400 text-[10px] font-bold italic">
+                                    Semua Section / GI
+                                  </span>
+                                  <span className="text-[9px] text-slate-400 dark:text-slate-500">
+                                    (GI s/d Ujung Jaringan)
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.location}</td>
+                          <td className="px-2 py-2 text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.brandModel}</td>
+                          <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{pmt.currentRatingAmpere} A</td>
+                          <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
+                              pmt.scadaStatus === 'Terhubung SCADA' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400'
+                            }`}>
+                              {pmt.scadaStatus === 'Terhubung SCADA' ? 'SCADA' : 'Manual'}
+                            </span>
+                          </td>
+                          <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80 text-[10px]">
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9.5px] font-bold ${
+                              pmt.status === 'Lepas / OFF' 
+                                ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30' 
+                                : 'bg-blue-500/10 text-blue-500'
+                            }`}>
+                              {pmt.status}
+                            </span>
+                          </td>
+                          <td className="px-1 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => openEditPmt(pmt)}
+                                className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
+                                title="Edit Pemutus"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setPmtToDelete(pmt)}
+                                className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                                title="Hapus Pemutus"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* MODALS SECTION (Feeder, Section, GH, GD, Pemutus)                        */}
@@ -2518,7 +2816,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       const val = e.target.value;
                       setSecFeeder(val);
                       if (!sectionToEdit) {
-                        setSecCode(generateSectionCode(val));
+                        setSecCode(val ? generateSectionCode(val) : '');
                         const fObj = masterFeeders.find(f => f.feederName.toLowerCase() === val.toLowerCase());
                         if (fObj) {
                           if (fObj.garduHubung && fObj.garduHubung !== '-') {
@@ -2532,6 +2830,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     required
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value="">Pilih Penyulang</option>
                     {masterFeeders.map((f, fIdx) => (
                       <option key={`${f.id || f.feederName}-${fIdx}`} value={f.feederName}>
                         {f.feederName} ({f.feederCode})
@@ -2561,6 +2860,52 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   </select>
                 </div>
               </div>
+              <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block">
+                    Alat Pemutus Section (PMCB / Recloser / LBS / PMT)
+                  </label>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Pilih alat pemutus untuk koneksi data section</span>
+                </div>
+                <select
+                  value={secPemutusId}
+                  onChange={e => {
+                    const pId = e.target.value;
+                    setSecPemutusId(pId);
+                    const pObj = masterPemutus.find(p => p.id === pId);
+                    if (pObj) {
+                      setSecPemutusCode(pObj.equipmentCode);
+                      setSecPemutusType(pObj.equipmentType);
+                    } else {
+                      setSecPemutusCode('');
+                      setSecPemutusType('');
+                    }
+                  }}
+                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-blue-400 dark:border-blue-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Tanpa Pemutus Khusus (Direct / PMT GI) --</option>
+                  {masterPemutus
+                    .filter(p => !secFeeder || p.feederName.toLowerCase() === secFeeder.toLowerCase())
+                    .map((p, pIdx) => (
+                      <option key={`${p.id || p.equipmentCode}-${pIdx}`} value={p.id}>
+                        [{p.equipmentType}] {p.equipmentCode} - Posisi: {p.status} {p.location ? `(${p.location})` : ''} {p.scadaStatus ? `• ${p.scadaStatus}` : ''}
+                      </option>
+                    ))}
+                  {masterPemutus
+                    .filter(p => secFeeder && p.feederName.toLowerCase() !== secFeeder.toLowerCase())
+                    .map((p, pIdx) => (
+                      <option key={`other-${p.id || p.equipmentCode}-${pIdx}`} value={p.id}>
+                        [{p.equipmentType}] {p.equipmentCode} (Penyulang: {p.feederName})
+                      </option>
+                    ))}
+                </select>
+                {secPemutusCode ? (
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <span>Terkoneksi Pemutus: <strong>{secPemutusCode}</strong> [{secPemutusType || 'PMCB'}]</span>
+                  </div>
+                ) : null}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Awal (In / Pangkal Node)</label>
@@ -3125,7 +3470,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     onChange={e => setPmtCode(e.target.value)} 
                     required 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                    placeholder="Contoh: REC-LTR2-01" 
+                    placeholder="Contoh: PMCB-LTR2-01" 
                   />
                 </div>
                 <div>
@@ -3135,26 +3480,160 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     onChange={e => setPmtType(e.target.value as any)} 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="Recloser">Recloser</option>
+                    <option value="PMCB">PMCB (Pole Mounted Circuit Breaker)</option>
+                    <option value="Recloser">Recloser (Automatic Circuit Recloser)</option>
                     <option value="LBS Motorized">LBS Motorized</option>
                     <option value="LBS Manual">LBS Manual</option>
-                    <option value="PMT">PMT</option>
-                    <option value="FCO">FCO</option>
+                    <option value="PMT">PMT (Pemutus Tenaga)</option>
+                    <option value="FCO">FCO (Fuse Cut Out)</option>
                     <option value="Disconnector (DS)">Disconnector (DS)</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang (Master Data)</label>
+                  <select 
+                    value={pmtFeeder} 
+                    onChange={e => {
+                      const newF = e.target.value;
+                      setPmtFeeder(newF);
+                      setPmtSectionId('');
+                      setPmtSectionName('');
+                    }} 
+                    required 
+                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-blue-400 dark:border-blue-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Pilih Penyulang</option>
+                    {masterFeeders.map((f, fIdx) => (
+                      <option key={`${f.id || f.feederName}-${fIdx}`} value={f.feederName}>
+                        {f.feederName} ({f.feederCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi / Titik Tiang</label>
                   <input 
                     type="text" 
-                    value={pmtFeeder} 
-                    onChange={e => setPmtFeeder(e.target.value)} 
-                    required 
+                    value={pmtLoc} 
+                    onChange={e => setPmtLoc(e.target.value)} 
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Contoh: Tiang BG-045 Passo / Depan Gardu"
                   />
                 </div>
+              </div>
+
+              {/* Koneksi Section & Cakupan Proteksi Downstream */}
+              <div className="space-y-2 p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-800 dark:text-slate-200 block text-xs">
+                    Koneksi Section / Titik Proteksi Awal
+                  </label>
+                  <span className="text-[10.5px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                    Proteksi Mengkover s/d Ujung Jaringan
+                  </span>
+                </div>
+                <select
+                  value={pmtSectionId}
+                  onChange={e => {
+                    const secId = e.target.value;
+                    setPmtSectionId(secId);
+                    const secObj = masterSections.find(s => s.id === secId);
+                    if (secObj) {
+                      setPmtSectionName(secObj.sectionName);
+                    } else {
+                      setPmtSectionName('');
+                    }
+                  }}
+                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-indigo-400 dark:border-indigo-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs"
+                >
+                  <option value="">Semua Section / GI (Proteksi Total dari Pangkal GI s/d Ujung)</option>
+                  {masterSections
+                    .filter(s => !pmtFeeder || s.feederName.toLowerCase() === pmtFeeder.toLowerCase())
+                    .map((s, sIdx) => {
+                      const cov = getDownstreamCoveredSections(pmtFeeder, s.id, masterSections);
+                      return (
+                        <option key={`${s.id || s.sectionName}-${sIdx}`} value={s.id}>
+                          {s.sectionCode ? `[${s.sectionCode}] ` : ''}{s.sectionName} ➔ Mengkover {cov.coveredSections.length > 1 ? `${cov.coveredSections.length} Section` : 'Section'} s/d Ujung ({cov.totalGardu} Gardu)
+                        </option>
+                      );
+                    })}
+                </select>
+
+                {/* Downstream Coverage Dynamic Info Card */}
+                {(() => {
+                  const covInfo = getDownstreamCoveredSections(pmtFeeder, pmtSectionId, masterSections);
+                  return (
+                    <div className={`mt-2 p-3 rounded-xl border transition-all text-xs ${
+                      pmtSectionId 
+                        ? 'bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 text-slate-800 dark:text-slate-200'
+                        : 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/80 text-slate-800 dark:text-slate-200'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-1.5 font-black text-xs">
+                          <Zap className={`w-4 h-4 ${pmtSectionId ? 'text-indigo-600 dark:text-indigo-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                          <span>Cakupan Proteksi & Pengaruh Padam:</span>
+                        </div>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          pmtSectionId
+                            ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                            : 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
+                        }`}>
+                          {pmtSectionId ? `${pmtSectionName || covInfo.shortLabel} - Ujung Jaringan` : 'Semua Section / GI'}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mb-2">
+                        {pmtSectionId ? (
+                          <>
+                            Pemutus ini dipasang pada section awal dan <strong className="text-indigo-600 dark:text-indigo-400 font-bold">mengkover section tersebut beserta seluruh section setelahnya hingga ujung jaringan</strong>. Jika alat pemutus ini trip / open, seluruh section di hilir akan ikut padam.
+                          </>
+                        ) : (
+                          <>
+                            Pemutus beroperasi di <strong className="text-blue-600 dark:text-blue-400 font-bold">Pangkal GI (Semua Section)</strong> dan memproteksi seluruh jalur penyulang dari awal hingga ujung jaringan.
+                          </>
+                        )}
+                      </p>
+
+                      {covInfo.sectionNames.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-200/80 dark:border-slate-800/80">
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Jalur Terkover:</span>
+                          {covInfo.sectionNames.map((name, i) => (
+                            <React.Fragment key={name + i}>
+                              <span className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 text-[10px] font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                {name}
+                              </span>
+                              {i < covInfo.sectionNames.length - 1 && (
+                                <span className="text-slate-400 text-[9px] font-bold">➔</span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                          <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 ml-1">
+                            (Ujung Jaringan)
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+                        <div className="bg-white/70 dark:bg-slate-900/60 p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+                          <div className="text-[9.5px] text-slate-500 font-medium">Total Section</div>
+                          <div className="text-xs font-black text-slate-900 dark:text-white">{covInfo.coveredSections.length} Section</div>
+                        </div>
+                        <div className="bg-white/70 dark:bg-slate-900/60 p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+                          <div className="text-[9.5px] text-slate-500 font-medium">Gardu Terkover</div>
+                          <div className="text-xs font-black text-slate-900 dark:text-white">{covInfo.totalGardu} Gardu</div>
+                        </div>
+                        <div className="bg-white/70 dark:bg-slate-900/60 p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+                          <div className="text-[9.5px] text-slate-500 font-medium">Pelanggan Terkover</div>
+                          <div className="text-xs font-black text-slate-900 dark:text-white">{covInfo.totalCustomers.toLocaleString('id-ID')} Plg</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Rating Arus (A)</label>
                   <input 
@@ -3164,23 +3643,13 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi / Tiang</label>
-                  <input 
-                    type="text" 
-                    value={pmtLoc} 
-                    onChange={e => setPmtLoc(e.target.value)} 
-                    className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
-                  />
-                </div>
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Merk & Tipe</label>
                   <input 
                     type="text" 
                     value={pmtBrand} 
                     onChange={e => setPmtBrand(e.target.value)} 
+                    placeholder="Contoh: Tavrida OSM25 / Entec / Schneider"
                     className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
                   />
                 </div>

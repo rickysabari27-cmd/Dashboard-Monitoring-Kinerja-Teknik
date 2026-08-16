@@ -22,7 +22,7 @@ export interface FeederTrip {
   tripTime: string;
   recoveryTime: string;
   durationMinutes: number;
-  relayType: 'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR';
+  relayType: 'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR' | 'UFR';
   currentAmpere: number;
   kwPadam?: number;
   locationKm: string;
@@ -149,6 +149,7 @@ export interface MasterFeeder {
   voltageKv?: number;
   lengthKms: number;
   customerCount: number;
+  capacityKva?: number;
   sectionCount?: number;
   breakerType?: string;
   status?: string;
@@ -183,6 +184,11 @@ export interface MasterSection {
   totalBebanKha?: number;
   customerCount?: number;
   status: 'Normal' | 'Warning' | 'Kritis' | 'Operasi' | 'Tidak Operasi' | 'Manuver' | string;
+  // Alat Pemutus Section (Inbound Protection / Breaker Connection)
+  pemutusId?: string;
+  pemutusCode?: string;
+  pemutusType?: 'Recloser' | 'PMCB' | 'LBS Motorized' | 'LBS Manual' | 'PMT' | 'FCO' | 'Disconnector (DS)' | string;
+  sequenceOrder?: number;
   // FCO / LBSM / Recloser / PMCB Percabangan Manual Input
   hasFcoBranch?: boolean;
   branchDeviceType?: 'FCO' | 'LBSM' | 'Recloser' | 'PMCB' | string;
@@ -213,6 +219,85 @@ export function getSectionBranches(sec: Partial<MasterSection>): BranchDevice[] 
     }];
   }
   return [];
+}
+
+export interface CoveredSectionsInfo {
+  coveredSections: MasterSection[];
+  isAllSections: boolean;
+  label: string;
+  shortLabel: string;
+  totalGardu: number;
+  totalCustomers: number;
+  totalLengthKms: number;
+  sectionNames: string[];
+}
+
+export function getDownstreamCoveredSections(
+  feederName: string,
+  startSectionIdOrName?: string,
+  sections: MasterSection[] = []
+): CoveredSectionsInfo {
+  const feederSecs = (sections || []).filter(
+    s => s && s.feederName && feederName && s.feederName.trim().toLowerCase() === feederName.trim().toLowerCase()
+  );
+
+  // If no specific section chosen or empty
+  if (!startSectionIdOrName || startSectionIdOrName === '' || startSectionIdOrName === 'ALL' || startSectionIdOrName === 'GI') {
+    const totalG = feederSecs.reduce((sum, s) => sum + (Number(s.garduCount) || 0), 0);
+    const totalC = feederSecs.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
+    const totalL = feederSecs.reduce((sum, s) => sum + (Number(s.lengthKms) || 0), 0);
+    return {
+      coveredSections: feederSecs,
+      isAllSections: true,
+      label: feederSecs.length > 0
+        ? `Semua Section (${feederSecs[0].sectionName || feederSecs[0].sectionCode} s/d Ujung Jaringan)`
+        : 'Semua Section / GI (Pangkal s/d Ujung Jaringan)',
+      shortLabel: 'Semua Section / GI',
+      totalGardu: totalG,
+      totalCustomers: totalC,
+      totalLengthKms: Number(totalL.toFixed(2)),
+      sectionNames: feederSecs.map(s => s.sectionName || s.sectionCode)
+    };
+  }
+
+  // Find index of selected section (match by ID, sectionName, or sectionCode)
+  const targetIdx = feederSecs.findIndex(
+    s => s.id === startSectionIdOrName || 
+         s.sectionName?.trim().toLowerCase() === startSectionIdOrName.trim().toLowerCase() ||
+         s.sectionCode?.trim().toLowerCase() === startSectionIdOrName.trim().toLowerCase()
+  );
+
+  if (targetIdx === -1) {
+    return {
+      coveredSections: [],
+      isAllSections: false,
+      label: `${startSectionIdOrName} - Ujung Jaringan`,
+      shortLabel: `${startSectionIdOrName} - Ujung Jaringan`,
+      totalGardu: 0,
+      totalCustomers: 0,
+      totalLengthKms: 0,
+      sectionNames: [startSectionIdOrName]
+    };
+  }
+
+  const downstream = feederSecs.slice(targetIdx);
+  const startSec = feederSecs[targetIdx];
+  const startName = startSec.sectionName || startSec.sectionCode;
+
+  const totalG = downstream.reduce((sum, s) => sum + (Number(s.garduCount) || 0), 0);
+  const totalC = downstream.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
+  const totalL = downstream.reduce((sum, s) => sum + (Number(s.lengthKms) || 0), 0);
+
+  return {
+    coveredSections: downstream,
+    isAllSections: false,
+    label: `${startName} - Ujung Jaringan`,
+    shortLabel: `${startName} - Ujung Jaringan`,
+    totalGardu: totalG,
+    totalCustomers: totalC,
+    totalLengthKms: Number(totalL.toFixed(2)),
+    sectionNames: downstream.map(s => s.sectionName || s.sectionCode)
+  };
 }
 
 export interface MasterGarduHubung {
@@ -246,8 +331,10 @@ export interface MasterGarduDistribusi {
 export interface MasterPemutus {
   id: string;
   equipmentCode: string;
-  equipmentType: 'Recloser' | 'LBS Motorized' | 'LBS Manual' | 'PMT' | 'FCO' | 'Disconnector (DS)';
+  equipmentType: 'Recloser' | 'LBS Motorized' | 'LBS Manual' | 'PMT' | 'FCO' | 'Disconnector (DS)' | 'PMCB';
   feederName: string;
+  sectionId?: string;
+  sectionName?: string;
   location: string;
   brandModel: string;
   currentRatingAmpere: number;

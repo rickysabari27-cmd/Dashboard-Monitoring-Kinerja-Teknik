@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ViewMode, BranchDevice, getSectionBranches } from '../../types';
+import { ViewMode, BranchDevice, MasterFeeder, MasterSection, MasterPemutus, getSectionBranches, getDownstreamCoveredSections } from '../../types';
 import { 
   X, 
   Zap, 
@@ -18,7 +18,8 @@ import {
   PlusCircle,
   Plus,
   Trash2,
-  GitBranch
+  GitBranch,
+  Cpu
 } from 'lucide-react';
 
 interface UniversalInputModalProps {
@@ -27,6 +28,8 @@ interface UniversalInputModalProps {
   defaultTab?: ViewMode | string;
   isDarkMode: boolean;
   masterFeeders?: MasterFeeder[];
+  masterSections?: MasterSection[];
+  masterPemutus?: MasterPemutus[];
   onSaveTrip?: (trip: any) => void;
   onSaveSpk?: (spk: any) => void;
   onSaveInspection?: (inspection: any) => void;
@@ -34,6 +37,7 @@ interface UniversalInputModalProps {
   onSaveMeasurement?: (measurement: any) => void;
   onSaveMasterFeeder?: (feeder: any) => void;
   onSaveMasterSection?: (section: any) => void;
+  onSaveMasterPemutus?: (pemutus: any) => void;
   onSaveSaidi?: (month: string, saidiReal: number, saifiReal: number) => void;
   onSaveMaterial?: (material: any) => void;
   onSaveApd?: (apd: any) => void;
@@ -48,12 +52,15 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   defaultTab = 'trips',
   isDarkMode,
   masterFeeders = [],
+  masterSections = [],
+  masterPemutus = [],
   onSaveTrip,
   onSaveSpk,
   onSaveInspection,
   onSaveMeasurement,
   onSaveMasterFeeder,
   onSaveMasterSection,
+  onSaveMasterPemutus,
   onSaveSaidi,
   onSaveMaterial,
   onSaveApd,
@@ -76,6 +83,9 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecLength('');
       setMSecKha('');
       setMSecCust('');
+      setMSecPemutusId('');
+      setMSecPemutusCode('');
+      setMSecPemutusType('');
       setMSecHasFco(false);
       setMSecFcoBranches([]);
       setMSecBranchDeviceType('FCO');
@@ -87,8 +97,18 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecVoltageKv('');
       setMSecVoltageDrop('');
       setMSecTemperature('');
+      // Reset Master Pemutus
+      setPmtCode('');
+      setPmtType('PMCB');
+      setPmtFeeder('');
+      setPmtSectionId('');
+      setPmtLoc('');
+      setPmtBrand('');
+      setPmtRating(630);
+      setPmtScada('Terhubung SCADA');
+      setPmtStatus('Masuk / ON');
     }
-  }, [defaultTab, isOpen]);
+  }, [defaultTab, isOpen, masterFeeders]);
 
   // Form States
   // 1. Trips
@@ -160,6 +180,9 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [mSecKha, setMSecKha] = useState<number | string>('');
   const [mSecCust, setMSecCust] = useState<number | string>('');
   const [mSecStatus, setMSecStatus] = useState<string>('Operasi');
+  const [mSecPemutusId, setMSecPemutusId] = useState('');
+  const [mSecPemutusCode, setMSecPemutusCode] = useState('');
+  const [mSecPemutusType, setMSecPemutusType] = useState<string>('');
   const [mSecHasFco, setMSecHasFco] = useState(false);
   const [mSecBranchDeviceType, setMSecBranchDeviceType] = useState<'FCO' | 'LBSM' | 'Recloser' | 'PMCB'>('FCO');
   const [mSecFcoName, setMSecFcoName] = useState('');
@@ -167,6 +190,17 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   const [mSecFcoKha, setMSecFcoKha] = useState<number | string>('');
   const [mSecFcoLaterals, setMSecFcoLaterals] = useState('');
   const [mSecFcoBranches, setMSecFcoBranches] = useState<BranchDevice[]>([]);
+
+  // 5c. Master Pemutus
+  const [pmtCode, setPmtCode] = useState('');
+  const [pmtType, setPmtType] = useState<'PMCB' | 'Recloser' | 'LBS Motorized' | 'LBS Manual' | 'SSO' | 'Sectionalizer'>('PMCB');
+  const [pmtFeeder, setPmtFeeder] = useState('ALLANG');
+  const [pmtSectionId, setPmtSectionId] = useState('');
+  const [pmtLoc, setPmtLoc] = useState('');
+  const [pmtBrand, setPmtBrand] = useState('');
+  const [pmtRating, setPmtRating] = useState<number | string>(630);
+  const [pmtScada, setPmtScada] = useState<'Terhubung SCADA' | 'Manual / Non-SCADA'>('Terhubung SCADA');
+  const [pmtStatus, setPmtStatus] = useState<'Masuk / ON' | 'Lepas / OFF'>('Masuk / ON');
 
   const handleMAddBranch = () => {
     const newBr: BranchDevice = {
@@ -255,6 +289,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     { id: 'pengukuran', label: 'Pengukuran Gardu', icon: Gauge, color: 'text-amber-500' },
     { id: 'master_data', label: 'Master Feeder', icon: Database, color: 'text-purple-500' },
     { id: 'master_section', label: 'Master Section', icon: Layers, color: 'text-cyan-500' },
+    { id: 'master_pemutus', label: 'Alat Pemutus (PMCB/Recloser)', icon: Cpu, color: 'text-blue-500' },
     { id: 'saidi_saifi', label: 'SAIDI / SAIFI', icon: BarChart2, color: 'text-teal-500' },
     { id: 'material', label: 'Stok Material', icon: Package, color: 'text-indigo-500' },
     { id: 'apd', label: 'Alat Kerja & APD', icon: Shield, color: 'text-emerald-500' },
@@ -283,7 +318,8 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       const durHours = durationMins / 60;
       const ensVal = Math.round(kwVal * durHours);
       const affCust = Number(tripCustomers) || 0;
-      const totalUlp = 45200;
+      const systemTotalCustomers = (masterFeeders || []).reduce((sum, f) => sum + (Number(f.customerCount) || 0), 0);
+      const totalUlp = systemTotalCustomers > 0 ? systemTotalCustomers : 45200;
       const saidiH = totalUlp > 0 ? (durHours * affCust) / totalUlp : 0;
       const saidiM = saidiH * 60;
       const saifiC = totalUlp > 0 ? affCust / totalUlp : 0;
@@ -433,6 +469,8 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       }));
       const hasBranch = branchesToSave.length > 0;
 
+      const selectedPmt = masterPemutus.find(p => p.id === mSecPemutusId);
+
       onSaveMasterSection({
         id: `SEC-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         sectionCode: mSecCode || `SEC-${Math.floor(Math.random() * 900 + 100)}`,
@@ -449,6 +487,9 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
         totalBebanKha: mSecKha !== '' ? Number(mSecKha) : 0,
         customerCount: mSecCust !== '' ? Number(mSecCust) : 0,
         status: mSecStatus || 'Operasi',
+        pemutusId: mSecPemutusId || (selectedPmt?.id) || undefined,
+        pemutusCode: mSecPemutusCode || (selectedPmt?.equipmentCode) || undefined,
+        pemutusType: (mSecPemutusType as any) || (selectedPmt?.equipmentType) || undefined,
         fcoBranches: branchesToSave,
         hasFcoBranch: hasBranch,
         branchDeviceType: hasBranch ? branchesToSave[0].branchDeviceType : 'FCO',
@@ -470,6 +511,9 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecGarduCount('');
       setMSecKha('');
       setMSecCust('');
+      setMSecPemutusId('');
+      setMSecPemutusCode('');
+      setMSecPemutusType('');
       setMSecHasFco(false);
       setMSecFcoBranches([]);
       setMSecBranchDeviceType('FCO');
@@ -481,6 +525,34 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecVoltageKv('');
       setMSecVoltageDrop('');
       setMSecTemperature('');
+    } else if (activeTab === 'master_pemutus' && onSaveMasterPemutus) {
+      const selectedSec = masterSections.find(s => s.id === pmtSectionId);
+      const generatedCode = pmtCode.trim() || `${pmtType.toUpperCase().replace(/\s+/g, '')}-${pmtFeeder.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 90 + 10)}`;
+
+      onSaveMasterPemutus({
+        id: `PMT-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        equipmentCode: generatedCode,
+        equipmentType: pmtType,
+        feederName: pmtFeeder,
+        sectionId: pmtSectionId || undefined,
+        sectionName: selectedSec?.sectionName || undefined,
+        location: pmtLoc || `Tiang ${generatedCode}`,
+        brandModel: pmtBrand || 'Entec / Tavrida 20kV',
+        currentRatingAmpere: Number(pmtRating) || 630,
+        scadaStatus: pmtScada,
+        status: pmtStatus,
+        lastMaintenance: new Date().toISOString().split('T')[0]
+      });
+
+      setPmtCode('');
+      setPmtType('PMCB');
+      setPmtFeeder(masterFeeders[0]?.feederName || 'ALLANG');
+      setPmtSectionId('');
+      setPmtLoc('');
+      setPmtBrand('');
+      setPmtRating(630);
+      setPmtScada('Terhubung SCADA');
+      setPmtStatus('Masuk / ON');
     } else if (activeTab === 'saidi_saifi' && onSaveSaidi) {
       onSaveSaidi(saidiMonth, Number(saidiVal), Number(saifiVal));
     } else if (activeTab === 'material' && onSaveMaterial) {
@@ -610,9 +682,12 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 <div>
                   <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Relay Dominan</label>
                   <select value={tripRelay} onChange={(e) => setTripRelay(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
-                    <option value="GFR / OCR">GFR / OCR</option>
-                    <option value="GFR">GFR (Ground Fault)</option>
-                    <option value="OCR">OCR (Over Current)</option>
+                    <option value="GFR / OCR">GFR / OCR (Tanah & Arus Lebih)</option>
+                    <option value="GFR">GFR (Ground Fault Relay)</option>
+                    <option value="OCR">OCR (Over Current Relay)</option>
+                    <option value="UVR">UVR (Under Voltage Relay)</option>
+                    <option value="OVR">OVR (Over Voltage Relay)</option>
+                    <option value="UFR">UFR (Under Frequency Relay)</option>
                   </select>
                 </div>
               </div>
@@ -1009,15 +1084,31 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang</label>
                   <select 
                     value={mSecFeeder} 
-                    onChange={(e) => setMSecFeeder(e.target.value)} 
+                    onChange={(e) => {
+                      setMSecFeeder(e.target.value);
+                      setMSecPemutusId('');
+                      setMSecPemutusCode('');
+                      setMSecPemutusType('');
+                    }} 
                     className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                   >
-                    <option value="ALLANG">ALLANG</option>
-                    <option value="LATERI 2">LATERI 2</option>
-                    <option value="TULEHU">TULEHU</option>
-                    <option value="PASSO">PASSO</option>
-                    <option value="BATU MERAH">BATU MERAH</option>
-                    <option value="HATIVE">HATIVE</option>
+                    <option value="">Pilih Penyulang</option>
+                    {masterFeeders.length === 0 ? (
+                      <>
+                        <option value="ALLANG">ALLANG</option>
+                        <option value="LATERI 2">LATERI 2</option>
+                        <option value="TULEHU">TULEHU</option>
+                        <option value="PASSO">PASSO</option>
+                        <option value="BATU MERAH">BATU MERAH</option>
+                        <option value="HATIVE">HATIVE</option>
+                      </>
+                    ) : (
+                      masterFeeders.map(f => (
+                        <option key={f.id || f.feederName} value={f.feederName}>
+                          {f.feederName} ({f.feederCode})
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 <div>
@@ -1047,6 +1138,42 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                     </optgroup>
                   </select>
                 </div>
+              </div>
+
+              {/* Pemutus Jaringan (PMCB, Recloser, LBS) Connection */}
+              <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-xs text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5" />
+                    <span>Alat Pemutus Section (PMCB / Recloser / LBS)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">Terkoneksi ke simulasi pemadaman SAIDI/SAIFI</span>
+                </div>
+                <select
+                  value={mSecPemutusId}
+                  onChange={(e) => {
+                    const selId = e.target.value;
+                    setMSecPemutusId(selId);
+                    const found = masterPemutus.find(p => p.id === selId);
+                    if (found) {
+                      setMSecPemutusCode(found.equipmentCode);
+                      setMSecPemutusType(found.equipmentType);
+                    } else {
+                      setMSecPemutusCode('');
+                      setMSecPemutusType('');
+                    }
+                  }}
+                  className="w-full p-2.5 rounded-xl border font-bold bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-xs"
+                >
+                  <option value="">-- Tanpa Alat Pemutus Khusus / GI Pangkal --</option>
+                  {masterPemutus
+                    .filter(p => !mSecFeeder || p.feederName.toLowerCase() === mSecFeeder.toLowerCase())
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        [{p.equipmentType}] {p.equipmentCode} - {p.location} ({p.status})
+                      </option>
+                    ))}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1282,6 +1409,212 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                       className="w-full p-2 text-xs rounded-lg border bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white font-bold"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5c: MASTER PEMUTUS */}
+          {activeTab === 'master_pemutus' && (
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 font-semibold mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-blue-500" />
+                  <span>Input Data Master Alat Pemutus Beban 20kV (PMCB / Recloser / LBS)</span>
+                </span>
+                <span className="text-[11px] font-normal text-blue-600 dark:text-blue-400">Proteksi & Switching</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Jenis Peralatan Pemutus</label>
+                  <select 
+                    value={pmtType} 
+                    onChange={(e) => setPmtType(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="PMCB">PMCB (Pole Mounted Circuit Breaker)</option>
+                    <option value="Recloser">Recloser (Penutup Balik Otomatis)</option>
+                    <option value="LBS Motorized">LBS Motorized (Load Break Switch Motor)</option>
+                    <option value="LBS Manual">LBS Manual</option>
+                    <option value="SSO">SSO (Sectionalizer Switch)</option>
+                    <option value="Sectionalizer">Sectionalizer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Peralatan</label>
+                  <input 
+                    type="text" 
+                    value={pmtCode} 
+                    onChange={(e) => setPmtCode(e.target.value)} 
+                    placeholder={`Contoh: ${pmtType.toUpperCase()}-${pmtFeeder.substring(0, 3)}-01`} 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Penyulang (Feeder)</label>
+                  <select 
+                    value={pmtFeeder} 
+                    onChange={(e) => {
+                      setPmtFeeder(e.target.value);
+                      setPmtSectionId('');
+                    }} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    {masterFeeders.length === 0 ? (
+                      <>
+                        <option value="ALLANG">ALLANG</option>
+                        <option value="LATERI 2">LATERI 2</option>
+                        <option value="TULEHU">TULEHU</option>
+                        <option value="PASSO">PASSO</option>
+                        <option value="BATU MERAH">BATU MERAH</option>
+                        <option value="HATIVE">HATIVE</option>
+                      </>
+                    ) : (
+                      masterFeeders.map(f => (
+                        <option key={f.id || f.feederName} value={f.feederName}>
+                          {f.feederName} ({f.feederCode})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Koneksi Section (Titik Proteksi Awal)
+                  </label>
+                  <select 
+                    value={pmtSectionId} 
+                    onChange={(e) => setPmtSectionId(e.target.value)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-xs"
+                  >
+                    <option value="">Semua Section / GI (Proteksi Total dari Pangkal GI s/d Ujung)</option>
+                    {masterSections
+                      .filter(s => !pmtFeeder || s.feederName.toLowerCase() === pmtFeeder.toLowerCase())
+                      .map(s => {
+                        const cov = getDownstreamCoveredSections(pmtFeeder, s.id, masterSections);
+                        return (
+                          <option key={s.id} value={s.id}>
+                            {s.sectionCode ? `[${s.sectionCode}] ` : ''}{s.sectionName} ➔ Mengkover {cov.coveredSections.length > 1 ? `${cov.coveredSections.length} Section` : 'Section'} s/d Ujung ({cov.totalGardu} Gardu)
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+              </div>
+
+              {/* Dynamic Downstream Coverage Preview */}
+              {(() => {
+                const covInfo = getDownstreamCoveredSections(pmtFeeder, pmtSectionId, masterSections);
+                const selectedSec = masterSections.find(s => s.id === pmtSectionId);
+                return (
+                  <div className={`p-3 rounded-xl border transition-all text-xs ${
+                    pmtSectionId 
+                      ? 'bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 text-slate-800 dark:text-slate-200'
+                      : 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/80 text-slate-800 dark:text-slate-200'
+                  }`}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 font-bold text-xs">
+                        <Zap className={`w-4 h-4 ${pmtSectionId ? 'text-indigo-600 dark:text-indigo-400' : 'text-blue-600 dark:text-blue-400'}`} />
+                        <span>Cakupan Proteksi & Pengaruh Padam:</span>
+                      </div>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        pmtSectionId
+                          ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                          : 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
+                      }`}>
+                        {pmtSectionId ? `${selectedSec?.sectionName || covInfo.shortLabel} - Ujung Jaringan` : 'Semua Section / GI'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mb-2">
+                      {pmtSectionId ? (
+                        <>
+                          Pemutus ini dipasang pada section awal dan <strong className="text-indigo-600 dark:text-indigo-400 font-bold">mengkover section tersebut beserta seluruh section setelahnya hingga ujung jaringan</strong>.
+                        </>
+                      ) : (
+                        <>
+                          Pemutus beroperasi di <strong className="text-blue-600 dark:text-blue-400 font-bold">Pangkal GI (Semua Section)</strong> dan memproteksi seluruh jalur penyulang dari awal hingga ujung jaringan.
+                        </>
+                      )}
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-center">
+                      <div className="bg-white/70 dark:bg-slate-900/60 p-1 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+                        <div className="text-[9px] text-slate-500 font-medium">Total Section</div>
+                        <div className="text-xs font-black text-slate-900 dark:text-white">{covInfo.coveredSections.length} Section</div>
+                      </div>
+                      <div className="bg-white/70 dark:bg-slate-900/60 p-1 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+                        <div className="text-[9px] text-slate-500 font-medium">Gardu Terkover</div>
+                        <div className="text-xs font-black text-slate-900 dark:text-white">{covInfo.totalGardu} Gardu</div>
+                      </div>
+                      <div className="bg-white/70 dark:bg-slate-900/60 p-1 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+                        <div className="text-[9px] text-slate-500 font-medium">Pelanggan Terkover</div>
+                        <div className="text-xs font-black text-slate-900 dark:text-white">{covInfo.totalCustomers.toLocaleString('id-ID')} Plg</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Lokasi / Titik Tiang</label>
+                  <input 
+                    type="text" 
+                    value={pmtLoc} 
+                    onChange={(e) => setPmtLoc(e.target.value)} 
+                    placeholder="Contoh: Tiang ALG-089 Desa Laha" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Merk / Model</label>
+                  <input 
+                    type="text" 
+                    value={pmtBrand} 
+                    onChange={(e) => setPmtBrand(e.target.value)} 
+                    placeholder="Contoh: Tavrida OSM25 / Entec" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Arus Rating (A)</label>
+                  <input 
+                    type="number" 
+                    value={pmtRating} 
+                    onChange={(e) => setPmtRating(e.target.value)} 
+                    placeholder="630" 
+                    className="w-full p-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 font-bold focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" 
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Koneksi SCADA</label>
+                  <select 
+                    value={pmtScada} 
+                    onChange={(e) => setPmtScada(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Terhubung SCADA">Terhubung SCADA (Remote RTU)</option>
+                    <option value="Manual / Non-SCADA">Manual / Non-SCADA</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Status Operasi</label>
+                  <select 
+                    value={pmtStatus} 
+                    onChange={(e) => setPmtStatus(e.target.value as any)} 
+                    className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Masuk / ON">Masuk / ON (Tersambung)</option>
+                    <option value="Lepas / OFF">Lepas / OFF (Padam/Terbuka)</option>
+                  </select>
                 </div>
               </div>
             </div>

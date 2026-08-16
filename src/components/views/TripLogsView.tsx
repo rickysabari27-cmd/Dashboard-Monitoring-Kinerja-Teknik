@@ -167,7 +167,8 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               ) : (
                 filteredTrips.map((trip) => {
                   const durationHours = trip.durationMinutes / 60;
-                  const totalUlp = trip.totalUlpCustomers || 45200;
+                  const masterTotalCust = (masterFeeders || []).reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
+                  const totalUlp = trip.totalUlpCustomers || (masterTotalCust > 0 ? masterTotalCust : 45200);
                   const saidiHours = trip.saidiHours ?? Number(((durationHours * trip.affectedCustomers) / totalUlp).toFixed(4));
                   const saidiMins = trip.saidiMinutes ?? Number((saidiHours * 60).toFixed(2));
                   const saifiVal = trip.saifiCount ?? Number((trip.affectedCustomers / totalUlp).toFixed(4));

@@ -64,7 +64,7 @@ import { InputSaidiModal } from './components/modals/InputSaidiModal';
 import { UniversalInputModal } from './components/modals/UniversalInputModal';
 import { LoginModal } from './components/modals/LoginModal';
 import { WhatsAppModal } from './components/modals/WhatsAppModal';
-import { Menu, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Menu, Sparkles, CheckCircle2, SlidersHorizontal, ChevronRight } from 'lucide-react';
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -183,7 +183,16 @@ export default function App() {
         }
       });
     });
-    const unsubPmt = syncCollection<MasterPemutus>('master_pemutus', INITIAL_MASTER_PEMUTUS, (data) => setMasterPemutus(data));
+    const unsubPmt = syncCollection<MasterPemutus>('master_pemutus', INITIAL_MASTER_PEMUTUS, (data) => {
+      const isMockPmt = (id: string) => ['PMT-01', 'PMT-02', 'PMT-03', 'PMT-04'].includes(id);
+      const cleanPmt = data.filter(item => !isMockPmt(item.id));
+      setMasterPemutus(cleanPmt);
+      data.forEach(item => {
+        if (isMockPmt(item.id)) {
+          deleteDocument('master_pemutus', item.id);
+        }
+      });
+    });
     const unsubMaterials = syncCollection<MaterialItem>('materials', INITIAL_MATERIALS, (data) => setMaterials(data));
     const unsubApd = syncCollection<ApdTool>('apd_tools', INITIAL_APD_TOOLS, (data) => setApdTools(data));
     const unsubVehicles = syncCollection<Vehicle>('vehicles', INITIAL_VEHICLES, (data) => setVehicles(data));
@@ -646,6 +655,110 @@ export default function App() {
                 financialLossTotal={financialLossTotal}
               />
 
+              {/* Status Peralatan Pemutus & SCADA 20kV */}
+              {(() => {
+                const totalPemutus = masterPemutus.length;
+                const totalPmcb = masterPemutus.filter(p => p.equipmentType === 'PMCB').length;
+                const totalRecloser = masterPemutus.filter(p => p.equipmentType === 'Recloser').length;
+                const totalLbs = masterPemutus.filter(p => p.equipmentType && p.equipmentType.includes('LBS')).length;
+                const totalPmt = masterPemutus.filter(p => p.equipmentType === 'PMT' || p.equipmentType === 'PMT GI').length;
+                const totalFco = masterPemutus.filter(p => p.equipmentType === 'FCO' || p.equipmentType === 'SSO').length;
+                const totalScada = masterPemutus.filter(p => p.scadaStatus === 'Terhubung SCADA').length;
+
+                return (
+                  <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                    isDarkMode ? 'bg-slate-900/60 border-slate-800/80' : 'bg-white border-slate-200 shadow-xs'
+                  }`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                          <SlidersHorizontal className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            Peralatan Pemutus & Otomasi SCADA 20kV
+                          </h3>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Monitoring ketersediaan switching proteksi jaringan ULP Baguala
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setCurrentView('master_data')}
+                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Kelola Master Pemutus</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      {/* Total Alat Pemutus */}
+                      <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                        isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">Total Alat Pemutus</span>
+                        <div className="text-xl font-black text-blue-600 dark:text-blue-400">{totalPemutus} Unit</div>
+                      </div>
+
+                      {/* Dynamic cards: only shown if value > 0 */}
+                      {totalPmcb > 0 && (
+                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <span className="text-[10px] uppercase font-bold text-blue-500 block mb-0.5">PMCB</span>
+                          <div className="text-xl font-black text-blue-600 dark:text-blue-400">{totalPmcb} Unit</div>
+                        </div>
+                      )}
+
+                      {totalRecloser > 0 && (
+                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <span className="text-[10px] uppercase font-bold text-purple-500 block mb-0.5">Recloser / OCR</span>
+                          <div className="text-xl font-black text-purple-600 dark:text-purple-400">{totalRecloser} Unit</div>
+                        </div>
+                      )}
+
+                      {totalLbs > 0 && (
+                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <span className="text-[10px] uppercase font-bold text-emerald-500 block mb-0.5">LBS Motor / Manual</span>
+                          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalLbs} Unit</div>
+                        </div>
+                      )}
+
+                      {totalPmt > 0 && (
+                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <span className="text-[10px] uppercase font-bold text-amber-500 block mb-0.5">PMT GI</span>
+                          <div className="text-xl font-black text-amber-600 dark:text-amber-400">{totalPmt} Unit</div>
+                        </div>
+                      )}
+
+                      {totalFco > 0 && (
+                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <span className="text-[10px] uppercase font-bold text-orange-500 block mb-0.5">FCO / SSO</span>
+                          <div className="text-xl font-black text-orange-600 dark:text-orange-400">{totalFco} Unit</div>
+                        </div>
+                      )}
+
+                      {/* Terhubung SCADA */}
+                      <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
+                        isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <span className="text-[10px] uppercase font-bold text-teal-500 block mb-0.5">Terhubung SCADA</span>
+                        <div className="text-xl font-black text-teal-600 dark:text-teal-400">{totalScada} Online</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Middle Section: Trip Frequency + Reliability Analysis */}
               <TripFrequencyChart 
                 isDarkMode={isDarkMode}
@@ -802,12 +915,15 @@ export default function App() {
         defaultTab={universalModalTab}
         isDarkMode={isDarkMode}
         masterFeeders={masterFeeders}
+        masterSections={masterSections}
+        masterPemutus={masterPemutus}
         onSaveTrip={handleSaveTrip}
         onSaveSpk={handleSaveSpk}
         onSaveInspection={handleSaveInspection}
         onSaveMeasurement={handleSaveMeasurement}
         onSaveMasterFeeder={handleSaveMasterFeeder}
         onSaveMasterSection={handleSaveMasterSection}
+        onSaveMasterPemutus={handleSaveMasterPemutus}
         onSaveSaidi={handleUpdateSaidi}
         onSaveMaterial={handleSaveMaterial}
         onSaveApd={handleSaveApd}

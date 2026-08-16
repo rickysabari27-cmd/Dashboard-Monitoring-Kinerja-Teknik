@@ -54,19 +54,23 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     ? masterFeeders.map(f => ({ name: f.feederName, cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0 }))
     : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ name: k, cust: DEFAULT_FEEDER_MAP[k] }));
 
+  // Master total customers sum across all feeders
+  const masterTotalCustomers = masterFeeders.reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
+  const defaultUlpCustomers = masterTotalCustomers > 0 ? masterTotalCustomers : 45200;
+
   // 1. Basic Info State (Default Blank / Empty for Manual Input)
   const [feederName, setFeederName] = useState('');
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [tripTime, setTripTime] = useState('');
   const [recoveryTime, setRecoveryTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(0);
-  const [relayType, setRelayType] = useState<'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR'>('GFR / OCR');
+  const [relayType, setRelayType] = useState<'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR' | 'UFR'>('GFR / OCR');
   
   // 2. Load & Power State (Blank)
   const [currentAmpere, setCurrentAmpere] = useState<string>(''); // Beban Arus Penyulang (A)
   
   // 3. Customer & SAIDI/SAIFI State
-  const [totalUlpCustomers, setTotalUlpCustomers] = useState<number | string>(45200);
+  const [totalUlpCustomers, setTotalUlpCustomers] = useState<number | string>(defaultUlpCustomers);
   const [affectedCustomers, setAffectedCustomers] = useState<string>('');
   
   // 4. Incident Detail State (Blank)
@@ -84,7 +88,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // Tariff PLN per kWh
   const TARIFF_PER_KWH = 1444.70;
 
-  // Reset form to blank whenever modal opens
+  // Reset form to blank whenever modal opens or masterFeeders updates
   useEffect(() => {
     if (isOpen) {
       const defaultFeeder = availableFeeders[0]?.name || '';
@@ -97,7 +101,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       setDurationMinutes(0);
       setRelayType('GFR / OCR');
       setCurrentAmpere('');
-      setTotalUlpCustomers(45200);
+      setTotalUlpCustomers(defaultUlpCustomers);
       setAffectedCustomers(initialCust.toString());
       setLocationKm('');
       setCoordinates('');
@@ -108,7 +112,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       setIL2('');
       setIL3('');
     }
-  }, [isOpen]);
+  }, [isOpen, masterFeeders]);
 
   // Auto calculate Duration whenever tripTime or recoveryTime changes
   useEffect(() => {
@@ -352,6 +356,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   <option value="OCR">OCR (Over Current Relay)</option>
                   <option value="UVR">UVR (Under Voltage Relay)</option>
                   <option value="OVR">OVR (Over Voltage Relay)</option>
+                  <option value="UFR">UFR (Under Frequency Relay)</option>
                 </select>
               </div>
             </div>
@@ -490,9 +495,16 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">
-                  Total Pelanggan Sistem ULP Baguala
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-600 dark:text-slate-300 block">
+                    Total Pelanggan Sistem ULP Baguala
+                  </label>
+                  {masterTotalCustomers > 0 && (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span>✓ Sinkron Master Data</span>
+                    </span>
+                  )}
+                </div>
                 <input 
                   type="number"
                   value={totalUlpCustomers}
