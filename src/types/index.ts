@@ -241,6 +241,34 @@ export function getDownstreamCoveredSections(
     s => s && s.feederName && feederName && s.feederName.trim().toLowerCase() === feederName.trim().toLowerCase()
   );
 
+  // Parse branch notation: sectionId::branchIdOrName
+  if (startSectionIdOrName && startSectionIdOrName.includes('::')) {
+    const [secId, brIdOrName] = startSectionIdOrName.split('::');
+    const parentSec = (sections || []).find(
+      s => s.id === secId || s.sectionName?.trim().toLowerCase() === secId.trim().toLowerCase()
+    );
+    if (parentSec) {
+      const branches = parentSec.fcoBranches || [];
+      const branch = branches.find(b => b.id === brIdOrName || b.fcoBranchName === brIdOrName) || {
+        fcoBranchName: brIdOrName,
+        fcoLengthKms: parentSec.fcoLengthKms || 0,
+        fcoKhaAmpere: parentSec.fcoKhaAmpere || 0,
+        branchDeviceType: parentSec.branchDeviceType || 'FCO'
+      };
+
+      return {
+        coveredSections: [],
+        isAllSections: false,
+        label: `Percabangan [${branch.fcoBranchName}] (${branch.branchDeviceType || 'FCO'})`,
+        shortLabel: branch.fcoBranchName,
+        totalGardu: 0,
+        totalCustomers: 0, // Since it is only a lateral branch, we don't trip the whole main section customers
+        totalLengthKms: branch.fcoLengthKms || 0,
+        sectionNames: [`Percabangan: ${branch.fcoBranchName}`]
+      };
+    }
+  }
+
   // If no specific section chosen or empty
   if (!startSectionIdOrName || startSectionIdOrName === '' || startSectionIdOrName === 'ALL' || startSectionIdOrName === 'GI') {
     const totalG = feederSecs.reduce((sum, s) => sum + (Number(s.garduCount) || 0), 0);

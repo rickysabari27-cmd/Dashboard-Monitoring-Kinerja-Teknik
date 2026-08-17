@@ -526,7 +526,16 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
       setMSecVoltageDrop('');
       setMSecTemperature('');
     } else if (activeTab === 'master_pemutus' && onSaveMasterPemutus) {
-      const selectedSec = masterSections.find(s => s.id === pmtSectionId);
+      let sectionNameText = undefined;
+      let realSectionId = pmtSectionId || undefined;
+      if (pmtSectionId && pmtSectionId.includes('::')) {
+        const [secId, brName] = pmtSectionId.split('::');
+        const parentSec = masterSections.find(s => s.id === secId);
+        sectionNameText = parentSec ? `${parentSec.sectionName} (Branch: ${brName})` : pmtSectionId;
+      } else if (pmtSectionId) {
+        const selectedSec = masterSections.find(s => s.id === pmtSectionId);
+        sectionNameText = selectedSec?.sectionName;
+      }
       const generatedCode = pmtCode.trim() || `${pmtType.toUpperCase().replace(/\s+/g, '')}-${pmtFeeder.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 90 + 10)}`;
 
       onSaveMasterPemutus({
@@ -534,8 +543,8 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
         equipmentCode: generatedCode,
         equipmentType: pmtType,
         feederName: pmtFeeder,
-        sectionId: pmtSectionId || undefined,
-        sectionName: selectedSec?.sectionName || undefined,
+        sectionId: realSectionId,
+        sectionName: sectionNameText,
         location: pmtLoc || `Tiang ${generatedCode}`,
         brandModel: pmtBrand || 'Entec / Tavrida 20kV',
         currentRatingAmpere: Number(pmtRating) || 630,
@@ -1140,41 +1149,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                 </div>
               </div>
 
-              {/* Pemutus Jaringan (PMCB, Recloser, LBS) Connection */}
-              <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-xs text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5" />
-                    <span>Alat Pemutus Section (PMCB / Recloser / LBS)</span>
-                  </label>
-                  <span className="text-[10px] text-slate-400">Terkoneksi ke simulasi pemadaman SAIDI/SAIFI</span>
-                </div>
-                <select
-                  value={mSecPemutusId}
-                  onChange={(e) => {
-                    const selId = e.target.value;
-                    setMSecPemutusId(selId);
-                    const found = masterPemutus.find(p => p.id === selId);
-                    if (found) {
-                      setMSecPemutusCode(found.equipmentCode);
-                      setMSecPemutusType(found.equipmentType);
-                    } else {
-                      setMSecPemutusCode('');
-                      setMSecPemutusType('');
-                    }
-                  }}
-                  className="w-full p-2.5 rounded-xl border font-bold bg-white dark:bg-slate-800 border-blue-300 dark:border-blue-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-xs"
-                >
-                  <option value="">-- Tanpa Alat Pemutus Khusus / GI Pangkal --</option>
-                  {masterPemutus
-                    .filter(p => !mSecFeeder || p.feederName.toLowerCase() === mSecFeeder.toLowerCase())
-                    .map(p => (
-                      <option key={p.id} value={p.id}>
-                        [{p.equipmentType}] {p.equipmentCode} - {p.location} ({p.status})
-                      </option>
-                    ))}
-                </select>
-              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Titik Awal (In / Pangkal)</label>
@@ -1494,13 +1469,25 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                     <option value="">Semua Section / GI (Proteksi Total dari Pangkal GI s/d Ujung)</option>
                     {masterSections
                       .filter(s => !pmtFeeder || s.feederName.toLowerCase() === pmtFeeder.toLowerCase())
-                      .map(s => {
+                      .flatMap((s, sIdx) => {
                         const cov = getDownstreamCoveredSections(pmtFeeder, s.id, masterSections);
-                        return (
-                          <option key={s.id} value={s.id}>
+                        const options = [
+                          <option key={`sec-${s.id || s.sectionName}-${sIdx}`} value={s.id}>
                             {s.sectionCode ? `[${s.sectionCode}] ` : ''}{s.sectionName} ➔ Mengkover {cov.coveredSections.length > 1 ? `${cov.coveredSections.length} Section` : 'Section'} s/d Ujung ({cov.totalGardu} Gardu)
                           </option>
-                        );
+                        ];
+
+                        // Add branch options if section has branches
+                        const branches = s.fcoBranches || [];
+                        branches.forEach((br, bIdx) => {
+                          options.push(
+                            <option key={`br-${s.id}-${br.id || bIdx}`} value={`${s.id}::${br.fcoBranchName || br.id}`}>
+                              &nbsp;&nbsp;↳ [Percabangan: {br.branchDeviceType || 'FCO'}] {br.fcoBranchName} (Panjang: {br.fcoLengthKms || 0} km, Beban: {br.fcoKhaAmpere || 0} kVA)
+                            </option>
+                          );
+                        });
+
+                        return options;
                       })}
                   </select>
                 </div>

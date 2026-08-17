@@ -2860,51 +2860,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   </select>
                 </div>
               </div>
-              <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block">
-                    Alat Pemutus Section (PMCB / Recloser / LBS / PMT)
-                  </label>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Pilih alat pemutus untuk koneksi data section</span>
-                </div>
-                <select
-                  value={secPemutusId}
-                  onChange={e => {
-                    const pId = e.target.value;
-                    setSecPemutusId(pId);
-                    const pObj = masterPemutus.find(p => p.id === pId);
-                    if (pObj) {
-                      setSecPemutusCode(pObj.equipmentCode);
-                      setSecPemutusType(pObj.equipmentType);
-                    } else {
-                      setSecPemutusCode('');
-                      setSecPemutusType('');
-                    }
-                  }}
-                  className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-blue-400 dark:border-blue-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- Tanpa Pemutus Khusus (Direct / PMT GI) --</option>
-                  {masterPemutus
-                    .filter(p => !secFeeder || p.feederName.toLowerCase() === secFeeder.toLowerCase())
-                    .map((p, pIdx) => (
-                      <option key={`${p.id || p.equipmentCode}-${pIdx}`} value={p.id}>
-                        [{p.equipmentType}] {p.equipmentCode} - Posisi: {p.status} {p.location ? `(${p.location})` : ''} {p.scadaStatus ? `• ${p.scadaStatus}` : ''}
-                      </option>
-                    ))}
-                  {masterPemutus
-                    .filter(p => secFeeder && p.feederName.toLowerCase() !== secFeeder.toLowerCase())
-                    .map((p, pIdx) => (
-                      <option key={`other-${p.id || p.equipmentCode}-${pIdx}`} value={p.id}>
-                        [{p.equipmentType}] {p.equipmentCode} (Penyulang: {p.feederName})
-                      </option>
-                    ))}
-                </select>
-                {secPemutusCode ? (
-                  <div className="flex items-center gap-2 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <span>Terkoneksi Pemutus: <strong>{secPemutusCode}</strong> [{secPemutusType || 'PMCB'}]</span>
-                  </div>
-                ) : null}
-              </div>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -3539,11 +3495,17 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   onChange={e => {
                     const secId = e.target.value;
                     setPmtSectionId(secId);
-                    const secObj = masterSections.find(s => s.id === secId);
-                    if (secObj) {
-                      setPmtSectionName(secObj.sectionName);
+                    if (secId.includes('::')) {
+                      const [parentSecId, brName] = secId.split('::');
+                      const secObj = masterSections.find(s => s.id === parentSecId);
+                      setPmtSectionName(secObj ? `${secObj.sectionName} (Branch: ${brName})` : secId);
                     } else {
-                      setPmtSectionName('');
+                      const secObj = masterSections.find(s => s.id === secId);
+                      if (secObj) {
+                        setPmtSectionName(secObj.sectionName);
+                      } else {
+                        setPmtSectionName('');
+                      }
                     }
                   }}
                   className="w-full p-2.5 rounded-xl border font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-indigo-400 dark:border-indigo-700 focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs"
@@ -3551,13 +3513,25 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                   <option value="">Semua Section / GI (Proteksi Total dari Pangkal GI s/d Ujung)</option>
                   {masterSections
                     .filter(s => !pmtFeeder || s.feederName.toLowerCase() === pmtFeeder.toLowerCase())
-                    .map((s, sIdx) => {
+                    .flatMap((s, sIdx) => {
                       const cov = getDownstreamCoveredSections(pmtFeeder, s.id, masterSections);
-                      return (
-                        <option key={`${s.id || s.sectionName}-${sIdx}`} value={s.id}>
+                      const options = [
+                        <option key={`sec-${s.id || s.sectionName}-${sIdx}`} value={s.id}>
                           {s.sectionCode ? `[${s.sectionCode}] ` : ''}{s.sectionName} ➔ Mengkover {cov.coveredSections.length > 1 ? `${cov.coveredSections.length} Section` : 'Section'} s/d Ujung ({cov.totalGardu} Gardu)
                         </option>
-                      );
+                      ];
+
+                      // Add branch options if section has branches
+                      const branches = s.fcoBranches || [];
+                      branches.forEach((br, bIdx) => {
+                        options.push(
+                          <option key={`br-${s.id}-${br.id || bIdx}`} value={`${s.id}::${br.fcoBranchName || br.id}`}>
+                            &nbsp;&nbsp;↳ [Percabangan: {br.branchDeviceType || 'FCO'}] {br.fcoBranchName} (Panjang: {br.fcoLengthKms || 0} km, Beban: {br.fcoKhaAmpere || 0} kVA)
+                          </option>
+                        );
+                      });
+
+                      return options;
                     })}
                 </select>
 
