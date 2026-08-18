@@ -44,6 +44,8 @@ export interface FeederTrip {
   iL3?: number;
   estimatedDistanceKm?: number;
   faultTypeDetected?: string;
+  tripScope?: 'UTAMA' | 'PERCABANGAN';
+  branchName?: string;
 }
 
 export interface FeederHealth {

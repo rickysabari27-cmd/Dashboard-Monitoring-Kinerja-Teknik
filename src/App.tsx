@@ -77,6 +77,7 @@ export default function App() {
 
   // Core App Datasets with Live State
   const [trips, setTrips] = useState<FeederTrip[]>(INITIAL_TRIPS);
+  const [editingTrip, setEditingTrip] = useState<FeederTrip | null>(null);
   const [monthlySaidiData, setMonthlySaidiData] = useState<MonthlySaidiSaifiData[]>(MONTHLY_SAIDI_SAIFI_2026);
   const [spkList, setSpkList] = useState<SpkTask[]>(INITIAL_SPK_TASKS);
   const [garduMeasurements, setGarduMeasurements] = useState<GarduMeasurement[]>(INITIAL_GARDU_MEASUREMENTS);
@@ -289,10 +290,34 @@ export default function App() {
     setIsUniversalModalOpen(true);
   };
 
+  const handleEditTrip = (trip: FeederTrip) => {
+    setEditingTrip(trip);
+    setIsGangguanModalOpen(true);
+  };
+
+  const handleDeleteTrip = (tripId: string) => {
+    const target = trips.find(t => t.id === tripId);
+    setTrips(prev => prev.filter(t => t.id !== tripId));
+    deleteDocument('trips', tripId);
+    showToast(`Data gangguan ${target ? target.feederName : tripId} berhasil dihapus dari sistem!`);
+  };
+
   // Save Handlers
   const handleSaveTrip = async (newTrip: FeederTrip) => {
-    setTrips([newTrip, ...trips]);
+    setTrips(prev => {
+      const exists = prev.some(t => t.id === newTrip.id);
+      if (exists) {
+        return prev.map(t => t.id === newTrip.id ? newTrip : t);
+      }
+      return [newTrip, ...prev];
+    });
     saveDocument('trips', newTrip, newTrip.id);
+
+    if (editingTrip) {
+      showToast(`Data gangguan ${newTrip.feederName} (${newTrip.id}) berhasil diperbarui!`);
+      setEditingTrip(null);
+      return;
+    }
 
     // Automatically accumulate SAIDI and SAIFI into current active month (Ags 2026)
     if (newTrip.saidiHours !== undefined && newTrip.saidiHours >= 0) {
@@ -789,7 +814,12 @@ export default function App() {
             <TripLogsView 
               isDarkMode={isDarkMode}
               trips={trips}
-              onOpenInputGangguan={() => setIsGangguanModalOpen(true)}
+              onOpenInputGangguan={() => {
+                setEditingTrip(null);
+                setIsGangguanModalOpen(true);
+              }}
+              onEditTrip={handleEditTrip}
+              onDeleteTrip={handleDeleteTrip}
               onOpenWhatsAppModal={(trip) => handleOpenWhatsAppModal(trip, 'Gangguan / Trip')}
               masterFeeders={masterFeeders}
             />
@@ -896,10 +926,14 @@ export default function App() {
       {/* Input Modals */}
       <InputGangguanModal 
         isOpen={isGangguanModalOpen}
-        onClose={() => setIsGangguanModalOpen(false)}
+        onClose={() => {
+          setIsGangguanModalOpen(false);
+          setEditingTrip(null);
+        }}
         onSaveTrip={handleSaveTrip}
         isDarkMode={isDarkMode}
         masterFeeders={masterFeeders}
+        tripToEdit={editingTrip}
       />
 
       <InputSaidiModal 

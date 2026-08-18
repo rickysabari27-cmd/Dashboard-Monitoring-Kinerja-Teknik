@@ -24,6 +24,7 @@ interface InputGangguanModalProps {
   onSaveTrip: (trip: FeederTrip) => void;
   isDarkMode: boolean;
   masterFeeders?: MasterFeeder[];
+  tripToEdit?: FeederTrip | null;
 }
 
 // Default Fallback Feeder Customer Mapping ULP Baguala if masterFeeders is empty
@@ -47,7 +48,8 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   onClose,
   onSaveTrip,
   isDarkMode,
-  masterFeeders = []
+  masterFeeders = [],
+  tripToEdit = null
 }) => {
   // Available feeders list from Master Data
   const availableFeeders = masterFeeders.length > 0 
@@ -65,6 +67,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const [recoveryTime, setRecoveryTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(0);
   const [relayType, setRelayType] = useState<'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR' | 'UFR'>('GFR / OCR');
+  const [tripScope, setTripScope] = useState<'UTAMA' | 'PERCABANGAN'>('UTAMA');
   
   // 2. Load & Power State (Blank)
   const [currentAmpere, setCurrentAmpere] = useState<string>(''); // Beban Arus Penyulang (A)
@@ -88,31 +91,53 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // Tariff PLN per kWh
   const TARIFF_PER_KWH = 1444.70;
 
-  // Reset form to blank whenever modal opens or masterFeeders updates
+  // Reset or populate form whenever modal opens or tripToEdit changes
   useEffect(() => {
     if (isOpen) {
-      const defaultFeeder = availableFeeders[0]?.name || '';
-      const found = availableFeeders.find(f => f.name === defaultFeeder);
-      const initialCust = found ? found.cust : 0;
-      setFeederName(defaultFeeder);
-      setTripDate(new Date().toISOString().split('T')[0]);
-      setTripTime('');
-      setRecoveryTime('');
-      setDurationMinutes(0);
-      setRelayType('GFR / OCR');
-      setCurrentAmpere('');
-      setTotalUlpCustomers(defaultUlpCustomers);
-      setAffectedCustomers(initialCust.toString());
-      setLocationKm('');
-      setCoordinates('');
-      setCause('');
-      setCategory('Tree/ROW');
-      setINol('');
-      setIL1('');
-      setIL2('');
-      setIL3('');
+      if (tripToEdit) {
+        setFeederName(tripToEdit.feederName || availableFeeders[0]?.name || '');
+        setTripDate(tripToEdit.tripDate || new Date().toISOString().split('T')[0]);
+        setTripTime(tripToEdit.tripTime || '');
+        setRecoveryTime(tripToEdit.recoveryTime || '');
+        setDurationMinutes(tripToEdit.durationMinutes || 0);
+        setRelayType(tripToEdit.relayType || 'GFR / OCR');
+        setTripScope(tripToEdit.tripScope || 'UTAMA');
+        setCurrentAmpere(tripToEdit.currentAmpere !== undefined && tripToEdit.currentAmpere !== null ? tripToEdit.currentAmpere.toString() : '');
+        setTotalUlpCustomers(tripToEdit.totalUlpCustomers || defaultUlpCustomers);
+        setAffectedCustomers(tripToEdit.affectedCustomers !== undefined && tripToEdit.affectedCustomers !== null ? tripToEdit.affectedCustomers.toString() : '');
+        setLocationKm(tripToEdit.locationKm || '');
+        setCoordinates(tripToEdit.coordinates || '');
+        setCause(tripToEdit.cause || '');
+        setCategory(tripToEdit.category || 'Tree/ROW');
+        setINol(tripToEdit.iNol !== undefined && tripToEdit.iNol !== null ? tripToEdit.iNol.toString() : '');
+        setIL1(tripToEdit.iL1 !== undefined && tripToEdit.iL1 !== null ? tripToEdit.iL1.toString() : '');
+        setIL2(tripToEdit.iL2 !== undefined && tripToEdit.iL2 !== null ? tripToEdit.iL2.toString() : '');
+        setIL3(tripToEdit.iL3 !== undefined && tripToEdit.iL3 !== null ? tripToEdit.iL3.toString() : '');
+      } else {
+        const defaultFeeder = availableFeeders[0]?.name || '';
+        const found = availableFeeders.find(f => f.name === defaultFeeder);
+        const initialCust = found ? found.cust : 0;
+        setFeederName(defaultFeeder);
+        setTripDate(new Date().toISOString().split('T')[0]);
+        setTripTime('');
+        setRecoveryTime('');
+        setDurationMinutes(0);
+        setRelayType('GFR / OCR');
+        setTripScope('UTAMA');
+        setCurrentAmpere('');
+        setTotalUlpCustomers(defaultUlpCustomers);
+        setAffectedCustomers(initialCust.toString());
+        setLocationKm('');
+        setCoordinates('');
+        setCause('');
+        setCategory('Tree/ROW');
+        setINol('');
+        setIL1('');
+        setIL2('');
+        setIL3('');
+      }
     }
-  }, [isOpen, masterFeeders]);
+  }, [isOpen, masterFeeders, tripToEdit]);
 
   // Auto calculate Duration whenever tripTime or recoveryTime changes
   useEffect(() => {
@@ -169,7 +194,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // SAIFI Contribution (Kali/Plg)
   const saifiCalc = ulpCustVal > 0 ? affCustVal / ulpCustVal : 0;
 
-  // AI Fault Distance Calculation (from Substation / Pangkal)
+  // AI Fault Distance Calculation (from Substation GI vs Gardu Hubung)
   const iNolNum = Number(iNol) || 0;
   const iL1Num = Number(iL1) || 0;
   const iL2Num = Number(iL2) || 0;
@@ -215,10 +240,12 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     const kmStart = Math.max(0, Number((distanceKm - 0.3).toFixed(1)));
     const kmEnd = Number((distanceKm + 0.3).toFixed(1));
 
+    const originLabel = tripScope === 'PERCABANGAN' ? 'Gardu Hubung (GH)' : 'GI / Pangkal Feeder';
+
     return {
       detectedType: faultType,
       distanceKm,
-      recommendation: `Target Penelusuran Yantek: Estimasi SUTM Sekitar Km ${kmStart} s/d Km ${kmEnd} dari GI / Pangkal Feeder.`,
+      recommendation: `Target Penelusuran Yantek: Estimasi SUTM Sekitar Km ${kmStart} s/d Km ${kmEnd} dari ${originLabel}.`,
       confidence: iNolNum > 50 || maxI > 250 ? 'Akurat Tinggi (94%)' : 'Akurat Sedang (82%)'
     };
   };
@@ -239,9 +266,9 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     e.preventDefault();
 
     const newTrip: FeederTrip = {
-      id: `TRIP-INPUT-${Date.now()}`,
+      id: tripToEdit ? tripToEdit.id : `TRIP-INPUT-${Date.now()}`,
       feederName,
-      substation: 'GI Passo (20kV)',
+      substation: tripToEdit?.substation || 'GI Passo (20kV)',
       tripDate,
       tripTime,
       recoveryTime,
@@ -260,13 +287,14 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       saifiCount: Number(saifiCalc.toFixed(4)),
       ensKwh,
       financialLossIdr: financialLossCalc,
-      status: 'Resolved',
+      status: tripToEdit?.status || 'Resolved',
       iNol: iNolNum,
       iL1: iL1Num,
       iL2: iL2Num,
       iL3: iL3Num,
       estimatedDistanceKm: aiResult.distanceKm || undefined,
-      faultTypeDetected: aiResult.detectedType !== 'Belum Ada Input Arus Gangguan' ? aiResult.detectedType : undefined
+      faultTypeDetected: aiResult.detectedType !== 'Belum Ada Input Arus Gangguan' ? aiResult.detectedType : undefined,
+      tripScope
     };
 
     onSaveTrip(newTrip);
@@ -287,9 +315,9 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                Form Input Gangguan Feeder 20kV & Kalkulasi SAIDI/SAIFI
+                {tripToEdit ? `Edit Data Gangguan Feeder (${tripToEdit.id})` : 'Form Input Gangguan Feeder 20kV & Kalkulasi SAIDI/SAIFI'}
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                  Manual Input
+                  {tripToEdit ? 'Edit Mode' : 'Manual Input'}
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -315,7 +343,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
               <span>1. Feeder (Master Data) & Waktu Padam</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
                   Penyulang / Feeder <span className="text-rose-500">* (Master Data)</span>
@@ -358,6 +386,39 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   <option value="OVR">OVR (Over Voltage Relay)</option>
                   <option value="UFR">UFR (Under Frequency Relay)</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Cakupan Trip / Proteksi
+                </label>
+                <div className="grid grid-cols-2 gap-1 p-1 bg-slate-200/70 dark:bg-slate-800 rounded-xl border border-slate-300/60 dark:border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setTripScope('UTAMA')}
+                    className={`py-1.5 px-2 rounded-lg text-[10.5px] font-extrabold transition-all flex items-center justify-center gap-1 ${
+                      tripScope === 'UTAMA'
+                        ? 'bg-rose-600 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Zap className="w-3 h-3" />
+                    <span>Trip Utama (GI)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTripScope('PERCABANGAN')}
+                    className={`py-1.5 px-2 rounded-lg text-[10.5px] font-extrabold transition-all flex items-center justify-center gap-1 ${
+                      tripScope === 'PERCABANGAN'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Compass className="w-3 h-3" />
+                    <span>Trip Percabangan (GH)</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -651,7 +712,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-extrabold text-purple-400 uppercase tracking-wider">
                 <Cpu className="w-4 h-4 text-purple-400 animate-pulse" />
-                <span>5. Form Arus Gangguan & Estimasi Jarak AI (Dari Pangkal Substation)</span>
+                <span>5. Form Arus Gangguan & Estimasi Jarak AI ({tripScope === 'PERCABANGAN' ? 'Dari Gardu Hubung' : 'Dari Pangkal Substation GI'})</span>
               </div>
               <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
                 <Compass className="w-3 h-3" />
@@ -736,7 +797,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[11px] font-black text-cyan-400 uppercase">
                   <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Hasil Estimasi Jarak Gangguan dari Pangkal (GI Passo)</span>
+                  <span>HASIL ESTIMASI JARAK GANGGUAN DARI {tripScope === 'PERCABANGAN' ? 'GARDU HUBUNG (GH)' : 'PANGKAL (GI PASSO)'}</span>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700">
                   Akurasi: {aiResult.confidence}
@@ -745,12 +806,16 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                 <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30">
-                  <div className="text-[10px] font-bold text-slate-400">Estimasi Jarak dari Pangkal Feeder:</div>
+                  <div className="text-[10px] font-bold text-slate-400">
+                    Estimasi Jarak dari {tripScope === 'PERCABANGAN' ? 'Gardu Hubung:' : 'Pangkal Feeder:'}
+                  </div>
                   <div className="text-xl font-black text-purple-300 flex items-baseline gap-1 mt-0.5">
                     {aiResult.distanceKm !== null ? (
                       <>
                         <span>{aiResult.distanceKm}</span>
-                        <span className="text-xs font-bold text-purple-400">km dari Substation</span>
+                        <span className="text-xs font-bold text-purple-400">
+                          km dari {tripScope === 'PERCABANGAN' ? 'Gardu Hubung' : 'Substation GI'}
+                        </span>
                       </>
                     ) : (
                       <span className="text-xs font-semibold text-slate-500">Menunggu Input Arus Gangguan...</span>
@@ -793,7 +858,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                 className="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-extrabold rounded-xl shadow-md shadow-rose-500/20 flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Simpan Gangguan & Update SAIDI/SAIFI</span>
+                <span>{tripToEdit ? 'Simpan Perubahan Gangguan' : 'Simpan Gangguan & Update SAIDI/SAIFI'}</span>
               </button>
             </div>
           </div>
