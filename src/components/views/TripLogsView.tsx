@@ -225,17 +225,30 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                       <td className="p-3.5">
                         {trip.estimatedDistanceKm ? (
                           <div className={`p-1.5 rounded-lg border ${
-                            trip.tripScope === 'PERCABANGAN'
-                              ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
-                              : 'bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300'
+                            trip.supplySourceType === 'PERCABANGAN'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                              : trip.supplySourceType === 'GH'
+                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
+                                : 'bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300'
                           }`}>
                             <div className="font-extrabold text-xs flex items-center gap-1">
-                              <Cpu className={`w-3 h-3 ${trip.tripScope === 'PERCABANGAN' ? 'text-amber-500' : 'text-purple-500'}`} />
+                              <Cpu className={`w-3 h-3 ${
+                                trip.supplySourceType === 'PERCABANGAN' 
+                                  ? 'text-emerald-500' 
+                                  : trip.supplySourceType === 'GH' 
+                                    ? 'text-amber-500' 
+                                    : 'text-purple-500'
+                              }`} />
                               <span>{trip.estimatedDistanceKm} km</span>
                             </div>
-                            <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                              {trip.tripScope === 'PERCABANGAN' ? 'dari Gardu Hubung' : 'dari Substation GI'}
+                            <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 max-w-[130px] truncate" title={trip.supplySourceName || (trip.tripScope === 'PERCABANGAN' ? 'Gardu Hubung' : 'Substation GI')}>
+                              dari {trip.supplySourceName || (trip.tripScope === 'PERCABANGAN' ? 'Gardu Hubung' : 'Substation GI')}
                             </div>
+                            {trip.cumulativeDistanceKm && trip.supplySourceType === 'PERCABANGAN' && (
+                              <div className="text-[8.5px] font-bold text-amber-600 dark:text-amber-400">
+                                ~{trip.cumulativeDistanceKm} km dr Pangkal
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <span className="text-[10px] text-slate-400 font-normal">-</span>

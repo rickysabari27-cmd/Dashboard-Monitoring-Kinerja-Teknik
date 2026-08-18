@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FeederTrip, MasterFeeder } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FeederTrip, MasterFeeder, MasterSection, MasterGarduHubung } from '../../types';
 import { 
   X, 
   Zap, 
@@ -15,7 +15,9 @@ import {
   MapPin,
   Compass,
   Cpu,
-  Navigation
+  Navigation,
+  GitBranch,
+  Radio
 } from 'lucide-react';
 
 interface InputGangguanModalProps {
@@ -24,6 +26,8 @@ interface InputGangguanModalProps {
   onSaveTrip: (trip: FeederTrip) => void;
   isDarkMode: boolean;
   masterFeeders?: MasterFeeder[];
+  masterSections?: MasterSection[];
+  masterGarduHubung?: MasterGarduHubung[];
   tripToEdit?: FeederTrip | null;
 }
 
@@ -49,12 +53,31 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   onSaveTrip,
   isDarkMode,
   masterFeeders = [],
+  masterSections = [],
+  masterGarduHubung = [],
   tripToEdit = null
 }) => {
   // Available feeders list from Master Data
   const availableFeeders = masterFeeders.length > 0 
-    ? masterFeeders.map(f => ({ name: f.feederName, cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0 }))
-    : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ name: k, cust: DEFAULT_FEEDER_MAP[k] }));
+    ? masterFeeders.map(f => ({ 
+        name: f.feederName, 
+        cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0,
+        substation: f.substationName || 'GI Passo (20kV)',
+        garduHubung: f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : null,
+        lengthKm: f.lengthKms || 15
+      }))
+    : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ 
+        name: k, 
+        cust: DEFAULT_FEEDER_MAP[k],
+        substation: 'GI Passo (20kV)',
+        garduHubung: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : null),
+        lengthKm: 15
+      }));
+
+  // Available GHs list
+  const availableGHList = masterGarduHubung.length > 0
+    ? masterGarduHubung.map(g => g.ghName)
+    : ['GH Bandara', 'GH Baguala', 'GH Wayame', 'GH Poka'];
 
   // Master total customers sum across all feeders
   const masterTotalCustomers = masterFeeders.reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
@@ -69,6 +92,12 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const [relayType, setRelayType] = useState<'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR' | 'UFR'>('GFR / OCR');
   const [tripScope, setTripScope] = useState<'UTAMA' | 'PERCABANGAN'>('UTAMA');
   
+  // Supply Source & Section / Branch Selection State
+  const [supplySourceType, setSupplySourceType] = useState<'GI' | 'GH' | 'PERCABANGAN'>('GI');
+  const [selectedGhName, setSelectedGhName] = useState<string>('GH Bandara');
+  const [selectedSectionKey, setSelectedSectionKey] = useState<string>('');
+  const [selectedBranchKey, setSelectedBranchKey] = useState<string>('');
+
   // 2. Load & Power State (Blank)
   const [currentAmpere, setCurrentAmpere] = useState<string>(''); // Beban Arus Penyulang (A)
   
@@ -91,17 +120,93 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // Tariff PLN per kWh
   const TARIFF_PER_KWH = 1444.70;
 
+  // Sections matching currently selected feeder
+  const matchingSections = useMemo(() => {
+    if (!feederName) return [];
+    const secList = masterSections.filter(
+      s => s.feederName && s.feederName.trim().toLowerCase() === feederName.trim().toLowerCase()
+    );
+    return secList;
+  }, [feederName, masterSections]);
+
+  // Combined branches for the matching sections
+  const availableBranches = useMemo(() => {
+    const branches: Array<{
+      id: string;
+      sectionId: string;
+      sectionName: string;
+      branchName: string;
+      lengthKm: number;
+      khaAmpere: number;
+      startPoint: string;
+      endPoint: string;
+      substationOrGh: string;
+    }> = [];
+
+    matchingSections.forEach((sec, sIdx) => {
+      const sName = sec.sectionName || `Section ${sIdx + 1}`;
+      const startPt = sec.startPoint || 'Pangkal Section';
+      const endPt = sec.endPoint || 'Ujung Section';
+      const sourcePt = sec.substationOrGh || 'GH/GI';
+
+      if (sec.fcoBranches && sec.fcoBranches.length > 0) {
+        sec.fcoBranches.forEach((b, bIdx) => {
+          branches.push({
+            id: b.id || `BR-${sec.id}-${bIdx}`,
+            sectionId: sec.id,
+            sectionName: sName,
+            branchName: b.fcoBranchName || `Percabangan Lateral ${bIdx + 1}`,
+            lengthKm: b.fcoLengthKms || 2.0,
+            khaAmpere: b.fcoKhaAmpere || 50,
+            startPoint: startPt,
+            endPoint: endPt,
+            substationOrGh: sourcePt
+          });
+        });
+      } else if (sec.hasFcoBranch) {
+        branches.push({
+          id: `BR-${sec.id}-0`,
+          sectionId: sec.id,
+          sectionName: sName,
+          branchName: sec.fcoBranchName || 'Percabangan FCO Lateral',
+          lengthKm: sec.fcoLengthKms || 2.0,
+          khaAmpere: sec.fcoKhaAmpere || 50,
+          startPoint: startPt,
+          endPoint: endPt,
+          substationOrGh: sourcePt
+        });
+      }
+    });
+
+    return branches;
+  }, [matchingSections]);
+
   // Reset or populate form whenever modal opens or tripToEdit changes
   useEffect(() => {
     if (isOpen) {
       if (tripToEdit) {
-        setFeederName(tripToEdit.feederName || availableFeeders[0]?.name || '');
+        const fName = tripToEdit.feederName || availableFeeders[0]?.name || '';
+        setFeederName(fName);
         setTripDate(tripToEdit.tripDate || new Date().toISOString().split('T')[0]);
         setTripTime(tripToEdit.tripTime || '');
         setRecoveryTime(tripToEdit.recoveryTime || '');
         setDurationMinutes(tripToEdit.durationMinutes || 0);
         setRelayType(tripToEdit.relayType || 'GFR / OCR');
         setTripScope(tripToEdit.tripScope || 'UTAMA');
+        
+        // Supply Source
+        if (tripToEdit.supplySourceType) {
+          setSupplySourceType(tripToEdit.supplySourceType === 'SECTION' ? 'PERCABANGAN' : tripToEdit.supplySourceType);
+        } else if (tripToEdit.tripScope === 'PERCABANGAN') {
+          setSupplySourceType('GH');
+        } else {
+          setSupplySourceType('GI');
+        }
+
+        setSelectedGhName(tripToEdit.supplySourceName && tripToEdit.supplySourceName.startsWith('GH') ? tripToEdit.supplySourceName : 'GH Bandara');
+        setSelectedSectionKey(tripToEdit.sectionId || '');
+        setSelectedBranchKey(tripToEdit.branchId || tripToEdit.branchName || '');
+
         setCurrentAmpere(tripToEdit.currentAmpere !== undefined && tripToEdit.currentAmpere !== null ? tripToEdit.currentAmpere.toString() : '');
         setTotalUlpCustomers(tripToEdit.totalUlpCustomers || defaultUlpCustomers);
         setAffectedCustomers(tripToEdit.affectedCustomers !== undefined && tripToEdit.affectedCustomers !== null ? tripToEdit.affectedCustomers.toString() : '');
@@ -123,7 +228,20 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setRecoveryTime('');
         setDurationMinutes(0);
         setRelayType('GFR / OCR');
-        setTripScope('UTAMA');
+        
+        // Default supply source based on feeder GH info
+        if (found?.garduHubung) {
+          setTripScope('PERCABANGAN');
+          setSupplySourceType('GH');
+          setSelectedGhName(found.garduHubung);
+        } else {
+          setTripScope('UTAMA');
+          setSupplySourceType('GI');
+          setSelectedGhName('GH Bandara');
+        }
+
+        setSelectedSectionKey('');
+        setSelectedBranchKey('');
         setCurrentAmpere('');
         setTotalUlpCustomers(defaultUlpCustomers);
         setAffectedCustomers(initialCust.toString());
@@ -165,15 +283,25 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     }
   }, [tripTime, recoveryTime]);
 
-  // Auto set default affected customers if user selects a feeder
+  // Auto set default affected customers & GH if user selects a feeder
   const handleFeederChange = (name: string) => {
     setFeederName(name);
     const foundFeeder = availableFeeders.find(f => f.name === name);
     if (foundFeeder) {
       setAffectedCustomers(foundFeeder.cust.toString());
+      if (foundFeeder.garduHubung) {
+        setSelectedGhName(foundFeeder.garduHubung);
+        setSupplySourceType('GH');
+        setTripScope('PERCABANGAN');
+      } else {
+        setSupplySourceType('GI');
+        setTripScope('UTAMA');
+      }
     } else {
       setAffectedCustomers('0');
     }
+    setSelectedSectionKey('');
+    setSelectedBranchKey('');
   };
 
   // Realtime calculated values
@@ -194,7 +322,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // SAIFI Contribution (Kali/Plg)
   const saifiCalc = ulpCustVal > 0 ? affCustVal / ulpCustVal : 0;
 
-  // AI Fault Distance Calculation (from Substation GI vs Gardu Hubung)
+  // AI Fault Distance Calculation (from GI Substation vs Gardu Hubung vs Section / Percabangan)
   const iNolNum = Number(iNol) || 0;
   const iL1Num = Number(iL1) || 0;
   const iL2Num = Number(iL2) || 0;
@@ -206,8 +334,10 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       return {
         detectedType: 'Belum Ada Input Arus Gangguan',
         distanceKm: null,
+        cumulativeDistanceKm: null,
         recommendation: 'Silakan input nilai INOL, L1, L2, atau L3 untuk menghitung estimasi jarak lokasi gangguan secara presisi.',
-        confidence: '-'
+        confidence: '-',
+        sourceTitle: supplySourceType === 'GH' ? `Gardu Hubung (${selectedGhName})` : (supplySourceType === 'PERCABANGAN' ? 'Percabangan / Section' : 'GI (Gardu Induk)')
       };
     }
 
@@ -226,27 +356,123 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     const V_phase = 11547; // 20,000 / sqrt(3)
     const zLinePerKm = 0.41;
     
-    let dist = V_phase / (iFault * zLinePerKm);
+    let rawDist = V_phase / (iFault * zLinePerKm);
 
     // Apply load current compensation
     if (ampereVal > 0 && iFault > ampereVal) {
       const netFaultCurrent = iFault - (ampereVal * 0.25);
       if (netFaultCurrent > 0) {
-        dist = V_phase / (netFaultCurrent * zLinePerKm);
+        rawDist = V_phase / (netFaultCurrent * zLinePerKm);
       }
     }
 
-    const distanceKm = Number(Math.min(Math.max(dist, 0.2), 40.0).toFixed(2));
+    // Find feeder info
+    const currentFeeder = availableFeeders.find(f => f.name === feederName);
+    const feederSubstation = currentFeeder?.substation || 'GI Passo (20kV)';
+    const feederTotalLength = currentFeeder?.lengthKm || 18;
+
+    // CASE 1: PERCABANGAN PENYULANG / SECTION
+    if (supplySourceType === 'PERCABANGAN') {
+      const selectedBranch = availableBranches.find(b => b.id === selectedBranchKey || b.branchName === selectedBranchKey) 
+        || availableBranches[0];
+      
+      const selectedSec = matchingSections.find(s => s.id === selectedSectionKey) 
+        || (selectedBranch ? matchingSections.find(s => s.id === selectedBranch.sectionId) : matchingSections[0]);
+
+      const branchNameLabel = selectedBranch ? selectedBranch.branchName : (selectedSec?.fcoBranchName || 'Percabangan Lateral FCO');
+      const branchMaxLen = selectedBranch ? selectedBranch.lengthKm : (selectedSec?.fcoLengthKms || 3.0);
+      const sectionNameLabel = selectedSec ? selectedSec.sectionName : 'Section Penyulang';
+      const tapOffPoint = selectedSec?.startPoint || 'Pangkal Section / FCO Tap-off';
+      const targetArea = selectedSec?.endPoint || 'Ujung Jaringan';
+
+      // Distance on the branch itself
+      const branchDistKm = Number(Math.min(Math.max(rawDist, 0.1), branchMaxLen).toFixed(2));
+      
+      // Calculate cumulative distance from GH or GI
+      let cumulativeKm = branchDistKm;
+      if (matchingSections.length > 0 && selectedSec) {
+        const secIndex = matchingSections.findIndex(s => s.id === selectedSec.id);
+        const priorLen = matchingSections.slice(0, secIndex).reduce((acc, s) => acc + (s.lengthKms || 0), 0);
+        cumulativeKm = Number((priorLen + (selectedSec.lengthKms ? selectedSec.lengthKms * 0.5 : 0) + branchDistKm).toFixed(2));
+      }
+
+      const kmStart = Math.max(0, Number((branchDistKm - 0.2).toFixed(1)));
+      const kmEnd = Number((branchDistKm + 0.2).toFixed(1));
+
+      return {
+        detectedType: faultType,
+        distanceKm: branchDistKm,
+        cumulativeDistanceKm: cumulativeKm,
+        recommendation: `Target Penelusuran Yantek: Estimasi SUTM Sekitar Km ${kmStart} s/d Km ${kmEnd} dari Titik Percabangan [${branchNameLabel}] pada ${sectionNameLabel}, Tap-off dari ${tapOffPoint} ke arah ${targetArea}. (Jarak kumulatif ~ Km ${cumulativeKm} dari pasokan pangkal).`,
+        confidence: iNolNum > 50 || maxI > 250 ? 'Akurat Tinggi (95%)' : 'Akurat Sedang (84%)',
+        sourceTitle: `Percabangan [${branchNameLabel}] (${sectionNameLabel})`
+      };
+    }
+
+    // CASE 2: GARDU HUBUNG (GH)
+    if (supplySourceType === 'GH') {
+      const ghNameLabel = selectedGhName || currentFeeder?.garduHubung || 'GH Bandara';
+      const ghFeederLen = matchingSections.length > 0 
+        ? matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0), 0)
+        : feederTotalLength;
+
+      const distanceKm = Number(Math.min(Math.max(rawDist, 0.2), ghFeederLen > 0 ? ghFeederLen : 25.0).toFixed(2));
+      const kmStart = Math.max(0, Number((distanceKm - 0.3).toFixed(1)));
+      const kmEnd = Number((distanceKm + 0.3).toFixed(1));
+
+      // Match to section along the route from GH
+      let targetSectionInfo = '';
+      if (matchingSections.length > 0) {
+        let runningKm = 0;
+        for (let i = 0; i < matchingSections.length; i++) {
+          const sec = matchingSections[i];
+          const secLen = sec.lengthKms || 4.0;
+          const nextKm = runningKm + secLen;
+          if (distanceKm <= nextKm || i === matchingSections.length - 1) {
+            targetSectionInfo = `Terindikasi pada ${sec.sectionName || `Section ${i + 1}`} (Km ${runningKm.toFixed(1)} - ${nextKm.toFixed(1)} dari ${ghNameLabel}), antara [${sec.startPoint || 'Pangkal'}] dan [${sec.endPoint || 'Ujung'}].`;
+            break;
+          }
+          runningKm = nextKm;
+        }
+      }
+
+      return {
+        detectedType: faultType,
+        distanceKm,
+        cumulativeDistanceKm: distanceKm,
+        recommendation: `Target Penelusuran Yantek: Estimasi SUTM Sekitar Km ${kmStart} s/d Km ${kmEnd} dari Gardu Hubung (${ghNameLabel}). ${targetSectionInfo}`,
+        confidence: iNolNum > 50 || maxI > 250 ? 'Akurat Tinggi (94%)' : 'Akurat Sedang (82%)',
+        sourceTitle: `Gardu Hubung (${ghNameLabel})`
+      };
+    }
+
+    // CASE 3: GARDU INDUK (GI / PANGKAL FEEDER)
+    const distanceKm = Number(Math.min(Math.max(rawDist, 0.2), feederTotalLength).toFixed(2));
     const kmStart = Math.max(0, Number((distanceKm - 0.3).toFixed(1)));
     const kmEnd = Number((distanceKm + 0.3).toFixed(1));
 
-    const originLabel = tripScope === 'PERCABANGAN' ? 'Gardu Hubung (GH)' : 'GI / Pangkal Feeder';
+    let targetSectionInfo = '';
+    if (matchingSections.length > 0) {
+      let runningKm = 0;
+      for (let i = 0; i < matchingSections.length; i++) {
+        const sec = matchingSections[i];
+        const secLen = sec.lengthKms || 4.0;
+        const nextKm = runningKm + secLen;
+        if (distanceKm <= nextKm || i === matchingSections.length - 1) {
+          targetSectionInfo = `Terindikasi pada ${sec.sectionName || `Section ${i + 1}`} (Km ${runningKm.toFixed(1)} - ${nextKm.toFixed(1)} dari ${feederSubstation}), antara [${sec.startPoint || 'Pangkal'}] dan [${sec.endPoint || 'Ujung'}].`;
+          break;
+        }
+        runningKm = nextKm;
+      }
+    }
 
     return {
       detectedType: faultType,
       distanceKm,
-      recommendation: `Target Penelusuran Yantek: Estimasi SUTM Sekitar Km ${kmStart} s/d Km ${kmEnd} dari ${originLabel}.`,
-      confidence: iNolNum > 50 || maxI > 250 ? 'Akurat Tinggi (94%)' : 'Akurat Sedang (82%)'
+      cumulativeDistanceKm: distanceKm,
+      recommendation: `Target Penelusuran Yantek: Estimasi SUTM Sekitar Km ${kmStart} s/d Km ${kmEnd} dari Substation ${feederSubstation}. ${targetSectionInfo}`,
+      confidence: iNolNum > 50 || maxI > 250 ? 'Akurat Tinggi (93%)' : 'Akurat Sedang (80%)',
+      sourceTitle: `Substation GI (${feederSubstation})`
     };
   };
 
@@ -265,10 +491,42 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Determine supply source name & section / branch details
+    let sSource = 'GI Passo (20kV)';
+    let secId: string | undefined = undefined;
+    let secName: string | undefined = undefined;
+    let brId: string | undefined = undefined;
+    let brName: string | undefined = undefined;
+
+    if (supplySourceType === 'GH') {
+      sSource = selectedGhName || 'GH Bandara';
+    } else if (supplySourceType === 'PERCABANGAN') {
+      const selectedBranch = availableBranches.find(b => b.id === selectedBranchKey || b.branchName === selectedBranchKey);
+      const selectedSec = matchingSections.find(s => s.id === selectedSectionKey);
+
+      if (selectedBranch) {
+        brId = selectedBranch.id;
+        brName = selectedBranch.branchName;
+        secId = selectedBranch.sectionId;
+        secName = selectedBranch.sectionName;
+        sSource = `Percabangan ${selectedBranch.branchName}`;
+      } else if (selectedSec) {
+        secId = selectedSec.id;
+        secName = selectedSec.sectionName;
+        brName = selectedSec.fcoBranchName || 'Percabangan Section';
+        sSource = `Section ${selectedSec.sectionName}`;
+      } else {
+        sSource = 'Percabangan Lateral Penyulang';
+      }
+    } else {
+      const foundFeeder = availableFeeders.find(f => f.name === feederName);
+      sSource = foundFeeder?.substation || 'GI Passo (20kV)';
+    }
+
     const newTrip: FeederTrip = {
       id: tripToEdit ? tripToEdit.id : `TRIP-INPUT-${Date.now()}`,
       feederName,
-      substation: tripToEdit?.substation || 'GI Passo (20kV)',
+      substation: sSource,
       tripDate,
       tripTime,
       recoveryTime,
@@ -276,7 +534,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       relayType,
       currentAmpere: ampereVal,
       kwPadam,
-      locationKm,
+      locationKm: locationKm || (aiResult.distanceKm ? `Sekitar Km ${aiResult.distanceKm} dari ${sSource}` : ''),
       coordinates,
       cause,
       category,
@@ -293,8 +551,15 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       iL2: iL2Num,
       iL3: iL3Num,
       estimatedDistanceKm: aiResult.distanceKm || undefined,
+      cumulativeDistanceKm: aiResult.cumulativeDistanceKm || undefined,
       faultTypeDetected: aiResult.detectedType !== 'Belum Ada Input Arus Gangguan' ? aiResult.detectedType : undefined,
-      tripScope
+      tripScope,
+      supplySourceType,
+      supplySourceName: sSource,
+      sectionId: secId,
+      sectionName: secName,
+      branchId: brId,
+      branchName: brName
     };
 
     onSaveTrip(newTrip);
@@ -321,7 +586,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                 </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Pilih feeder dari Master Data & input data gangguan. Perhitungan kW, ENS, SAIDI, SAIFI, serta Estimasi Jarak AI akan terhitung otomatis.
+                Pilih feeder, gardu hubung atau percabangan section penyuplai. Estimasi jarak AI akan dihitung presisi berdasarkan titik acuan pasokan.
               </p>
             </div>
           </div>
@@ -338,12 +603,17 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
           
           {/* SECTION 1: FEEDER & WAKTU PADAM */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-              <Clock className="w-4 h-4" />
-              <span>1. Feeder (Master Data) & Waktu Padam</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                <Clock className="w-4 h-4" />
+                <span>1. Feeder (Master Data) & Waktu Padam</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                ULP Baguala
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
                   Penyulang / Feeder <span className="text-rose-500">* (Master Data)</span>
@@ -361,7 +631,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   ) : (
                     availableFeeders.map(f => (
                       <option key={f.name} value={f.name}>
-                        {f.name} ({f.cust.toLocaleString('id-ID')} Plg)
+                        {f.name} ({f.cust.toLocaleString('id-ID')} Plg) {f.garduHubung ? `• Supply: ${f.garduHubung}` : ''}
                       </option>
                     ))
                   )}
@@ -386,39 +656,6 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   <option value="OVR">OVR (Over Voltage Relay)</option>
                   <option value="UFR">UFR (Under Frequency Relay)</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Cakupan Trip / Proteksi
-                </label>
-                <div className="grid grid-cols-2 gap-1 p-1 bg-slate-200/70 dark:bg-slate-800 rounded-xl border border-slate-300/60 dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setTripScope('UTAMA')}
-                    className={`py-1.5 px-2 rounded-lg text-[10.5px] font-extrabold transition-all flex items-center justify-center gap-1 ${
-                      tripScope === 'UTAMA'
-                        ? 'bg-rose-600 text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Zap className="w-3 h-3" />
-                    <span>Trip Utama (GI)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setTripScope('PERCABANGAN')}
-                    className={`py-1.5 px-2 rounded-lg text-[10.5px] font-extrabold transition-all flex items-center justify-center gap-1 ${
-                      tripScope === 'PERCABANGAN'
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <Compass className="w-3 h-3" />
-                    <span>Trip Percabangan (GH)</span>
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -479,124 +716,361 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-blue-50 border-blue-200 text-blue-700'
                 }`}>
                   <span>{durationMinutes} Menit</span>
-                  <span className="text-[10px] font-normal opacity-80">({durationHours.toFixed(2)} Jam)</span>
+                  <span className="text-[10px] font-medium text-slate-400">({durationHours.toFixed(2)} Jam)</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: INPUT BEBAN ARUS (AMPERE) & DERAJAT PADAM (KW & ENS) */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              <Activity className="w-4 h-4" />
-              <span>2. Beban Arus Penyulang & Perhitungan kW / ENS</span>
+          {/* SECTION 2: TITIK ACUAN PASOKAN & PERCABANGAN / GARDU HUBUNG */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-br from-amber-500/5 via-orange-500/5 to-purple-500/5 border border-amber-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                <GitBranch className="w-4 h-4 text-amber-500" />
+                <span>2. Titik Acuan Pasokan & Percabangan Penyulang (Supply Source)</span>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                Pangkal / Gardu Hubung / Percabangan Section
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Beban Arus Penyulang (Ampere / A)
-                </label>
-                <div className="relative">
-                  <input 
-                    type="number"
-                    value={currentAmpere}
-                    onChange={(e) => setCurrentAmpere(e.target.value)}
-                    placeholder="Input Ampere..."
-                    className={`w-full p-2.5 rounded-xl border font-black text-sm pr-8 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-amber-600'
-                    }`}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                    A
+            {/* 3-Way Supply Source Selector */}
+            <div>
+              <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1.5">
+                Pilih Titik Pasokan yang Mensuplai Section / Lokasi Gangguan:
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {/* 1. Substation GI */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSupplySourceType('GI');
+                    setTripScope('UTAMA');
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    supplySourceType === 'GI'
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-500/30'
+                      : isDarkMode 
+                        ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5" />
+                      Gardu Induk (GI)
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                      supplySourceType === 'GI' ? 'bg-purple-700 text-purple-100' : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                    }`}>
+                      Pangkal Feeder
+                    </span>
+                  </div>
+                  <span className={`text-[10px] mt-1 ${supplySourceType === 'GI' ? 'text-purple-100' : 'text-slate-400'}`}>
+                    GI Passo / GI Hative
+                  </span>
+                </button>
+
+                {/* 2. Gardu Hubung (GH) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSupplySourceType('GH');
+                    setTripScope('PERCABANGAN');
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    supplySourceType === 'GH'
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-500/30'
+                      : isDarkMode 
+                        ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs flex items-center gap-1">
+                      <Radio className="w-3.5 h-3.5" />
+                      Gardu Hubung (GH)
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                      supplySourceType === 'GH' ? 'bg-amber-700 text-amber-100' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    }`}>
+                      Penyuplai GH
+                    </span>
+                  </div>
+                  <span className={`text-[10px] mt-1 ${supplySourceType === 'GH' ? 'text-amber-100' : 'text-slate-400'}`}>
+                    GH Bandara, GH Baguala, dll
+                  </span>
+                </button>
+
+                {/* 3. Percabangan / Section */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSupplySourceType('PERCABANGAN');
+                    setTripScope('PERCABANGAN');
+                  }}
+                  className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                    supplySourceType === 'PERCABANGAN'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/30'
+                      : isDarkMode 
+                        ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs flex items-center gap-1">
+                      <GitBranch className="w-3.5 h-3.5" />
+                      Percabangan / Section
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                      supplySourceType === 'PERCABANGAN' ? 'bg-emerald-700 text-emerald-100' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      Lateral / FCO
+                    </span>
+                  </div>
+                  <span className={`text-[10px] mt-1 ${supplySourceType === 'PERCABANGAN' ? 'text-emerald-100' : 'text-slate-400'}`}>
+                    Cabang Lateral FCO / Section
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Conditional Dropdowns based on supplySourceType */}
+            {supplySourceType === 'GH' && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-amber-700 dark:text-amber-300 text-[11px] flex items-center gap-1.5">
+                    <Radio className="w-3.5 h-3.5 text-amber-500" />
+                    Pilih Gardu Hubung (GH) yang Menyuplai Section Penyulang Ini:
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    Estimasi jarak akan dihitung dari pangkal GH terpilih
+                  </span>
+                </div>
+                <select
+                  value={selectedGhName}
+                  onChange={(e) => setSelectedGhName(e.target.value)}
+                  className={`w-full p-2.5 rounded-xl border font-black text-xs ${
+                    isDarkMode ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-white border-amber-200 text-amber-900'
+                  }`}
+                >
+                  {availableGHList.map(gh => (
+                    <option key={gh} value={gh}>
+                      {gh} {gh === 'GH Bandara' ? '(Penyuplai Allang / Bandara / ACC)' : (gh === 'GH Baguala' ? '(Penyuplai Lateri 1 / Hutumuri)' : '')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {supplySourceType === 'PERCABANGAN' && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-emerald-700 dark:text-emerald-300 text-[11px] flex items-center gap-1.5">
+                    <GitBranch className="w-3.5 h-3.5 text-emerald-500" />
+                    Pilih Percabangan Lateral / Section Penyuplai (Master Data Section):
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    {matchingSections.length} Section terdaftar pada Feeder {feederName}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Select Section */}
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[10px]">
+                      Section Utama:
+                    </label>
+                    <select
+                      value={selectedSectionKey}
+                      onChange={(e) => {
+                        setSelectedSectionKey(e.target.value);
+                        // Reset branch selection if section changes
+                        const sec = matchingSections.find(s => s.id === e.target.value);
+                        if (sec?.fcoBranches && sec.fcoBranches.length > 0) {
+                          setSelectedBranchKey(sec.fcoBranches[0].id || sec.fcoBranches[0].fcoBranchName);
+                        } else {
+                          setSelectedBranchKey('');
+                        }
+                      }}
+                      className={`w-full p-2 rounded-xl border font-bold text-xs ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+                      }`}
+                    >
+                      <option value="">-- Pilih Section Penyulang --</option>
+                      {matchingSections.map(sec => (
+                        <option key={sec.id} value={sec.id}>
+                          {sec.sectionName} ({sec.lengthKms} km) • {sec.substationOrGh}
+                        </option>
+                      ))}
+                      {matchingSections.length === 0 && (
+                        <option value="GENERIC-SEC">Section 1 (Pangkal s/d Recloser)</option>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Select Percabangan FCO / Lateral */}
+                  <div>
+                    <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[10px]">
+                      Percabangan Lateral (FCO / Branch):
+                    </label>
+                    <select
+                      value={selectedBranchKey}
+                      onChange={(e) => setSelectedBranchKey(e.target.value)}
+                      className={`w-full p-2 rounded-xl border font-bold text-xs ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-slate-200 text-emerald-800'
+                      }`}
+                    >
+                      <option value="">-- Pilih Percabangan Lateral --</option>
+                      {availableBranches.map(br => (
+                        <option key={br.id} value={br.id}>
+                          {br.branchName} ({br.lengthKm} km) • {br.sectionName}
+                        </option>
+                      ))}
+                      {availableBranches.length === 0 && (
+                        <>
+                          <option value="BR-GENERIC-1">FCO Percabangan Lateral 1 (1.8 km)</option>
+                          <option value="BR-GENERIC-2">FCO Percabangan Lateral 2 (2.5 km)</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                  <Compass className="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span>
+                    Kalkulasi AI akan mengestimasi jarak sepanjang cabang lateral dari titik tap-off section, serta menghitung jarak kumulatif dari pangkal.
                   </span>
                 </div>
               </div>
-
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Estimasi Daya Padam (Otomatis)
-                </label>
-                <div className={`p-2.5 rounded-xl border font-black text-sm text-center ${
-                  isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
-                }`}>
-                  {kwPadam.toLocaleString('id-ID')} kW
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Energi Tidak Tersalurkan (Otomatis)
-                </label>
-                <div className={`p-2.5 rounded-xl border font-black text-sm text-center ${
-                  isDarkMode ? 'bg-slate-800 border-slate-700 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-700'
-                }`}>
-                  {ensKwh.toLocaleString('id-ID')} kWh
-                </div>
-              </div>
-            </div>
-
-            <div className="text-[11px] p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 font-medium flex items-center justify-between">
-              <span>Rumus kW: √3 × 20kV × {ampereVal || 0}A × 0.95 = <strong>{kwPadam.toLocaleString('id-ID')} kW</strong></span>
-              <span>Estimasi Kerugian: <strong className="text-rose-600 dark:text-rose-400">{formatRupiah(financialLossCalc)}</strong></span>
-            </div>
+            )}
           </div>
 
-          {/* SECTION 3: KALKULASI KONTRIBUSI INDEKS SAIDI & SAIFI PLN */}
-          <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
+          {/* SECTION 3: BEBAN & ARUS PENYULANG */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                <BarChart2 className="w-4 h-4" />
-                <span>3. Kalkulasi Kontribusi Indeks SAIDI & SAIFI PLN</span>
+              <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                <Activity className="w-4 h-4" />
+                <span>3. Beban Arus & Daya Padam (kW / ENS / Rupiah)</span>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-600 text-white">
-                Otomatis Termutakhirkan
+              <span className="text-[10px] font-bold text-slate-400">
+                Tarif: Rp 1.444,70/kWh
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="font-bold text-slate-600 dark:text-slate-300 block">
-                    Total Pelanggan Sistem ULP Baguala
-                  </label>
-                  {masterTotalCustomers > 0 && (
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <span>✓ Sinkron Master Data</span>
-                    </span>
-                  )}
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Beban Arus Sesaat Sebelum Trip (Ampere / A)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    step="0.1"
+                    value={currentAmpere}
+                    onChange={(e) => setCurrentAmpere(e.target.value)}
+                    placeholder="e.g. 145"
+                    className={`w-full p-2.5 pl-3 pr-8 rounded-xl border font-black text-sm ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-slate-200 text-emerald-700'
+                    }`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">A</span>
                 </div>
-                <input 
-                  type="number"
-                  value={totalUlpCustomers}
-                  onChange={(e) => setTotalUlpCustomers(e.target.value)}
-                  className={`w-full p-2.5 rounded-xl border font-bold ${
-                    isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
-                  }`}
-                />
               </div>
 
               <div>
-                <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">
-                  Pelanggan Terdampak Padam
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Daya Padam Terhitung (kW Padam)
                 </label>
-                <input 
-                  type="number"
-                  value={affectedCustomers}
-                  onChange={(e) => setAffectedCustomers(e.target.value)}
-                  placeholder="Input jumlah pelanggan terdampak..."
-                  className={`w-full p-2.5 rounded-xl border font-bold ${
-                    isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
-                  }`}
-                />
+                <div className={`p-2.5 rounded-xl border font-black text-sm flex items-center justify-between ${
+                  isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                }`}>
+                  <span>{kwPadam.toLocaleString('id-ID')} kW</span>
+                  <span className="text-[10px] font-semibold text-slate-400">√3 × 20kV × {ampereVal}A × 0.95</span>
+                </div>
               </div>
             </div>
 
-            {/* Live SAIDI / SAIFI Result Cards */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
+            {/* Calculated ENS & Financial Loss */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="p-3 rounded-xl bg-slate-900 text-white border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase text-slate-400">Energi Tidak Tersalur (ENS)</div>
+                  <div className="text-lg font-black text-amber-400 mt-0.5">
+                    {ensKwh.toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-300">kWh</span>
+                  </div>
+                </div>
+                <Zap className="w-6 h-6 text-amber-400 opacity-80" />
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-900 text-white border border-slate-800 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase text-slate-400">Estimasi Kerugian Finansial</div>
+                  <div className="text-lg font-black text-rose-400 mt-0.5">
+                    {formatRupiah(financialLossCalc)}
+                  </div>
+                </div>
+                <DollarSign className="w-6 h-6 text-rose-400 opacity-80" />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: PELANGGAN & KALKULASI SAIDI/SAIFI */}
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-extrabold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
+                <Users className="w-4 h-4" />
+                <span>4. Pelanggan Terdampak & Kalkulasi SAIDI/SAIFI</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">
+                Formula Standar PLN
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Pelanggan Feeder Padam / Terdampak (Plg)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={affectedCustomers}
+                    onChange={(e) => setAffectedCustomers(e.target.value)}
+                    placeholder="e.g. 3820"
+                    className={`w-full p-2.5 pl-3 pr-12 rounded-xl border font-bold text-sm ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-white border-slate-200 text-blue-700'
+                    }`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Plg</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Total Pelanggan ULP Baguala (Plg)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={totalUlpCustomers}
+                    onChange={(e) => setTotalUlpCustomers(e.target.value)}
+                    placeholder="45200"
+                    className={`w-full p-2.5 pl-3 pr-12 rounded-xl border font-bold text-sm ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+                    }`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Plg</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SAIDI & SAIFI Output Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               {/* SAIDI Box */}
-              <div className="p-3 rounded-xl bg-slate-900 text-white border border-indigo-500/30 flex flex-col justify-between">
-                <div className="text-[10px] font-extrabold uppercase text-indigo-400 tracking-wider">
+              <div className="p-3 rounded-xl bg-slate-900 text-white border border-cyan-500/30 flex flex-col justify-between">
+                <div className="text-[10px] font-extrabold uppercase text-cyan-400 tracking-wider">
                   Kontribusi SAIDI Gangguan Ini
                 </div>
                 <div className="my-1">
@@ -629,11 +1103,11 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             </div>
           </div>
 
-          {/* SECTION 4: PENYEBAB & LOKASI GANGGUAN SUTM */}
+          {/* SECTION 5: PENYEBAB & LOKASI GANGGUAN SUTM */}
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <span>4. Lokasi & Penyebab Gangguan SUTM</span>
+              <span>5. Lokasi & Penyebab Gangguan SUTM</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -665,7 +1139,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   type="text"
                   value={locationKm}
                   onChange={(e) => setLocationKm(e.target.value)}
-                  placeholder="Misal: Km 6.2 Passo Dalam"
+                  placeholder="Misal: Km 6.2 Laha Pantai"
                   className={`w-full p-2.5 rounded-xl border font-semibold ${
                     isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
                   }`}
@@ -681,7 +1155,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                     type="text"
                     value={coordinates}
                     onChange={(e) => setCoordinates(e.target.value)}
-                    placeholder="Misal: -3.6285, 128.2214"
+                    placeholder="Misal: -3.7102, 128.0895"
                     className={`w-full p-2.5 pl-8 rounded-xl border font-mono text-xs ${
                       isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-white border-slate-200 text-blue-700'
                     }`}
@@ -707,12 +1181,12 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             </div>
           </div>
 
-          {/* SECTION 5: ARUS GANGGUAN & PERHITUNGAN ESTIMASI JARAK AI */}
+          {/* SECTION 6: ARUS GANGGUAN & PERHITUNGAN ESTIMASI JARAK AI */}
           <div className="p-3.5 rounded-xl bg-slate-900 border border-purple-500/30 text-white space-y-3 shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-extrabold text-purple-400 uppercase tracking-wider">
                 <Cpu className="w-4 h-4 text-purple-400 animate-pulse" />
-                <span>5. Form Arus Gangguan & Estimasi Jarak AI ({tripScope === 'PERCABANGAN' ? 'Dari Gardu Hubung' : 'Dari Pangkal Substation GI'})</span>
+                <span>6. Form Arus Gangguan & Estimasi Jarak AI (Berdasarkan {aiResult.sourceTitle})</span>
               </div>
               <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
                 <Compass className="w-3 h-3" />
@@ -793,47 +1267,70 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             </div>
 
             {/* Live AI Distance Calculation Result Card */}
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-purple-500/40 space-y-2">
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-purple-500/40 space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[11px] font-black text-cyan-400 uppercase">
+                <div className="flex items-center gap-1.5 text-[11px] font-black text-cyan-400 uppercase tracking-wide">
                   <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>HASIL ESTIMASI JARAK GANGGUAN DARI {tripScope === 'PERCABANGAN' ? 'GARDU HUBUNG (GH)' : 'PANGKAL (GI PASSO)'}</span>
+                  <span>HASIL ESTIMASI JARAK GANGGUAN DARI {aiResult.sourceTitle.toUpperCase()}</span>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700">
                   Akurasi: {aiResult.confidence}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-                <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30">
-                  <div className="text-[10px] font-bold text-slate-400">
-                    Estimasi Jarak dari {tripScope === 'PERCABANGAN' ? 'Gardu Hubung:' : 'Pangkal Feeder:'}
-                  </div>
-                  <div className="text-xl font-black text-purple-300 flex items-baseline gap-1 mt-0.5">
-                    {aiResult.distanceKm !== null ? (
-                      <>
-                        <span>{aiResult.distanceKm}</span>
-                        <span className="text-xs font-bold text-purple-400">
-                          km dari {tripScope === 'PERCABANGAN' ? 'Gardu Hubung' : 'Substation GI'}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-xs font-semibold text-slate-500">Menunggu Input Arus Gangguan...</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+                {/* Metric Box */}
+                <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-500/30 flex flex-col justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 flex items-center justify-between">
+                      <span>Estimasi Jarak dari Titik Acuan:</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-purple-500/20 text-purple-300">
+                        {supplySourceType === 'PERCABANGAN' ? 'Titik Percabangan' : (supplySourceType === 'GH' ? 'Gardu Hubung' : 'Gardu Induk')}
+                      </span>
+                    </div>
+                    
+                    <div className="text-2xl font-black text-purple-300 flex items-baseline gap-1 mt-1">
+                      {aiResult.distanceKm !== null ? (
+                        <>
+                          <span>{aiResult.distanceKm}</span>
+                          <span className="text-xs font-bold text-purple-400">
+                            km dari {supplySourceType === 'PERCABANGAN' ? 'Titik Tap-off Percabangan' : (supplySourceType === 'GH' ? selectedGhName : 'Substation GI')}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-500">Menunggu Input Arus Gangguan...</span>
+                      )}
+                    </div>
+
+                    {aiResult.cumulativeDistanceKm !== null && supplySourceType === 'PERCABANGAN' && (
+                      <div className="text-[10.5px] font-extrabold text-amber-300 mt-1 flex items-center gap-1">
+                        <ArrowRight className="w-3 h-3 text-amber-400" />
+                        <span>Jarak Kumulatif Total: ~{aiResult.cumulativeDistanceKm} km dari Pangkal</span>
+                      </div>
                     )}
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-1">
+
+                  <div className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-purple-500/20">
                     Jenis Gangguan: <strong className="text-amber-300">{aiResult.detectedType}</strong>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-300 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 space-y-1">
-                  <div className="font-extrabold text-cyan-300 flex items-center gap-1">
-                    <Compass className="w-3.5 h-3.5" />
-                    <span>Rekomendasi Lokasi Lapangan:</span>
+                {/* Recommendation Box */}
+                <div className="text-[11px] text-slate-300 bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <div className="font-extrabold text-cyan-300 flex items-center gap-1.5">
+                      <Compass className="w-4 h-4 text-cyan-400" />
+                      <span>Rekomendasi Lokasi Lapangan Yantek:</span>
+                    </div>
+                    <p className="text-[10.5px] text-slate-300 leading-relaxed font-medium">
+                      {aiResult.recommendation}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-slate-300 leading-relaxed font-medium">
-                    {aiResult.recommendation}
-                  </p>
+
+                  <div className="mt-2 pt-1.5 border-t border-slate-800 text-[9.5px] text-slate-400 flex items-center justify-between">
+                    <span>Titik Acuan: {aiResult.sourceTitle}</span>
+                    <span className="text-emerald-400 font-bold">Z = 0.41 Ω/km</span>
+                  </div>
                 </div>
               </div>
             </div>

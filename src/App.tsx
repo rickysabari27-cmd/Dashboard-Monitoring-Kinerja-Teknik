@@ -933,6 +933,8 @@ export default function App() {
         onSaveTrip={handleSaveTrip}
         isDarkMode={isDarkMode}
         masterFeeders={masterFeeders}
+        masterSections={masterSections}
+        masterGarduHubung={masterGarduHubung}
         tripToEdit={editingTrip}
       />
 

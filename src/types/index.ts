@@ -37,7 +37,7 @@ export interface FeederTrip {
   ensKwh: number;
   financialLossIdr: number;
   status: 'Resolved' | 'Under Investigation' | 'Pending Action';
-  // Arus Gangguan
+  // Arus Gangguan & AI Distance
   iNol?: number;
   iL1?: number;
   iL2?: number;
@@ -45,7 +45,14 @@ export interface FeederTrip {
   estimatedDistanceKm?: number;
   faultTypeDetected?: string;
   tripScope?: 'UTAMA' | 'PERCABANGAN';
+  supplySourceType?: 'GI' | 'GH' | 'PERCABANGAN' | 'SECTION';
+  supplySourceName?: string;
+  sectionId?: string;
+  sectionName?: string;
+  branchId?: string;
   branchName?: string;
+  distanceFromSourceKm?: number;
+  cumulativeDistanceKm?: number;
 }
 
 export interface FeederHealth {
