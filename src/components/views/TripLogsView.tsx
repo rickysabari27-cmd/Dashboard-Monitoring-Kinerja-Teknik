@@ -249,10 +249,16 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                           📍 {trip.locationKm || 'Lokasi SUTM'}
                         </div>
                         {trip.coordinates && (
-                          <div className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                            <MapPin className="w-2.5 h-2.5" />
+                          <a
+                            href={`https://earth.google.com/web/search/${encodeURIComponent(trip.coordinates.trim())}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 mt-1 hover:underline group"
+                            title="Buka lokasi di Google Earth"
+                          >
+                            <MapPin className="w-2.5 h-2.5 text-rose-500 shrink-0 group-hover:scale-110 transition-transform" />
                             <span>{trip.coordinates}</span>
-                          </div>
+                          </a>
                         )}
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1" title={trip.cause}>
                           {trip.cause}

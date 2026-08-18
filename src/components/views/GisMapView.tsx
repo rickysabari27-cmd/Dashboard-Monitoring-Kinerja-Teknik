@@ -1071,9 +1071,16 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
                       <span className="block font-black text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
                         Koordinat
                       </span>
-                      <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200 block">
-                        {clickedPole.lat.toFixed(6)}, {clickedPole.lng.toFixed(6)}
-                      </span>
+                      <a
+                        href={`https://earth.google.com/web/search/${clickedPole.lat.toFixed(6)},${clickedPole.lng.toFixed(6)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 hover:underline group"
+                        title="Buka lokasi di Google Earth"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 group-hover:scale-110 transition-transform" />
+                        <span>{clickedPole.lat.toFixed(6)}, {clickedPole.lng.toFixed(6)}</span>
+                      </a>
                     </div>
 
                     {/* Row 3: Jenis Tiang */}
