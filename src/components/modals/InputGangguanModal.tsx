@@ -109,7 +109,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const [locationKm, setLocationKm] = useState('');
   const [coordinates, setCoordinates] = useState('');
   const [cause, setCause] = useState('');
-  const [category, setCategory] = useState<'Tree/ROW' | 'Equipment Failure' | 'Lightning' | 'Animal' | 'Human Error' | 'Unknown'>('Tree/ROW');
+  const [category, setCategory] = useState<string>('E-1 : POHON');
 
   // 5. Arus Gangguan State (INOL, L1, L2, L3 - Blank)
   const [iNol, setINol] = useState<string>(''); // Ground Fault Current (A)
@@ -213,7 +213,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setLocationKm(tripToEdit.locationKm || '');
         setCoordinates(tripToEdit.coordinates || '');
         setCause(tripToEdit.cause || '');
-        setCategory(tripToEdit.category || 'Tree/ROW');
+        setCategory(tripToEdit.category || 'E-1 : POHON');
         setINol(tripToEdit.iNol !== undefined && tripToEdit.iNol !== null ? tripToEdit.iNol.toString() : '');
         setIL1(tripToEdit.iL1 !== undefined && tripToEdit.iL1 !== null ? tripToEdit.iL1.toString() : '');
         setIL2(tripToEdit.iL2 !== undefined && tripToEdit.iL2 !== null ? tripToEdit.iL2.toString() : '');
@@ -248,7 +248,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setLocationKm('');
         setCoordinates('');
         setCause('');
-        setCategory('Tree/ROW');
+        setCategory('E-1 : POHON');
         setINol('');
         setIL1('');
         setIL2('');
@@ -856,7 +856,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                 >
                   {availableGHList.map(gh => (
                     <option key={gh} value={gh}>
-                      {gh} {gh === 'GH Bandara' ? '(Penyuplai Allang / Bandara / ACC)' : (gh === 'GH Baguala' ? '(Penyuplai Lateri 1 / Hutumuri)' : '')}
+                      {gh}
                     </option>
                   ))}
                 </select>
@@ -1031,24 +1031,6 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Pelanggan Feeder Padam / Terdampak (Plg)
-                </label>
-                <div className="relative">
-                  <input 
-                    type="number"
-                    value={affectedCustomers}
-                    onChange={(e) => setAffectedCustomers(e.target.value)}
-                    placeholder="e.g. 3820"
-                    className={`w-full p-2.5 pl-3 pr-12 rounded-xl border font-bold text-sm ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-white border-slate-200 text-blue-700'
-                    }`}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Plg</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
                   Total Pelanggan ULP Baguala (Plg)
                 </label>
                 <div className="relative">
@@ -1059,6 +1041,24 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                     placeholder="45200"
                     className={`w-full p-2.5 pl-3 pr-12 rounded-xl border font-bold text-sm ${
                       isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
+                    }`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Plg</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Pelanggan Feeder Padam / Terdampak (Plg)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={affectedCustomers}
+                    onChange={(e) => setAffectedCustomers(e.target.value)}
+                    placeholder="e.g. 3820"
+                    className={`w-full p-2.5 pl-3 pr-12 rounded-xl border font-bold text-sm ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-white border-slate-200 text-blue-700'
                     }`}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Plg</span>
@@ -1117,17 +1117,19 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                 </label>
                 <select 
                   value={category}
-                  onChange={(e) => setCategory(e.target.value as any)}
-                  className={`w-full p-2.5 rounded-xl border font-bold ${
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={`w-full p-2.5 rounded-xl border font-bold text-xs ${
                     isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
                   }`}
                 >
-                  <option value="Tree/ROW">Pohon / Pohon Sagu (ROW)</option>
-                  <option value="Equipment Failure">Kerusakan Material / Komponen</option>
-                  <option value="Lightning">Sambaran Petir</option>
-                  <option value="Animal">Hewan / Burung / Tali Layangan</option>
-                  <option value="Human Error">Faktor Manusia / Kendaraan</option>
-                  <option value="Unknown">Penyebab Belum Pasti</option>
+                  <option value="I-1 : KOMPONEN JTM">I-1 : KOMPONEN JTM</option>
+                  <option value="I-2 : PERALATAN JTM">I-2 : PERALATAN JTM</option>
+                  <option value="I-3 : TRAFO DAN LAINNYA">I-3 : TRAFO DAN LAINNYA</option>
+                  <option value="I-4 : TIANG">I-4 : TIANG</option>
+                  <option value="E-1 : POHON">E-1 : POHON</option>
+                  <option value="E-2 : BENCANA ALAM">E-2 : BENCANA ALAM</option>
+                  <option value="E-3 : BINATANG">E-3 : BINATANG</option>
+                  <option value="E-4 : SESAAT / TIDAK DITEMUKAN">E-4 : SESAAT / TIDAK DITEMUKAN</option>
                 </select>
               </div>
 

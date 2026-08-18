@@ -28,7 +28,22 @@ export interface FeederTrip {
   locationKm: string;
   coordinates?: string;
   cause: string;
-  category: 'Tree/ROW' | 'Equipment Failure' | 'Lightning' | 'Animal' | 'Human Error' | 'Unknown';
+  category: 
+    | 'I-1 : KOMPONEN JTM'
+    | 'I-2 : PERALATAN JTM'
+    | 'I-3 : TRAFO DAN LAINNYA'
+    | 'I-4 : TIANG'
+    | 'E-1 : POHON'
+    | 'E-2 : BENCANA ALAM'
+    | 'E-3 : BINATANG'
+    | 'E-4 : SESAAT / TIDAK DITEMUKAN'
+    | 'Tree/ROW'
+    | 'Equipment Failure'
+    | 'Lightning'
+    | 'Animal'
+    | 'Human Error'
+    | 'Unknown'
+    | string;
   affectedCustomers: number;
   totalUlpCustomers?: number;
   saidiHours?: number;
