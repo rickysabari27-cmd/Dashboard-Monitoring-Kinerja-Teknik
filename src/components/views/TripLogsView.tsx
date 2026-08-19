@@ -45,7 +45,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
   const [selectedRelay, setSelectedRelay] = useState('ALL');
   const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [selectedYear, setSelectedYear] = useState('ALL');
-  const [sortBy, setSortBy] = useState<'duration-desc' | 'saidi-desc' | 'saifi-desc' | 'ens-desc'>('duration-desc');
+  const [sortBy, setSortBy] = useState<'ALL' | 'duration-desc' | 'saidi-desc' | 'saifi-desc' | 'ens-desc'>('ALL');
   const [tripToDelete, setTripToDelete] = useState<FeederTrip | null>(null);
 
   // Month options (Indonesian)
@@ -133,7 +133,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
     return 0;
   });
 
-  const isFilterActive = selectedFeeder !== 'ALL' || selectedMonth !== 'ALL' || selectedYear !== 'ALL' || searchTerm !== '' || selectedRelay !== 'ALL';
+  const isFilterActive = selectedFeeder !== 'ALL' || selectedMonth !== 'ALL' || selectedYear !== 'ALL' || searchTerm !== '' || selectedRelay !== 'ALL' || sortBy !== 'ALL';
 
   const handleResetFilter = () => {
     setSelectedFeeder('ALL');
@@ -141,7 +141,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
     setSelectedYear('ALL');
     setSelectedRelay('ALL');
     setSearchTerm('');
-    setSortBy('duration-desc');
+    setSortBy('ALL');
   };
 
   const formatRupiah = (amount: number) => {
@@ -300,11 +300,16 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className={`px-3 py-1.5 rounded-xl text-xs border font-extrabold focus:outline-none ${
-                isDarkMode 
-                  ? 'bg-purple-950/40 border-purple-800 text-purple-300' 
-                  : 'bg-purple-50 border-purple-200 text-purple-800'
+                sortBy !== 'ALL'
+                  ? isDarkMode 
+                    ? 'bg-purple-950/60 border-purple-600 text-purple-200 ring-1 ring-purple-500/40' 
+                    : 'bg-purple-100 border-purple-400 text-purple-900 ring-1 ring-purple-400/50'
+                  : isDarkMode 
+                    ? 'bg-slate-800 border-slate-700 text-slate-200' 
+                    : 'bg-slate-100 border-slate-200 text-slate-800'
               }`}
             >
+              <option value="ALL">Semua</option>
               <option value="duration-desc">⏳ Durasi Terpanjang</option>
               <option value="saidi-desc">📊 SAIDI Tertinggi</option>
               <option value="saifi-desc">⚡ SAIFI Tertinggi</option>
