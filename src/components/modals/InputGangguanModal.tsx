@@ -57,22 +57,25 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   masterGarduHubung = [],
   tripToEdit = null
 }) => {
-  // Available feeders list from Master Data
-  const availableFeeders = masterFeeders.length > 0 
-    ? masterFeeders.map(f => ({ 
-        name: f.feederName, 
-        cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0,
-        substation: f.substationName || 'GI Passo (20kV)',
-        garduHubung: f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : null,
-        lengthKm: f.lengthKms || 15
-      }))
-    : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ 
-        name: k, 
-        cust: DEFAULT_FEEDER_MAP[k],
-        substation: 'GI Passo (20kV)',
-        garduHubung: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : null),
-        lengthKm: 15
-      }));
+  // Available feeders list from Master Data sorted alphabetically
+  const availableFeeders = useMemo(() => {
+    const list = masterFeeders.length > 0 
+      ? masterFeeders.map(f => ({ 
+          name: f.feederName, 
+          cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0,
+          substation: f.substationName || 'GI Passo (20kV)',
+          garduHubung: f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : null,
+          lengthKm: f.lengthKms || 15
+        }))
+      : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ 
+          name: k, 
+          cust: DEFAULT_FEEDER_MAP[k],
+          substation: 'GI Passo (20kV)',
+          garduHubung: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : null),
+          lengthKm: 15
+        }));
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true, sensitivity: 'base' }));
+  }, [masterFeeders]);
 
   // Available GHs list
   const availableGHList = masterGarduHubung.length > 0
@@ -1149,9 +1152,23 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Koordinat Lokasi (Lat, Long)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block">
+                    Koordinat Lokasi (Lat, Long)
+                  </label>
+                  {coordinates && coordinates.trim() && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates.trim())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5"
+                      title="Cek lokasi di Google Maps"
+                    >
+                      <MapPin className="w-2.5 h-2.5 text-rose-500" />
+                      <span>Cek di Google Maps</span>
+                    </a>
+                  )}
+                </div>
                 <div className="relative">
                   <input 
                     type="text"

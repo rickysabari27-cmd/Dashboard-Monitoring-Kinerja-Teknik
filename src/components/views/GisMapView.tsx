@@ -1072,11 +1072,11 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
                         Koordinat
                       </span>
                       <a
-                        href={`https://earth.google.com/web/search/${clickedPole.lat.toFixed(6)},${clickedPole.lng.toFixed(6)}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${clickedPole.lat.toFixed(6)},${clickedPole.lng.toFixed(6)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1 hover:underline group"
-                        title="Buka lokasi di Google Earth"
+                        title="Buka lokasi di Google Maps"
                       >
                         <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 group-hover:scale-110 transition-transform" />
                         <span>{clickedPole.lat.toFixed(6)}, {clickedPole.lng.toFixed(6)}</span>

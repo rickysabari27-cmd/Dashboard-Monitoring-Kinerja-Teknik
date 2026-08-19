@@ -77,10 +77,13 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
     return Array.from(years).sort((a, b) => Number(b) - Number(a));
   }, [trips]);
 
-  // Feeder options for filter
-  const feederOptions = masterFeeders.length > 0 
-    ? masterFeeders.map(f => f.feederName)
-    : Array.from(new Set(trips.map(t => t.feederName)));
+  // Feeder options for filter sorted alphabetically A-Z
+  const feederOptions = useMemo(() => {
+    const names = masterFeeders.length > 0 
+      ? masterFeeders.map(f => f.feederName)
+      : Array.from(new Set(trips.map(t => t.feederName)));
+    return [...names].sort((a, b) => a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' }));
+  }, [masterFeeders, trips]);
 
   // Filtered trips
   const filteredTrips = trips.filter(trip => {
@@ -173,7 +176,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                 Log & Analisis Gangguan Feeder 20kV
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Rekapitulasi Trip, Arus Gangguan (INOL, L1, L2, L3), Estimasi Jarak AI, & Indeks SAIDI/SAIFI
+                Monitoring Gangguan & Indek Kehandalan
               </p>
             </div>
           </div>
@@ -361,6 +364,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               isDarkMode ? 'bg-slate-950/80 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
             } uppercase font-bold text-[10px] tracking-wider`}>
               <tr>
+                <th className="p-3.5 text-center w-12">NO</th>
                 <th className="p-3.5 text-center">ID & Feeder</th>
                 <th className="p-3.5 text-center">Jam Trip & Masuk</th>
                 <th className="p-3.5 text-center">Arus Beban & Gangguan</th>
@@ -375,12 +379,12 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {sortedTrips.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={10} className="p-8 text-center text-slate-500 dark:text-slate-400">
                     Tidak ada data trip gangguan yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
               ) : (
-                sortedTrips.map((trip) => {
+                sortedTrips.map((trip, index) => {
                   const durationHours = trip.durationMinutes / 60;
                   const masterTotalCust = (masterFeeders || []).reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
                   const totalUlp = trip.totalUlpCustomers || (masterTotalCust > 0 ? masterTotalCust : 45200);
@@ -392,6 +396,13 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                   return (
                     <tr key={trip.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       
+                      {/* Nomor Urut */}
+                      <td className="p-3.5 text-center font-extrabold text-slate-500 dark:text-slate-400">
+                        <span className="w-7 h-7 rounded-lg inline-flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/70 text-xs shadow-2xs font-mono font-black">
+                          {index + 1}
+                        </span>
+                      </td>
+
                       {/* Feeder */}
                       <td className="p-3.5 text-center font-bold">
                         <div className="text-slate-900 dark:text-white font-extrabold flex items-center justify-center gap-1.5">
@@ -488,11 +499,11 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                         {trip.coordinates && (
                           <div className="mt-0.5">
                             <a
-                              href={`https://earth.google.com/web/search/${encodeURIComponent(trip.coordinates.trim())}`}
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.coordinates.trim())}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center gap-1 text-[10px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 hover:underline group"
-                              title="Buka lokasi di Google Earth"
+                              title="Buka lokasi langsung di Google Maps"
                             >
                               <MapPin className="w-2.5 h-2.5 text-rose-500 shrink-0 group-hover:scale-110 transition-transform" />
                               <span>{trip.coordinates}</span>

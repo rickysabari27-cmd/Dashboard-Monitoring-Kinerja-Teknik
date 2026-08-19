@@ -671,7 +671,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                     className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                   >
                     {masterFeeders.length > 0 ? (
-                      masterFeeders.map(f => (
+                      [...masterFeeders].sort((a, b) => a.feederName.localeCompare(b.feederName, 'id', { numeric: true, sensitivity: 'base' })).map(f => (
                         <option key={f.feederName} value={f.feederName}>
                           {f.feederName} ({f.customerCount !== undefined && f.customerCount !== null ? f.customerCount.toLocaleString('id-ID') : 0} Plg)
                         </option>
@@ -1112,7 +1112,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                         <option value="HATIVE">HATIVE</option>
                       </>
                     ) : (
-                      masterFeeders.map(f => (
+                      [...masterFeeders].sort((a, b) => a.feederName.localeCompare(b.feederName, 'id', { numeric: true, sensitivity: 'base' })).map(f => (
                         <option key={f.id || f.feederName} value={f.feederName}>
                           {f.feederName} ({f.feederCode})
                         </option>
@@ -1449,7 +1449,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                         <option value="HATIVE">HATIVE</option>
                       </>
                     ) : (
-                      masterFeeders.map(f => (
+                      [...masterFeeders].sort((a, b) => a.feederName.localeCompare(b.feederName, 'id', { numeric: true, sensitivity: 'base' })).map(f => (
                         <option key={f.id || f.feederName} value={f.feederName}>
                           {f.feederName} ({f.feederCode})
                         </option>
