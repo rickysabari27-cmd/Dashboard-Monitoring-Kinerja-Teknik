@@ -115,7 +115,19 @@ export default function App() {
       });
     });
     const unsubSaidi = syncCollection<MonthlySaidiSaifiData>('saidi_saifi', MONTHLY_SAIDI_SAIFI_2026, (data) => setMonthlySaidiData(data));
-    const unsubSpk = syncCollection<SpkTask>('spk_tasks', INITIAL_SPK_TASKS, (data) => setSpkList(data));
+    const unsubSpk = syncCollection<SpkTask>('spk_tasks', INITIAL_SPK_TASKS, (data) => {
+      const isMockSpk = (item: SpkTask) => 
+        item.id === 'SPK-2026-081' || item.id === 'SPK-2026-082' || 
+        (item.spkNumber || '').toLowerCase().includes('spk/bag/2026/08/012') || 
+        (item.spkNumber || '').toLowerCase().includes('spk/bag/2026/08/013');
+      const cleanSpk = data.filter(item => !isMockSpk(item));
+      setSpkList(cleanSpk);
+      data.forEach(item => {
+        if (isMockSpk(item)) {
+          deleteDocument('spk_tasks', item.id);
+        }
+      });
+    });
     const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
     const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => {
       // Clean up Halong if present in Firestore
@@ -360,9 +372,30 @@ export default function App() {
   };
 
   const handleSaveSpk = (newSpk: SpkTask) => {
-    setSpkList([newSpk, ...spkList]);
+    setSpkList(prev => {
+      const idx = prev.findIndex(s => s.id === newSpk.id || (s.spkNumber && newSpk.spkNumber && s.spkNumber.trim().toLowerCase() === newSpk.spkNumber.trim().toLowerCase()));
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newSpk;
+        return updated;
+      }
+      return [newSpk, ...prev];
+    });
     saveDocument('spk_tasks', newSpk, newSpk.id);
-    showToast(`Perintah Kerja SPK ${newSpk.spkNumber} telah diterbitkan & tersimpan di Firebase!`);
+    showToast(`Perintah Kerja SPK ${newSpk.spkNumber || newSpk.feederName} telah tersinkronisasi ke Health Index & Firebase!`);
+  };
+
+  const handleDeleteSpk = (spkId: string) => {
+    const target = spkList.find(s => s.id === spkId);
+    setSpkList(prev => prev.filter(s => s.id !== spkId));
+    deleteDocument('spk_tasks', spkId);
+    showToast(`Dokumen SPK ${target ? target.spkNumber : spkId} berhasil dihapus!`);
+  };
+
+  const handleClearSpks = () => {
+    spkList.forEach(s => deleteDocument('spk_tasks', s.id));
+    setSpkList([]);
+    showToast('Seluruh dokumen SPK telah dibersihkan dari sistem.');
   };
 
   const handleSaveInspection = (newInsp: InspectionRecord) => {
@@ -862,6 +895,7 @@ export default function App() {
               feeders={FEEDER_HEALTH_LIST}
               inspections={inspections}
               spkList={spkList}
+              onNavigateToSpk={() => setCurrentView('spk')}
             />
           )}
 
@@ -879,6 +913,8 @@ export default function App() {
               isDarkMode={isDarkMode}
               spkList={spkList}
               onSaveSpk={handleSaveSpk}
+              onDeleteSpk={handleDeleteSpk}
+              onClearSpks={handleClearSpks}
             />
           )}
 

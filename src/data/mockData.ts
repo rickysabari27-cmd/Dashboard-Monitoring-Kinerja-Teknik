@@ -143,34 +143,7 @@ export const ROW_TREES: RowTreeLocation[] = [
   }
 ];
 
-export const INITIAL_SPK_TASKS: SpkTask[] = [
-  {
-    id: 'SPK-2026-081',
-    spkNumber: 'SPK/BAG/2026/08/012',
-    date: '2026-08-10',
-    taskType: 'ROW Pangkas Pohon',
-    feederName: 'TULEHU',
-    locationSection: 'Tiang 142 - 150 Liang',
-    teamName: 'Tim Yantek 1 Passo',
-    targetQty: '8 Pohon Sagu / Kelapa',
-    status: 'Dalam Proses',
-    priority: 'Urgent',
-    description: 'Pangkas dahan kritis potensi trip akibat angin musim timur'
-  },
-  {
-    id: 'SPK-2026-082',
-    spkNumber: 'SPK/BAG/2026/08/013',
-    date: '2026-08-11',
-    taskType: 'Inspeksi Tier 2 Thermo',
-    feederName: 'LATERI 2',
-    locationSection: 'Gardu Portal BG-015',
-    teamName: 'Tim Inspeksi Khusus',
-    targetQty: '12 Gardu Distribusi',
-    status: 'Draft',
-    priority: 'Biasa',
-    description: 'Pemeriksaan suhu klem trafo dan arrester 20kV'
-  }
-];
+export const INITIAL_SPK_TASKS: SpkTask[] = [];
 
 export const INITIAL_GARDU_MEASUREMENTS: GarduMeasurement[] = [
   {

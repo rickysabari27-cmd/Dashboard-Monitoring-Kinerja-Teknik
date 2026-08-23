@@ -2,6 +2,17 @@ import React, { useState, useMemo } from 'react';
 import { CustomSelect } from '../CustomSelect';
 import { MasterFeeder, MasterSection, MasterGarduDistribusi, FeederTrip, FeederHealth, InspectionRecord, SpkTask } from '../../types';
 import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  Cell, 
+  ReferenceLine 
+} from 'recharts';
+import { 
   Activity, 
   ShieldCheck, 
   AlertTriangle, 
@@ -31,7 +42,13 @@ import {
   RotateCcw,
   PieChart as PieChartIcon,
   HelpCircle,
-  Hash
+  Hash,
+  FileText,
+  ExternalLink,
+  Scissors,
+  TreePine,
+  CheckCircle,
+  Search
 } from 'lucide-react';
 
 interface HealthIndexViewProps {
@@ -44,7 +61,35 @@ interface HealthIndexViewProps {
   inspections?: InspectionRecord[];
   spkList?: SpkTask[];
   onSelectFeeder?: (feederName: string) => void;
+  onNavigateToSpk?: () => void;
 }
+
+// Utility to normalize and match feeder names across different formats (e.g. "Hutumuri" vs "Penyulang Hutumuri")
+export const matchFeederName = (nameA?: string, nameB?: string): boolean => {
+  if (!nameA || !nameB) return false;
+  const cleanA = nameA.toLowerCase().replace(/^penyulang\s+/i, '').replace(/[^a-z0-9]/g, '');
+  const cleanB = nameB.toLowerCase().replace(/^penyulang\s+/i, '').replace(/[^a-z0-9]/g, '');
+  if (!cleanA || !cleanB) return false;
+  return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
+};
+
+export const isSpkDone = (status?: string): boolean => {
+  if (!status) return false;
+  const st = status.toLowerCase();
+  return st.includes('selesai') || st.includes('done') || st.includes('tuntas');
+};
+
+export const isSpkInProcess = (status?: string): boolean => {
+  if (!status) return false;
+  const st = status.toLowerCase();
+  return st.includes('progres') || st.includes('proses') || st.includes('progress') || st.includes('jalan');
+};
+
+export const isSpkPending = (status?: string): boolean => {
+  if (!status) return true;
+  if (isSpkDone(status) || isSpkInProcess(status)) return false;
+  return true;
+};
 
 export type HealthCategoryType = 'SEMPURNA' | 'SEHAT' | 'SAKIT' | 'KRONIS';
 
@@ -315,7 +360,9 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
   trips = [],
   feeders = [],
   inspections = [],
-  spkList = []
+  spkList = [],
+  onSelectFeeder,
+  onNavigateToSpk
 }) => {
   // Filter States
   const [selectedFeeder, setSelectedFeeder] = useState('ALL');
@@ -324,6 +371,8 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
   const [selectedFeederId, setSelectedFeederId] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | HealthCategoryType>('ALL');
   const [selectedFindingCode, setSelectedFindingCode] = useState<string | null>(null);
+  const [spkSearchQuery, setSpkSearchQuery] = useState('');
+  const [spkStatusFilter, setSpkStatusFilter] = useState<'ALL' | 'SELESAI' | 'PROSES' | 'PENDING'>('ALL');
 
   // Month options (Indonesian)
   const monthOptions = [
@@ -500,7 +549,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
 
       const totalEns = feederTrips.reduce((acc, t) => acc + (t.ensKwh || 0), 0);
 
-      const existingHealth = feeders.find(f => f.name.toLowerCase() === item.name.toLowerCase());
+      const existingHealth = feeders.find(f => matchFeederName(f.name, item.name));
       const hash = item.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       
       // Health Category: 0 = Sempurna, 1-3 = Sehat, 4-6 = Sakit, >6 = Kronis
@@ -513,7 +562,12 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
       const loadMw = Number(((item.capacityMva * (loadPercent / 100)) * 0.9).toFixed(2));
       const thermoIssues = existingHealth?.thermoHotspots ?? (hash % 4 === 0 ? 2 : hash % 3 === 0 ? 1 : 0);
       const groundingOhm = existingHealth?.groundingResistance ?? (2.5 + (hash % 40) / 10);
-      const spkPending = spkList.filter(s => s.feederName.toLowerCase() === item.name.toLowerCase() && s.status !== 'Selesai').length;
+      
+      // SPK ROW & Maintenance status matching for this feeder
+      const feederSpks = spkList.filter(s => matchFeederName(s.feederName, item.name));
+      const feederSpkDone = feederSpks.filter(s => isSpkDone(s.status)).length;
+      const feederSpkPending = feederSpks.filter(s => !isSpkDone(s.status)).length;
+      const spkPending = feederSpkPending;
 
       // Component Scores (0 - 100) and Health Index Calculation
       let scoreKeandalan = 100;
@@ -532,7 +586,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
         scoreTegangan = 100;
         scoreBeban = 100;
         scorePeralatan = 100;
-        scorePemeliharaan = 100;
+        scorePemeliharaan = spkPending > 0 ? Math.max(70, 100 - spkPending * 5) : 100;
       } else {
         // Nilai 100% dikurangi persentasenya sesuai gangguan (frekuensi trip, SAIDI, durasi padam, ENS)
         const tripPenalty = tripsCount * 8.0;
@@ -550,7 +604,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
         scoreTegangan = Math.max(50, Math.min(96, Math.round(100 - voltageDev * 8)));
         scoreBeban = Math.max(45, Math.min(96, Math.round(100 - Math.max(0, loadPercent - 65) * 1.5)));
         scorePeralatan = Math.max(40, Math.min(96, Math.round(95 - thermoIssues * 12 - (groundingOhm > 5 ? 15 : 0))));
-        scorePemeliharaan = Math.max(50, Math.min(96, Math.round(96 - spkPending * 6)));
+        scorePemeliharaan = Math.max(50, Math.min(100, Math.round(100 - spkPending * 5)));
       }
 
       let status: 'BAIK' | 'PERINGATAN' | 'BURUK' = 'BAIK';
@@ -583,6 +637,9 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
         scorePeralatan,
         scoreGangguan,
         scorePemeliharaan,
+        spkTotal: feederSpks.length,
+        spkDone: feederSpkDone,
+        spkPending,
         overallScore: finalScore,
         healthCategory,
         status,
@@ -596,7 +653,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
   // Feeders filtered by feeder selection
   const filteredFeeders = useMemo(() => {
     return calculatedFeeders.filter(feeder => {
-      const matchesFeeder = selectedFeeder === 'ALL' || feeder.name.toLowerCase() === selectedFeeder.toLowerCase();
+      const matchesFeeder = selectedFeeder === 'ALL' || matchFeederName(feeder.name, selectedFeeder);
       return matchesFeeder;
     });
   }, [calculatedFeeders, selectedFeeder]);
@@ -604,10 +661,10 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
   // When a specific feeder is explicitly selected via dropdown or table row click
   const selectedSpecificFeeder = useMemo(() => {
     if (selectedFeeder !== 'ALL') {
-      return calculatedFeeders.find(f => f.name.toLowerCase() === selectedFeeder.toLowerCase()) || calculatedFeeders[0];
+      return calculatedFeeders.find(f => matchFeederName(f.name, selectedFeeder)) || calculatedFeeders[0];
     }
     if (selectedFeederId) {
-      return calculatedFeeders.find(f => f.id === selectedFeederId || f.name.toLowerCase() === selectedFeederId.toLowerCase()) || null;
+      return calculatedFeeders.find(f => f.id === selectedFeederId || matchFeederName(f.name, selectedFeederId)) || null;
     }
     return null;
   }, [calculatedFeeders, selectedFeeder, selectedFeederId]);
@@ -697,10 +754,15 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
     const avgScoreGangguan = Math.round(filteredFeeders.reduce((acc, f) => acc + f.scoreGangguan, 0) / count);
     const avgScorePemeliharaan = Math.round(filteredFeeders.reduce((acc, f) => acc + f.scorePemeliharaan, 0) / count);
 
-    const spkTotal = spkList.length;
-    const spkDone = spkList.filter(s => s.status === 'Selesai').length;
-    const spkInProcess = spkList.filter(s => s.status === 'Dalam Proses').length;
-    const spkDraft = spkList.filter(s => s.status === 'Draft').length;
+    // Active in-scope SPKs (if a feeder is selected, only for that feeder; otherwise all SPKs)
+    const inScopeSpk = selectedSpecificFeeder 
+      ? spkList.filter(s => matchFeederName(s.feederName, selectedSpecificFeeder.name))
+      : spkList;
+
+    const spkTotal = inScopeSpk.length;
+    const spkDone = inScopeSpk.filter(s => isSpkDone(s.status)).length;
+    const spkInProcess = inScopeSpk.filter(s => isSpkInProcess(s.status)).length;
+    const spkDraft = inScopeSpk.filter(s => isSpkPending(s.status)).length;
     const spkDonePercent = spkTotal > 0 ? Math.round((spkDone / spkTotal) * 100) : 100;
 
     const feedersWithTrips = filteredFeeders.filter(f => f.tripsCount > 0).length;
@@ -735,18 +797,47 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
       feedersWithTrips,
       substationsText
     };
-  }, [filteredFeeders, masterFeeders, spkList]);
+  }, [filteredFeeders, masterFeeders, spkList, selectedSpecificFeeder]);
 
   // SPK Stats for individual selected feeder
   const spkFeederStats = useMemo(() => {
     if (!selectedSpecificFeeder) return null;
-    const fSpk = spkList.filter(s => s.feederName.toLowerCase() === selectedSpecificFeeder.name.toLowerCase());
-    const done = fSpk.filter(s => s.status === 'Selesai').length;
-    const inProcess = fSpk.filter(s => s.status === 'Dalam Proses').length;
+    const fSpk = spkList.filter(s => matchFeederName(s.feederName, selectedSpecificFeeder.name));
+    const done = fSpk.filter(s => isSpkDone(s.status)).length;
+    const inProcess = fSpk.filter(s => isSpkInProcess(s.status)).length;
+    const pending = fSpk.filter(s => isSpkPending(s.status)).length;
     const total = fSpk.length;
     const percent = total > 0 ? Math.round((done / total) * 100) : 100;
-    return { done, inProcess, total, percent };
+    return { done, inProcess, pending, total, percent, tasks: fSpk };
   }, [selectedSpecificFeeder, spkList]);
+
+  // Realtime SPK list filtered by active feeder scope, status filter, and search query
+  const displayedSpks = useMemo(() => {
+    return spkList.filter(spk => {
+      // 1. Feeder matching
+      if (selectedSpecificFeeder && !matchFeederName(spk.feederName, selectedSpecificFeeder.name)) {
+        return false;
+      }
+      // 2. Status matching
+      if (spkStatusFilter === 'SELESAI' && !isSpkDone(spk.status)) return false;
+      if (spkStatusFilter === 'PROSES' && !isSpkInProcess(spk.status)) return false;
+      if (spkStatusFilter === 'PENDING' && !isSpkPending(spk.status)) return false;
+      // 3. Search query
+      if (spkSearchQuery.trim()) {
+        const query = spkSearchQuery.toLowerCase();
+        const num = (spk.spkNumber || '').toLowerCase();
+        const fName = (spk.feederName || '').toLowerCase();
+        const jPekerjaan = (spk.jobType || '').toLowerCase();
+        const team = (spk.team || '').toLowerCase();
+        const loc = (spk.location || '').toLowerCase();
+        const desc = (spk.description || '').toLowerCase();
+        if (!num.includes(query) && !fName.includes(query) && !jPekerjaan.includes(query) && !team.includes(query) && !loc.includes(query) && !desc.includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [spkList, selectedSpecificFeeder, spkStatusFilter, spkSearchQuery]);
 
   // Total Trips Count in filtered scope
   const totalTripsScope = useMemo(() => {
@@ -925,6 +1016,143 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
     { value: 'ALL', label: 'Semua Tahun' },
     ...yearOptions.map(yr => ({ value: yr, label: yr }))
   ], [yearOptions]);
+
+  // Date parser helper for FeederTrip
+  const getTripYearMonth = (t: FeederTrip) => {
+    const rawDate = t.tripDate || (t as any).date || '';
+    if (!rawDate) return { year: '', month: '' };
+    const str = String(rawDate).trim();
+    const parts = str.split('T')[0].split(/[-/]/);
+    if (parts.length >= 2 && parts[0].length === 4) {
+      return { year: parts[0], month: parts[1].padStart(2, '0') };
+    }
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      return {
+        year: String(d.getFullYear()),
+        month: String(d.getMonth() + 1).padStart(2, '0')
+      };
+    }
+    return { year: '', month: '' };
+  };
+
+  // Calculate monthly outage counts and metrics for the trend chart accurately from real-time trips
+  const monthlyOutageTrend = useMemo(() => {
+    const monthList = [
+      { code: '01', name: 'Jan', fullName: 'Januari' },
+      { code: '02', name: 'Feb', fullName: 'Februari' },
+      { code: '03', name: 'Mar', fullName: 'Maret' },
+      { code: '04', name: 'Apr', fullName: 'April' },
+      { code: '05', name: 'Mei', fullName: 'Mei' },
+      { code: '06', name: 'Jun', fullName: 'Juni' },
+      { code: '07', name: 'Jul', fullName: 'Juli' },
+      { code: '08', name: 'Ags', fullName: 'Agustus' },
+      { code: '09', name: 'Sep', fullName: 'September' },
+      { code: '10', name: 'Okt', fullName: 'Oktober' },
+      { code: '11', name: 'Nov', fullName: 'November' },
+      { code: '12', name: 'Des', fullName: 'Desember' }
+    ];
+
+    // Filter trips matching selected feeder and year scope
+    const tripsInScope = trips.filter(t => {
+      const { year: tYear } = getTripYearMonth(t);
+      const matchesFeeder = selectedFeeder === 'ALL' || 
+        (t.feederName && t.feederName.trim().toLowerCase() === selectedFeeder.trim().toLowerCase());
+      const matchesYear = selectedYear === 'ALL' || tYear === selectedYear;
+      return matchesFeeder && matchesYear;
+    });
+
+    return monthList.map((m) => {
+      let count = 0;
+      let totalSaidi = 0;
+      let totalEns = 0;
+      let totalFinancialLoss = 0;
+
+      const matchingTrips = tripsInScope.filter(t => {
+        const { month: tMonth } = getTripYearMonth(t);
+        return tMonth === m.code;
+      });
+
+      count = matchingTrips.length;
+      matchingTrips.forEach(t => {
+        const saidi = t.saidiHours ?? (
+          (((t.durationMinutes || 0) / 60) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp)
+        );
+        totalSaidi += (saidi || 0);
+        totalEns += (t.ensKwh || 0);
+        totalFinancialLoss += (t.financialLossIdr || 0);
+      });
+
+      const categoryInfo = getHealthCategory(count);
+
+      return {
+        monthCode: m.code,
+        month: m.name,
+        fullName: m.fullName,
+        count,
+        saidiHours: Number(totalSaidi.toFixed(3)),
+        ensKwh: Math.round(totalEns),
+        financialLossIdr: Math.round(totalFinancialLoss),
+        categoryInfo,
+        isTargetExceeded: count > 1
+      };
+    });
+  }, [trips, selectedFeeder, selectedYear, defaultTotalUlp]);
+
+  const totalYearTrips = useMemo(() => {
+    return monthlyOutageTrend.reduce((acc, m) => acc + m.count, 0);
+  }, [monthlyOutageTrend]);
+
+  const peakMonth = useMemo(() => {
+    let maxObj = monthlyOutageTrend[0];
+    monthlyOutageTrend.forEach(m => {
+      if (m.count > maxObj.count) maxObj = m;
+    });
+    return maxObj;
+  }, [monthlyOutageTrend]);
+
+  const avgMonthlyTrips = useMemo(() => {
+    return (totalYearTrips / 12).toFixed(1);
+  }, [totalYearTrips]);
+
+  const monthsWithTripsCount = useMemo(() => {
+    return monthlyOutageTrend.filter(m => m.count > 0).length;
+  }, [monthlyOutageTrend]);
+
+  const CustomMonthlyTrendTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl text-xs space-y-1 z-50">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1">
+            <span className="font-black text-white text-sm">{data.fullName} {selectedYear === 'ALL' ? '2026' : selectedYear}</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-black ${data.categoryInfo.badgeBg} ${data.categoryInfo.badgeText} border ${data.categoryInfo.badgeBorder}`}>
+              {data.categoryInfo.label}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-1">
+            <span className="text-slate-400">Frekuensi Gangguan:</span>
+            <span className="font-black text-rose-400 text-sm">{data.count} Kali (Trip)</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-slate-400">Indeks SAIDI:</span>
+            <span className="font-bold text-blue-400">{data.saidiHours.toFixed(3)} Jam/Plg</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-slate-400">Energy Loss (ENS):</span>
+            <span className="font-bold text-amber-300">{data.ensKwh.toLocaleString('id-ID')} kWh</span>
+          </div>
+          {data.isTargetExceeded && (
+            <div className="mt-1 text-[10px] text-amber-400 font-bold flex items-center gap-1 pt-1 border-t border-slate-800">
+              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+              <span>Melebihi ambang batas target (&gt;1 trip)</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className={`space-y-3.5 font-sans text-slate-100 min-h-screen p-1 sm:p-2 select-none ${
@@ -1253,6 +1481,199 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
           <div className="text-right">
             <span className="text-lg font-black text-slate-200">{kronisCount}</span>
             <span className="text-[10px] font-bold text-slate-400 ml-1">({kronisPercent}%)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2.5 GRAFIK TREN GANGGUAN */}
+      {/* ========================================================================= */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#0c162d] border border-slate-800/90 shadow-lg space-y-4">
+        {/* Card Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+              <TrendingUp className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                  GRAFIK TREN GANGGUAN
+                </h3>
+                <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
+                  {selectedYear === 'ALL' ? 'Semua Tahun Data' : `Tahun ${selectedYear}`}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  </span>
+                  Realtime Database
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Monitoring tren frekuensi pemadaman / trip SUTM per bulan secara realtime untuk {selectedFeeder !== 'ALL' ? `Penyulang ${selectedFeeder}` : 'semua penyulang (ULP Baguala)'}.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Stat Highlights */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-right">
+              <span className="text-[9px] font-bold text-slate-400 block uppercase">TOTAL TRIP</span>
+              <span className="text-sm font-black text-rose-400">{totalYearTrips} <span className="text-[10px] font-normal text-slate-400">Kali</span></span>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-right">
+              <span className="text-[9px] font-bold text-slate-400 block uppercase">BULAN PEAK</span>
+              <span className="text-sm font-black text-amber-400">{peakMonth.count > 0 ? `${peakMonth.month} (${peakMonth.count}x)` : 'Nihil'}</span>
+            </div>
+            <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-right">
+              <span className="text-[9px] font-bold text-slate-400 block uppercase">RATA-RATA</span>
+              <span className="text-sm font-black text-cyan-400">{avgMonthlyTrips} <span className="text-[10px] font-normal text-slate-400">x/bln</span></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Chart + Analytics Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* Chart (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col justify-between">
+            <div className="h-64 sm:h-72 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyOutageTrend} margin={{ top: 20, right: 15, left: -15, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="barGradientNormal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#0284c7" stopOpacity={0.5} />
+                    </linearGradient>
+                    <linearGradient id="barGradientWarning" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#d97706" stopOpacity={0.5} />
+                    </linearGradient>
+                    <linearGradient id="barGradientDanger" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#e11d48" stopOpacity={0.5} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} 
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#94a3b8', fontSize: 11 }} 
+                    allowDecimals={false} 
+                  />
+                  <RechartsTooltip content={<CustomMonthlyTrendTooltip />} />
+                  <ReferenceLine y={1} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: 'Target Max 1x', fill: '#f59e0b', fontSize: 9, position: 'insideTopRight' }} />
+                  <Bar dataKey="count" name="Jumlah Gangguan" radius={[8, 8, 0, 0]} maxBarSize={38}>
+                    {monthlyOutageTrend.map((entry, index) => {
+                      const fill = entry.count === 0 
+                        ? '#1e293b' 
+                        : entry.count <= 1 
+                        ? 'url(#barGradientNormal)' 
+                        : entry.count <= 3 
+                        ? 'url(#barGradientWarning)' 
+                        : 'url(#barGradientDanger)';
+                      return (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={fill} 
+                          stroke={entry.monthCode === selectedMonth ? '#10b981' : 'transparent'} 
+                          strokeWidth={2}
+                          className="cursor-pointer transition-all hover:opacity-80"
+                          onClick={() => setSelectedMonth(selectedMonth === entry.monthCode ? 'ALL' : entry.monthCode)}
+                        />
+                      );
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Legend & Month Filter hint */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[10px] text-slate-400 border-t border-slate-800/60">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded bg-sky-500 inline-block" />
+                  <span>0-1 Gangguan (Sehat)</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded bg-amber-400 inline-block" />
+                  <span>2-3 Gangguan (Waspada)</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded bg-rose-500 inline-block" />
+                  <span>&gt;3 Gangguan (Sakit/Kronis)</span>
+                </span>
+              </div>
+              <span className="text-slate-500 italic">* Klik batang bulan untuk memfilter data pada bulan tersebut</span>
+            </div>
+          </div>
+
+          {/* Monthly Breakdown List (4 cols) */}
+          <div className="lg:col-span-4 bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
+                <span className="text-[11px] font-black uppercase text-slate-300 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Rincian Bulanan</span>
+                </span>
+                <span className="text-[10px] font-bold text-indigo-400">
+                  {monthsWithTripsCount} Bulan Terjadi Trip
+                </span>
+              </div>
+
+              {/* List of 12 months */}
+              <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800">
+                {monthlyOutageTrend.map((m) => {
+                  const isSelected = selectedMonth === m.monthCode;
+                  return (
+                    <div 
+                      key={m.monthCode}
+                      onClick={() => setSelectedMonth(selectedMonth === m.monthCode ? 'ALL' : m.monthCode)}
+                      className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between text-xs ${
+                        isSelected 
+                          ? 'bg-indigo-600/20 border-indigo-500 text-white ring-1 ring-indigo-500/30' 
+                          : m.count > 0 
+                          ? 'bg-slate-800/70 border-slate-700/80 hover:bg-slate-800 text-slate-200' 
+                          : 'bg-slate-900/40 border-slate-800/50 text-slate-500 hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${m.count === 0 ? 'bg-slate-700' : m.categoryInfo.dotColor}`} />
+                        <span className="font-bold text-[11px]">{m.fullName}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {m.count > 0 && (
+                          <span className="text-[9.5px] font-mono text-slate-400">
+                            SAIDI: {m.saidiHours.toFixed(2)}j
+                          </span>
+                        )}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                          m.count === 0 
+                            ? 'bg-slate-800 text-slate-400' 
+                            : m.categoryInfo.badgeBg + ' ' + m.categoryInfo.badgeText
+                        }`}>
+                          {m.count} Trip
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mini Summary Footnote */}
+            <div className="pt-2 mt-2 border-t border-slate-800/60 text-[10px] text-slate-400 flex items-center justify-between">
+              <span>Evaluasi Target Kinerja PLN</span>
+              <span className="text-emerald-400 font-bold">Target &lt; 1 Kali/Penyulang/Bln</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1943,6 +2364,361 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
           </div>
         </div>
 
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MONITORING REALTIME SPK ROW & PEMELIHARAAN FEEDER (REALTIME DARI MENU SPK) */}
+      {/* ========================================================================= */}
+      <div id="spk-row-monitoring" className="p-4 sm:p-5 rounded-2xl bg-[#0c162d] border border-slate-800/90 shadow-xl space-y-4">
+        {/* Header Toolbar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 shadow-inner">
+              <Scissors className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <span>MONITORING REALTIME SPK ROW & PEMELIHARAAN FEEDER</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                    Realtime Sync
+                  </span>
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {selectedSpecificFeeder 
+                  ? `Sinkronisasi langsung Surat Perintah Kerja (SPK) untuk Penyulang ${selectedSpecificFeeder.name}`
+                  : `Sinkronisasi langsung seluruh Surat Perintah Kerja (SPK) ROW dari Menu SPK ULP Baguala`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            {onNavigateToSpk && (
+              <button
+                onClick={onNavigateToSpk}
+                className="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-teal-900/40 transition-all hover:scale-105 active:scale-95"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Buka Menu SPK</span>
+                <ExternalLink className="w-3 h-3 ml-0.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* SPK KPI Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+          {/* 1. Total SPK */}
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              {selectedSpecificFeeder ? `Total SPK ${selectedSpecificFeeder.name}` : 'Total SPK Terbit'}
+            </span>
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-black text-white">
+                {selectedSpecificFeeder ? (spkFeederStats?.total ?? 0) : systemStats.spkTotal}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">berkas</span>
+            </div>
+            <span className="text-[9px] text-slate-400">
+              {selectedSpecificFeeder ? 'Khusus penyulang aktif' : 'Akumulasi seluruh feeder'}
+            </span>
+          </div>
+
+          {/* 2. SPK Selesai */}
+          <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/20 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-emerald-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Selesai Eksekusi</span>
+              <CheckCircle className="w-3.5 h-3.5" />
+            </div>
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-black text-emerald-300">
+                {selectedSpecificFeeder ? (spkFeederStats?.done ?? 0) : systemStats.spkDone}
+              </span>
+              <span className="text-[10px] font-bold text-emerald-400">SPK</span>
+            </div>
+            <span className="text-[9px] text-emerald-400/80 font-medium">Sudah diinspeksi & tuntas</span>
+          </div>
+
+          {/* 3. Dalam Proses */}
+          <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/20 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-amber-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Dalam Progres</span>
+              <Clock className="w-3.5 h-3.5" />
+            </div>
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-black text-amber-300">
+                {selectedSpecificFeeder ? (spkFeederStats?.inProcess ?? 0) : systemStats.spkInProcess}
+              </span>
+              <span className="text-[10px] font-bold text-amber-400">SPK</span>
+            </div>
+            <span className="text-[9px] text-amber-400/80 font-medium">Regu sedang di lapangan</span>
+          </div>
+
+          {/* 4. Rencana / Pending */}
+          <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-500/20 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-sky-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Draft / Rencana</span>
+              <Calendar className="w-3.5 h-3.5" />
+            </div>
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-black text-sky-300">
+                {selectedSpecificFeeder ? (spkFeederStats?.pending ?? 0) : systemStats.spkDraft}
+              </span>
+              <span className="text-[10px] font-bold text-sky-400">SPK</span>
+            </div>
+            <span className="text-[9px] text-sky-400/80 font-medium">Antrean eksekusi ROW</span>
+          </div>
+
+          {/* 5. Kepatuhan / Realisasi */}
+          <div className="p-3 rounded-xl bg-teal-950/30 border border-teal-500/30 flex flex-col justify-between col-span-2 sm:col-span-1">
+            <div className="flex items-center justify-between text-teal-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Realisasi ROW</span>
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </div>
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-black text-teal-300">
+                {selectedSpecificFeeder ? (spkFeederStats?.percent ?? 100) : systemStats.spkDonePercent}
+              </span>
+              <span className="text-[10px] font-bold text-teal-400">%</span>
+            </div>
+            <span className="text-[9px] text-teal-400/80 font-medium">Tingkat penyelesaian tugas</span>
+          </div>
+        </div>
+
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2">
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+            <button
+              onClick={() => setSpkStatusFilter('ALL')}
+              className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                spkStatusFilter === 'ALL'
+                  ? 'bg-slate-700 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Semua ({selectedSpecificFeeder ? (spkFeederStats?.total ?? 0) : spkList.length})
+            </button>
+            <button
+              onClick={() => setSpkStatusFilter('SELESAI')}
+              className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                spkStatusFilter === 'SELESAI'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-emerald-400'
+              }`}
+            >
+              Selesai ({selectedSpecificFeeder ? (spkFeederStats?.done ?? 0) : spkList.filter(s => isSpkDone(s.status)).length})
+            </button>
+            <button
+              onClick={() => setSpkStatusFilter('PROSES')}
+              className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                spkStatusFilter === 'PROSES'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-amber-400'
+              }`}
+            >
+              Proses ({selectedSpecificFeeder ? (spkFeederStats?.inProcess ?? 0) : spkList.filter(s => isSpkInProcess(s.status)).length})
+            </button>
+            <button
+              onClick={() => setSpkStatusFilter('PENDING')}
+              className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                spkStatusFilter === 'PENDING'
+                  ? 'bg-sky-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-sky-400'
+              }`}
+            >
+              Rencana ({selectedSpecificFeeder ? (spkFeederStats?.pending ?? 0) : spkList.filter(s => isSpkPending(s.status)).length})
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative min-w-[220px]">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={spkSearchQuery}
+              onChange={(e) => setSpkSearchQuery(e.target.value)}
+              placeholder="Cari No. SPK, Tim, Lokasi..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-hidden focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
+            />
+            {spkSearchQuery && (
+              <button
+                onClick={() => setSpkSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Realtime SPK Table */}
+        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/50">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-slate-800/80 text-[10.5px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="py-2.5 px-3">No. SPK & Tanggal</th>
+                <th className="py-2.5 px-3">Penyulang</th>
+                <th className="py-2.5 px-3">Jenis Pekerjaan & Target</th>
+                <th className="py-2.5 px-3">Lokasi / Section</th>
+                <th className="py-2.5 px-3">Tim Pelaksana</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {displayedSpks.length > 0 ? (
+                displayedSpks.map((spk, idx) => {
+                  const done = isSpkDone(spk.status);
+                  const inProc = isSpkInProcess(spk.status);
+                  const isPlan = isSpkPending(spk.status);
+
+                  return (
+                    <tr 
+                      key={spk.id || idx}
+                      className="hover:bg-slate-800/40 transition-colors group"
+                    >
+                      {/* No SPK & Date */}
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-white group-hover:text-teal-300 transition-colors flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                          <span>{spk.spkNumber || `SPK-${idx + 1}`}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-slate-500" />
+                          <span>{spk.issueDate || spk.date || 'Terbaru'}</span>
+                        </div>
+                      </td>
+
+                      {/* Feeder */}
+                      <td className="py-2.5 px-3">
+                        <button
+                          onClick={() => {
+                            if (onSelectFeeder && spk.feederName) {
+                              onSelectFeeder(spk.feederName);
+                            }
+                            setSelectedFeeder(spk.feederName || 'ALL');
+                          }}
+                          className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-800 border border-slate-700 text-cyan-300 hover:border-cyan-500/50 hover:bg-cyan-950/40 transition-all text-left"
+                        >
+                          {spk.feederName ? `Penyulang ${spk.feederName.replace(/^penyulang\s+/i, '')}` : 'Semua Feeder'}
+                        </button>
+                      </td>
+
+                      {/* Job Type & Target */}
+                      <td className="py-2.5 px-3">
+                        <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+                          <TreePine className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{spk.jobType || 'Perambasan Pohon ROW'}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-2">
+                          {spk.treeCount ? (
+                            <span className="text-emerald-400 font-bold">{spk.treeCount} Titik Pohon</span>
+                          ) : null}
+                          {spk.volumeKms ? (
+                            <span className="text-teal-400 font-bold">{spk.volumeKms} kms</span>
+                          ) : null}
+                          {spk.description && !spk.treeCount && !spk.volumeKms ? (
+                            <span className="truncate max-w-[180px]">{spk.description}</span>
+                          ) : null}
+                        </div>
+                      </td>
+
+                      {/* Location & Section */}
+                      <td className="py-2.5 px-3">
+                        <span className="text-slate-300 block truncate max-w-[150px]">
+                          {spk.location || spk.sectionName || 'Area Jaringan'}
+                        </span>
+                        {spk.garduName && (
+                          <span className="text-[10px] text-slate-500 block truncate max-w-[150px]">
+                            Gardu: {spk.garduName}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Team */}
+                      <td className="py-2.5 px-3">
+                        <span className="text-slate-300 font-medium block truncate max-w-[140px]">
+                          {spk.team || spk.pelaksana || 'Regu Har ROW'}
+                        </span>
+                        {spk.supervisor && (
+                          <span className="text-[10px] text-slate-500 block truncate max-w-[140px]">
+                            Pengawas: {spk.supervisor}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-2.5 px-3 text-center">
+                        {done ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Selesai
+                          </span>
+                        ) : inProc ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                            <Clock className="w-3 h-3" />
+                            Dalam Proses
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                            <Calendar className="w-3 h-3" />
+                            {spk.status || 'Draft'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-2.5 px-3 text-right">
+                        {onNavigateToSpk && (
+                          <button
+                            onClick={onNavigateToSpk}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-teal-600 hover:text-white text-slate-300 text-[11px] font-bold border border-slate-700 transition-all inline-flex items-center gap-1"
+                          >
+                            <span>Detail</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="w-12 h-12 rounded-full bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-500">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-300">
+                        {selectedSpecificFeeder 
+                          ? `Belum Ada Data SPK untuk Penyulang ${selectedSpecificFeeder.name}`
+                          : 'Belum Ada Surat Perintah Kerja (SPK) yang Sesuai Filter'}
+                      </p>
+                      <p className="text-xs text-slate-500 max-w-md">
+                        {selectedSpecificFeeder
+                          ? `SPK yang dibuat di Menu SPK untuk penyulang ini akan langsung tersinkronisasi dan termonitor di sini secara real-time.`
+                          : `Anda dapat membuat Surat Perintah Kerja (SPK) baru untuk perambasan pohon ROW atau inspeksi di Menu SPK.`}
+                      </p>
+                      {onNavigateToSpk && (
+                        <button
+                          onClick={onNavigateToSpk}
+                          className="mt-2 px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-teal-900/40 transition-all hover:scale-105"
+                        >
+                          <Wrench className="w-3.5 h-3.5" />
+                          <span>Buat SPK Baru di Menu SPK</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ========================================================================= */}

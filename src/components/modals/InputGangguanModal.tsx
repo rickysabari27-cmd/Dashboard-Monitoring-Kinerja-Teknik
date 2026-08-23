@@ -266,23 +266,39 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     }
   }, [isOpen, masterFeeders, tripToEdit]);
 
-  // Auto calculate Duration whenever tripTime or recoveryTime changes
+  // Auto calculate Duration whenever tripTime or recoveryTime changes with robust parsing & overnight support
   useEffect(() => {
     if (!tripTime || !recoveryTime) {
       setDurationMinutes(0);
       return;
     }
     try {
-      const [h1, m1] = tripTime.split(':').map(Number);
-      const [h2, m2] = recoveryTime.split(':').map(Number);
+      const parseTimeToSeconds = (str: string): number | null => {
+        if (!str) return null;
+        const clean = str.trim().toUpperCase();
+        const isPM = clean.includes('PM');
+        const isAM = clean.includes('AM');
+        const timeOnly = clean.replace(/AM|PM/g, '').trim();
+        const parts = timeOnly.split(':').map(p => parseFloat(p));
+        if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+        let hours = parts[0];
+        const minutes = parts[1];
+        const seconds = parts[2] || 0;
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+        return hours * 3600 + minutes * 60 + seconds;
+      };
 
-      if (!isNaN(h1) && !isNaN(m1) && !isNaN(h2) && !isNaN(m2)) {
-        let mins1 = h1 * 60 + m1;
-        let mins2 = h2 * 60 + m2;
-        if (mins2 < mins1) {
-          mins2 += 24 * 60; // Overnight duration
+      const secs1 = parseTimeToSeconds(tripTime);
+      const secs2 = parseTimeToSeconds(recoveryTime);
+
+      if (secs1 !== null && secs2 !== null) {
+        let diffSecs = secs2 - secs1;
+        if (diffSecs < 0) {
+          // Overnight shift (across midnight)
+          diffSecs += 24 * 3600;
         }
-        const diffMins = mins2 - mins1;
+        const diffMins = Math.round(diffSecs / 60);
         if (diffMins >= 0) {
           setDurationMinutes(diffMins);
         }
@@ -718,14 +734,36 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
               </div>
 
               <div>
-                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Durasi Padam (Otomatis)
+                <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1 flex items-center justify-between">
+                  <span>Durasi Padam</span>
+                  <span className="text-[10px] font-semibold text-blue-500 dark:text-cyan-400">Otomatis / Edit</span>
                 </label>
-                <div className={`p-2 rounded-xl border text-center font-black text-xs flex flex-col justify-center ${
-                  isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-blue-50 border-blue-200 text-blue-700'
-                }`}>
-                  <span>{durationMinutes} Menit</span>
-                  <span className="text-[10px] font-medium text-slate-400">({durationHours.toFixed(2)} Jam)</span>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={durationMinutes || ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setDurationMinutes(isNaN(val) ? 0 : Math.max(0, val));
+                    }}
+                    className={`w-full p-2 pr-14 rounded-xl border font-black text-xs text-center ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-blue-50 border-blue-200 text-blue-700'
+                    }`}
+                    placeholder="0"
+                    min={0}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">
+                    Menit
+                  </span>
+                </div>
+                <div className="mt-1 text-center text-[10px] font-bold">
+                  {durationMinutes > 0 ? (
+                    <span className="text-blue-600 dark:text-cyan-400">
+                      = {Math.floor(durationMinutes / 60)} Jam {durationMinutes % 60} Mnt ({(durationMinutes / 60).toFixed(2)} Jam)
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">Otomatis dihitung</span>
+                  )}
                 </div>
               </div>
             </div>
