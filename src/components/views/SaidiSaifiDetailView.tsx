@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CustomSelect } from '../CustomSelect';
 import { MonthlySaidiSaifiData } from '../../types';
 import { 
   TrendingUp, 
@@ -172,35 +173,31 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
           <div className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Tahun:</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className={`p-2 rounded-xl text-xs font-extrabold border ${
-                isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
-              }`}
-            >
-              <option value={2026}>2026 (Berjalan)</option>
-              <option value={2025}>2025 (Historis)</option>
-              <option value={2024}>2024 (Historis)</option>
-            </select>
+            <CustomSelect
+              value={String(selectedYear)}
+              onChange={(val) => setSelectedYear(Number(val))}
+              options={[
+                { value: '2026', label: '2026 (Berjalan)' },
+                { value: '2025', label: '2025 (Historis)' },
+                { value: '2024', label: '2024 (Historis)' }
+              ]}
+              activeColor="blue"
+            />
           </div>
 
           {/* Select Bulan Filter */}
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Bulan:</span>
-            <select
+            <CustomSelect
               value={selectedMonthFilter}
-              onChange={(e) => setSelectedMonthFilter(e.target.value)}
-              className={`p-2 rounded-xl text-xs font-extrabold border ${
-                isDarkMode ? 'bg-slate-800 border-slate-700 text-cyan-400' : 'bg-white border-slate-300 text-blue-700'
-              }`}
-            >
-              <option value="ALL">Semua Bulan (Setahun Full)</option>
-              {MONTH_ORDER.map(m => (
-                <option key={m} value={m}>s/d Bulan {m}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedMonthFilter(val)}
+              options={[
+                { value: 'ALL', label: 'Semua Bulan (Setahun Full)' },
+                ...MONTH_ORDER.map(m => ({ value: m, label: `s/d Bulan ${m}` }))
+              ]}
+              activeColor="emerald"
+            />
           </div>
         </div>
       </div>

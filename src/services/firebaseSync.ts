@@ -62,8 +62,9 @@ export function syncCollection<T extends { id?: string; month?: string }>(
             batch.set(itemDocRef, dataToSave);
           });
           await batch.commit();
-        } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, collectionName);
+        } catch (err: any) {
+          console.warn(`Firestore seeding warning for [${collectionName}]:`, err?.message || err);
+          onDataUpdate(defaultData);
         }
       } else {
         const seen = new Set<string>();
@@ -109,7 +110,13 @@ export async function saveDocument<T extends { id?: string; month?: string }>(
   try {
     await setDoc(docRef, dataToSave, { merge: true });
     return docId;
-  } catch (error) {
+  } catch (error: any) {
+    const errCode = error?.code || '';
+    const errMessage = error?.message || String(error);
+    if (errCode === 'unavailable' || errMessage.includes('offline') || errMessage.includes('Could not reach')) {
+      console.warn(`Firestore save operating in offline/cache mode for [${collectionName}/${docId}]`);
+      return docId;
+    }
     handleFirestoreError(error, OperationType.WRITE, `${collectionName}/${docId}`);
     throw error;
   }
@@ -122,7 +129,13 @@ export async function deleteDocument(collectionName: string, docId: string) {
   const docRef = doc(db, collectionName, docId);
   try {
     await deleteDoc(docRef);
-  } catch (error) {
+  } catch (error: any) {
+    const errCode = error?.code || '';
+    const errMessage = error?.message || String(error);
+    if (errCode === 'unavailable' || errMessage.includes('offline') || errMessage.includes('Could not reach')) {
+      console.warn(`Firestore delete operating in offline/cache mode for [${collectionName}/${docId}]`);
+      return;
+    }
     handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${docId}`);
   }
 }

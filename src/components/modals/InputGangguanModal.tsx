@@ -60,17 +60,23 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // Available feeders list from Master Data sorted alphabetically
   const availableFeeders = useMemo(() => {
     const list = masterFeeders.length > 0 
-      ? masterFeeders.map(f => ({ 
-          name: f.feederName, 
-          cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0,
-          substation: f.substationName || 'GI Passo (20kV)',
-          garduHubung: f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : null,
-          lengthKm: f.lengthKms || 15
-        }))
+      ? masterFeeders.map(f => {
+          const sec = (masterSections || []).find(s => s.feederName.toLowerCase() === f.feederName.toLowerCase());
+          const secSupply = sec?.substationOrGh;
+          const gh = f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : (secSupply && secSupply !== '-' && secSupply.startsWith('GH') ? secSupply : null);
+          const sub = (secSupply && secSupply !== '-' && secSupply !== 'GI/GH') ? secSupply : (gh ? gh : (f.substationName || 'GI Passo (20kV)'));
+          return { 
+            name: f.feederName, 
+            cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0,
+            substation: sub,
+            garduHubung: gh,
+            lengthKm: f.lengthKms || 15
+          };
+        })
       : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ 
           name: k, 
           cust: DEFAULT_FEEDER_MAP[k],
-          substation: 'GI Passo (20kV)',
+          substation: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : 'GI Passo (20kV)'),
           garduHubung: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : null),
           lengthKm: 15
         }));

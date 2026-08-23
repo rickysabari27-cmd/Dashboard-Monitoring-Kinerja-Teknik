@@ -222,8 +222,8 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     operationalStatus: 'Operasi',
     khaAmpere: 600,
     lengthKms: 0.7,
-    garduCount: 0,
-    customerCount: 0,
+    garduCount: 6,
+    customerCount: 1420,
     configuration: 'Radial'
   },
   {
@@ -235,9 +235,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 18.5,
+    garduCount: 28,
+    customerCount: 4120,
     configuration: 'Radial'
   },
   {
@@ -249,9 +249,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 14.2,
+    garduCount: 15,
+    customerCount: 3250,
     configuration: 'Looping'
   },
   {
@@ -263,9 +263,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 12.8,
+    garduCount: 12,
+    customerCount: 2980,
     configuration: 'Looping'
   },
   {
@@ -277,9 +277,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 10.5,
+    garduCount: 14,
+    customerCount: 2750,
     configuration: 'Looping'
   },
   {
@@ -291,9 +291,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 11.2,
+    garduCount: 16,
+    customerCount: 3100,
     configuration: 'Looping'
   },
   {
@@ -305,9 +305,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 16.0,
+    garduCount: 18,
+    customerCount: 2890,
     configuration: 'Looping'
   },
   {
@@ -319,9 +319,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 8.4,
+    garduCount: 11,
+    customerCount: 2640,
     configuration: 'Radial'
   },
   {
@@ -333,9 +333,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 7.7,
+    garduCount: 26,
+    customerCount: 3820,
     configuration: 'Looping'
   },
   {
@@ -347,9 +347,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 24.1,
+    garduCount: 32,
+    customerCount: 5310,
     configuration: 'Looping'
   },
   {
@@ -361,9 +361,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 15.8,
+    garduCount: 19,
+    customerCount: 3100,
     configuration: 'Looping'
   },
   {
@@ -375,9 +375,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Tidak Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 12.0,
+    garduCount: 14,
+    customerCount: 2890,
     configuration: 'Looping'
   },
   {
@@ -389,9 +389,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 4.5,
+    garduCount: 8,
+    customerCount: 1850,
     configuration: 'Radial'
   },
   {
@@ -403,9 +403,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 7.8,
+    garduCount: 22,
+    customerCount: 2950,
     configuration: 'Looping'
   },
   {
@@ -417,9 +417,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Utama',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 22.5,
+    garduCount: 25,
+    customerCount: 4280,
     configuration: 'Looping'
   },
   {
@@ -431,9 +431,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 16.8,
+    garduCount: 21,
+    customerCount: 3620,
     configuration: 'Looping'
   },
   {
@@ -445,9 +445,9 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     status: 'Percabangan',
     operationalStatus: 'Operasi',
     khaAmpere: 600,
-    lengthKms: 0,
-    garduCount: 0,
-    customerCount: 0,
+    lengthKms: 15.3,
+    garduCount: 18,
+    customerCount: 3340,
     configuration: 'Looping'
   }
 ];

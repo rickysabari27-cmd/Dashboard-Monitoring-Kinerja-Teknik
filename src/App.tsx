@@ -135,9 +135,12 @@ export default function App() {
         let updated = { ...item };
         let needsSave = false;
 
-        // Sync with masterGarduDistribusi if matching GD items exist
+        // Sync with masterGarduDistribusi or masterSections if matching items exist
         const matchingGds = (masterGarduDistribusi || []).filter(g => 
           g.feederName && g.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
+        );
+        const matchingSecs = (masterSections || []).filter(s =>
+          s.feederName && s.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
         );
 
         if (matchingGds.length > 0) {
@@ -154,6 +157,19 @@ export default function App() {
           }
           if (item.customerCount !== realCust) {
             updated.customerCount = realCust;
+            needsSave = true;
+          }
+        } else if (matchingSecs.length > 0) {
+          const realCustSec = matchingSecs.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
+          if (item.customerCount !== realCustSec && realCustSec > 0) {
+            updated.customerCount = realCustSec;
+            needsSave = true;
+          }
+        } else {
+          // If customerCount is missing or zero, check INITIAL_MASTER_FEEDERS fallback
+          const initMatch = INITIAL_MASTER_FEEDERS.find(f => f.feederName.toLowerCase() === item.feederName.toLowerCase());
+          if (initMatch && initMatch.customerCount && (!item.customerCount || item.customerCount === 0)) {
+            updated.customerCount = initMatch.customerCount;
             needsSave = true;
           }
         }
@@ -839,7 +855,13 @@ export default function App() {
           {currentView === 'health_index' && (
             <HealthIndexView 
               isDarkMode={isDarkMode}
+              masterFeeders={masterFeeders}
+              masterSections={masterSections}
+              masterGarduDistribusi={masterGarduDistribusi}
+              trips={trips}
               feeders={FEEDER_HEALTH_LIST}
+              inspections={inspections}
+              spkList={spkList}
             />
           )}
 

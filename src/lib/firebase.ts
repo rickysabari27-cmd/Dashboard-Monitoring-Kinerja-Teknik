@@ -5,7 +5,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
+  experimentalAutoDetectLongPolling: true
 }, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
@@ -14,12 +14,18 @@ export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
     console.log('Firebase connection verified');
-  } catch (error) {
-    const errCode = (error as any)?.code || '';
-    if (errCode === 'unavailable' || (error instanceof Error && error.message.includes('offline'))) {
-      console.log('Firestore initialized in offline/local cache mode');
+  } catch (error: any) {
+    const errCode = error?.code || '';
+    const errMessage = error?.message || String(error);
+    if (
+      errCode === 'unavailable' || 
+      errMessage.includes('offline') || 
+      errMessage.includes('Could not reach') ||
+      errMessage.includes('failed')
+    ) {
+      console.log('Firestore operating in offline / local cache mode');
     } else {
-      console.log('Firestore connection tested:', (error as Error)?.message || String(error));
+      console.log('Firestore connection check:', errMessage);
     }
   }
 }

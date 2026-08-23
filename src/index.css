@@ -16,3 +16,20 @@
 .leaflet-tooltip.ge-label-tooltip::before {
   border-top-color: rgba(255, 255, 255, 0.96) !important;
 }
+
+/* Ensure all native select options have dark navy background and bright high-contrast text */
+select option {
+  background-color: #0c162d !important;
+  color: #f8fafc !important;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+select option:hover,
+select option:focus,
+select option:active,
+select option:checked {
+  background-color: #1e293b !important;
+  color: #34d399 !important;
+}
+

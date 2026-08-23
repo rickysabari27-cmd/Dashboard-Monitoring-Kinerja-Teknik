@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { CustomSelect } from '../CustomSelect';
 import { FeederTrip, MasterFeeder } from '../../types';
 import { 
   Zap, 
@@ -225,59 +226,30 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
             </div>
 
             {/* Feeder Filter */}
-            <select
+            <CustomSelect
               value={selectedFeeder}
-              onChange={(e) => setSelectedFeeder(e.target.value)}
-              className={`px-3 py-1.5 rounded-xl text-xs border font-bold focus:outline-none ${
-                isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="ALL">⚡ Semua Feeder</option>
-              {feederOptions.map(fName => (
-                <option key={fName} value={fName}>{fName}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedFeeder(val)}
+              options={[{ value: 'ALL', label: '⚡ Semua Feeder' }, ...feederOptions.map(f => ({ value: f, label: f }))]}
+              activeColor="emerald"
+              showSearch
+              searchPlaceholder="Cari Feeder..."
+            />
 
             {/* Filter Bulan */}
-            <div className="flex items-center gap-1">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className={`px-3 py-1.5 rounded-xl text-xs border font-bold focus:outline-none ${
-                  selectedMonth !== 'ALL'
-                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/40 ring-1 ring-rose-500/20'
-                    : isDarkMode 
-                      ? 'bg-slate-800 border-slate-700 text-slate-200' 
-                      : 'bg-slate-100 border-slate-200 text-slate-800'
-                }`}
-              >
-                {monthOptions.map(m => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CustomSelect
+              value={selectedMonth}
+              onChange={(val) => setSelectedMonth(val)}
+              options={monthOptions.map(m => ({ value: m.value, label: m.label }))}
+              activeColor="rose"
+            />
 
             {/* Filter Tahun */}
-            <div className="flex items-center gap-1">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className={`px-3 py-1.5 rounded-xl text-xs border font-bold focus:outline-none ${
-                  selectedYear !== 'ALL'
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/40 ring-1 ring-amber-500/20'
-                    : isDarkMode 
-                      ? 'bg-slate-800 border-slate-700 text-slate-200' 
-                      : 'bg-slate-100 border-slate-200 text-slate-800'
-                }`}
-              >
-                <option value="ALL">Semua Tahun</option>
-                {yearOptions.map(yr => (
-                  <option key={yr} value={yr}>{yr}</option>
-                ))}
-              </select>
-            </div>
+            <CustomSelect
+              value={selectedYear}
+              onChange={(val) => setSelectedYear(val)}
+              options={[{ value: 'ALL', label: 'Semua Tahun' }, ...yearOptions.map(yr => ({ value: yr, label: yr }))]}
+              activeColor="amber"
+            />
 
             {/* Reset Filter Button */}
             {isFilterActive && (
@@ -299,25 +271,18 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               <ArrowUpDown className="w-3.5 h-3.5" />
               Sortir:
             </span>
-            <select
+            <CustomSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className={`px-3 py-1.5 rounded-xl text-xs border font-extrabold focus:outline-none ${
-                sortBy !== 'ALL'
-                  ? isDarkMode 
-                    ? 'bg-purple-950/60 border-purple-600 text-purple-200 ring-1 ring-purple-500/40' 
-                    : 'bg-purple-100 border-purple-400 text-purple-900 ring-1 ring-purple-400/50'
-                  : isDarkMode 
-                    ? 'bg-slate-800 border-slate-700 text-slate-200' 
-                    : 'bg-slate-100 border-slate-200 text-slate-800'
-              }`}
-            >
-              <option value="ALL">Semua</option>
-              <option value="duration-desc">⏳ Durasi Terpanjang</option>
-              <option value="saidi-desc">📊 SAIDI Tertinggi</option>
-              <option value="saifi-desc">⚡ SAIFI Tertinggi</option>
-              <option value="ens-desc">🔋 ENS Tertinggi</option>
-            </select>
+              onChange={(val) => setSortBy(val as any)}
+              options={[
+                { value: 'ALL', label: 'Semua' },
+                { value: 'duration-desc', label: '⏳ Durasi Terpanjang' },
+                { value: 'saidi-desc', label: '📊 SAIDI Tertinggi' },
+                { value: 'saifi-desc', label: '⚡ SAIFI Tertinggi' },
+                { value: 'ens-desc', label: '🔋 ENS Tertinggi' }
+              ]}
+              activeColor="indigo"
+            />
           </div>
         </div>
 
