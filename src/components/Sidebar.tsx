@@ -20,7 +20,8 @@ import {
   LogOut,
   LogIn,
   UserCheck,
-  MessageSquare
+  MessageSquare,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -55,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'trips' as ViewMode, label: 'Input Gangguan Penyulang', icon: Zap, badge: null },
     { id: 'pemeliharaan' as ViewMode, label: 'Pemeliharaan 20kV', icon: Wrench, badge: '4 Sub', hasSub: true },
     { id: 'spk' as ViewMode, label: 'Surat Perintah Kerja (SPK)', icon: FileText, badge: null },
+    { id: 'google_sheet_sync' as ViewMode, label: 'Google Sheet & Apps Script', icon: FileSpreadsheet, badge: 'Apps Script' },
     { id: 'pengukuran' as ViewMode, label: 'Pengukuran & Beban Gardu', icon: Gauge, badge: null },
     { id: 'master_data' as ViewMode, label: 'Master Data', icon: Database, badge: '5 Data', hasSub: true },
     { id: 'saidi_saifi' as ViewMode, label: 'Kinerja SAIDI / SAIFI', icon: BarChart2, badge: null },

@@ -58,6 +58,7 @@ import { MasterDataView } from './components/views/MasterDataView';
 import { UserManagementView } from './components/views/UserManagementView';
 import { LoginPage } from './components/views/LoginPage';
 import { WhatsAppDispatchView } from './components/views/WhatsAppDispatchView';
+import { GoogleSheetIntegrationView } from './components/views/GoogleSheetIntegrationView';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
@@ -905,6 +906,13 @@ export default function App() {
               inspections={inspections}
               rowTrees={ROW_TREES}
               onOpenUniversalInput={handleOpenUniversalInput}
+            />
+          )}
+
+          {currentView === 'google_sheet_sync' && (
+            <GoogleSheetIntegrationView 
+              isDarkMode={isDarkMode}
+              onShowToast={showToast}
             />
           )}
 

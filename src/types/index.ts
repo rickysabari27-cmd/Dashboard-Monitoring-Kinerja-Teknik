@@ -12,7 +12,8 @@ export type ViewMode =
   | 'apd'
   | 'kendaraan'
   | 'users'
-  | 'whatsapp';
+  | 'whatsapp'
+  | 'google_sheet_sync';
 
 export interface FeederTrip {
   id: string;
