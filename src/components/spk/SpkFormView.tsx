@@ -1605,21 +1605,17 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                 </div>
 
                 <div className="pt-4 space-y-4">
-                  <div className="flex w-full justify-center text-center text-xs font-extrabold pt-2">
+                  <div className="flex w-full justify-end text-center text-xs font-extrabold pt-2">
                     <div className="w-1/2 flex flex-col items-center justify-between min-h-[110px]">
                       <div>
                         <div>Mengetahui</div>
                         <div className="text-[11px] font-black text-slate-900">{formData.managerTitle || 'Manager ULP'}</div>
                       </div>
-                      <div className="my-2 min-w-[140px] flex items-center justify-center">
+                      <div className="my-1.5 min-h-[64px] flex items-center justify-center">
                         {Boolean(formData.isApprovedManager) ? (
-                          <div className="border-2 border-emerald-600 rounded-lg py-1.5 px-3 bg-emerald-50/90 shadow-xs rotate-[-4deg] text-center border-dashed">
-                            <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">
-                              APPROVE MANAGER
-                            </span>
-                          </div>
+                          <ApproveQrCode size={64} text="Approve" />
                         ) : (
-                          <div className="h-9 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
+                          <div className="h-10 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
                             [ MENUNGGU APPROVAL ]
                           </div>
                         )}
@@ -2562,14 +2558,12 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                           <div className="text-[11px] font-black text-slate-900">{formData.managerTitle || 'Manager ULP'}</div>
                         </div>
 
-                        {/* QR Code Signature for Approved State (Scans to: "Approve") */}
-                        <div className="my-1.5 min-w-[120px] flex items-center justify-center">
+                        {/* Approval Signature Box with QR Code for Approved State */}
+                        <div className="my-1.5 min-h-[64px] flex items-center justify-center">
                           {Boolean(formData.isApprovedManager) ? (
-                            <div className="flex flex-col items-center justify-center p-0.5">
-                              <ApproveQrCode size={64} text="Approve" />
-                            </div>
+                            <ApproveQrCode size={64} text="Approve" />
                           ) : (
-                            <div className="h-16 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
+                            <div className="h-10 flex items-center justify-center text-[9px] font-bold text-amber-700 italic border border-dashed border-amber-300 rounded-lg px-2 bg-amber-50/50">
                               [ MENUNGGU APPROVAL ]
                             </div>
                           )}
