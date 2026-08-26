@@ -19,7 +19,8 @@ import {
   Edit2,
   Trash2,
   ArrowUpDown,
-  RotateCcw
+  RotateCcw,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface TripLogsViewProps {
@@ -27,6 +28,7 @@ interface TripLogsViewProps {
   trips: FeederTrip[];
   onOpenInputGangguan: () => void;
   onOpenWhatsAppModal?: (trip?: FeederTrip) => void;
+  onOpenGoogleSheetSync?: () => void;
   onEditTrip?: (trip: FeederTrip) => void;
   onDeleteTrip?: (tripId: string) => void;
   masterFeeders?: MasterFeeder[];
@@ -37,6 +39,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
   trips,
   onOpenInputGangguan,
   onOpenWhatsAppModal,
+  onOpenGoogleSheetSync,
   onEditTrip,
   onDeleteTrip,
   masterFeeders = []
@@ -183,6 +186,18 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Google Sheet Sync Button */}
+            {onOpenGoogleSheetSync && (
+              <button
+                onClick={onOpenGoogleSheetSync}
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Sinkronisasi & Form Input Gangguan ke Google Sheet"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Google Sheet Sync</span>
+              </button>
+            )}
+
             {/* Broadcast WA Button */}
             {onOpenWhatsAppModal && (
               <button

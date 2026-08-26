@@ -286,14 +286,10 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
     { id: 'trips', label: 'Gangguan & Trip', icon: Zap, color: 'text-rose-500' },
     { id: 'spk', label: 'Perintah Kerja (SPK)', icon: FileText, color: 'text-blue-500' },
     { id: 'pemeliharaan', label: 'Inspeksi & ROW 20kV', icon: Wrench, color: 'text-emerald-500' },
-    { id: 'pengukuran', label: 'Pengukuran Gardu', icon: Gauge, color: 'text-amber-500' },
     { id: 'master_data', label: 'Master Feeder', icon: Database, color: 'text-purple-500' },
     { id: 'master_section', label: 'Master Section', icon: Layers, color: 'text-cyan-500' },
     { id: 'master_pemutus', label: 'Alat Pemutus (PMCB/Recloser)', icon: Cpu, color: 'text-blue-500' },
     { id: 'saidi_saifi', label: 'SAIDI / SAIFI', icon: BarChart2, color: 'text-teal-500' },
-    { id: 'material', label: 'Stok Material', icon: Package, color: 'text-indigo-500' },
-    { id: 'apd', label: 'Alat Kerja & APD', icon: Shield, color: 'text-emerald-500' },
-    { id: 'kendaraan', label: 'Armada Kendaraan', icon: Car, color: 'text-sky-500' },
     { id: 'users', label: 'Akses User', icon: Users, color: 'text-slate-400' },
   ];
 

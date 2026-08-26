@@ -59,6 +59,7 @@ import { UserManagementView } from './components/views/UserManagementView';
 import { LoginPage } from './components/views/LoginPage';
 import { WhatsAppDispatchView } from './components/views/WhatsAppDispatchView';
 import { GoogleSheetIntegrationView } from './components/views/GoogleSheetIntegrationView';
+import { GangguanGoogleSheetIntegration } from './components/views/GangguanGoogleSheetIntegration';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
@@ -148,7 +149,7 @@ export default function App() {
         let updated = { ...item };
         let needsSave = false;
 
-        // Sync with masterGarduDistribusi or masterSections if matching items exist
+        // Sync with masterSections if matching items exist, without overwriting full feeder customer count with incomplete gardus
         const matchingGds = (masterGarduDistribusi || []).filter(g => 
           g.feederName && g.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
         );
@@ -156,26 +157,26 @@ export default function App() {
           s.feederName && s.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
         );
 
-        if (matchingGds.length > 0) {
-          const realGdCount = matchingGds.length;
-          const realKva = matchingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
-          const realCust = matchingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
-          if (item.garduCount !== realGdCount) {
-            updated.garduCount = realGdCount;
-            needsSave = true;
-          }
-          if (item.capacityKva !== realKva) {
-            updated.capacityKva = realKva;
-            needsSave = true;
-          }
-          if (item.customerCount !== realCust) {
-            updated.customerCount = realCust;
-            needsSave = true;
-          }
-        } else if (matchingSecs.length > 0) {
+        if (matchingSecs.length > 0) {
           const realCustSec = matchingSecs.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
           if (item.customerCount !== realCustSec && realCustSec > 0) {
             updated.customerCount = realCustSec;
+            needsSave = true;
+          }
+        } else if (matchingGds.length > 0) {
+          const realCust = matchingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
+          const realKva = matchingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
+          if (item.garduCount !== matchingGds.length) {
+            updated.garduCount = matchingGds.length;
+            needsSave = true;
+          }
+          if (item.capacityKva !== realKva && realKva > 0) {
+            updated.capacityKva = realKva;
+            needsSave = true;
+          }
+          // Only update customer count if realCust is larger than current or current is 0
+          if ((!item.customerCount || item.customerCount === 0 || realCust > item.customerCount) && realCust > 0) {
+            updated.customerCount = realCust;
             needsSave = true;
           }
         } else {
@@ -868,9 +869,20 @@ export default function App() {
                 setEditingTrip(null);
                 setIsGangguanModalOpen(true);
               }}
+              onOpenGoogleSheetSync={() => setCurrentView('gangguan_sheet_sync' as any)}
               onEditTrip={handleEditTrip}
               onDeleteTrip={handleDeleteTrip}
               onOpenWhatsAppModal={(trip) => handleOpenWhatsAppModal(trip, 'Gangguan / Trip')}
+              masterFeeders={masterFeeders}
+            />
+          )}
+
+          {currentView === 'gangguan_sheet_sync' as any && (
+            <GangguanGoogleSheetIntegration 
+              isDarkMode={isDarkMode}
+              onShowToast={showToast}
+              trips={trips}
+              onSaveTripFromSheet={handleSaveTrip}
               masterFeeders={masterFeeders}
             />
           )}

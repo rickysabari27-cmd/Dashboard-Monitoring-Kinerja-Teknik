@@ -285,16 +285,21 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setFStatus(statusVal);
     setFOpStatus(feeder.operationalStatus || 'Operasi');
 
+    const matchingSections = masterSections.filter(
+      s => s.feederName && s.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
+    );
+    const totalSecCust = matchingSections.reduce((acc, s) => acc + (Number(s.customerCount) || 0), 0);
+    const hasSecs = matchingSections.length > 0;
+
     const matchingGds = masterGarduDistribusi.filter(
       g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
     );
     const totalKvaGds = matchingGds.reduce((acc, g) => acc + (Number(g.capacityKva) || 0), 0);
-    const totalCustGds = matchingGds.reduce((acc, g) => acc + (Number(g.customerCount) || 0), 0);
 
     setFKha(matchingGds.length > 0 ? totalKvaGds : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0));
-    setFLength(feeder.lengthKms ?? 0);
-    setFGarduCount(matchingGds.length > 0 ? matchingGds.length : (feeder.garduCount ?? 0));
-    setFCust(matchingGds.length > 0 ? totalCustGds : (feeder.customerCount ?? 0));
+    setFLength(hasSecs ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1)) : (feeder.lengthKms ?? 0));
+    setFGarduCount(matchingGds.length > 0 ? matchingGds.length : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0) : (feeder.garduCount ?? 0)));
+    setFCust(hasSecs ? totalSecCust : (feeder.customerCount ?? 0));
     setFConfig(feeder.configuration || 'Looping');
   };
 
@@ -744,14 +749,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     .map((feeder, idx) => {
                       // Dynamically sync metrics with real sections and gardu distribusi
                       const matchingSections = masterSections.filter(
-                        s => s.feederName && s.feederName.toLowerCase() === feeder.feederName.toLowerCase()
+                        s => s.feederName && s.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
                       );
                       const matchingGds = masterGarduDistribusi.filter(
                         g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
                       );
                       const totalKvaGds = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
-                      const totalCustGds = matchingGds.reduce((acc, g) => acc + (g.customerCount || 0), 0);
                       const hasSecs = matchingSections.length > 0;
+                      const totalSecCust = matchingSections.reduce((acc, s) => acc + (Number(s.customerCount) || 0), 0);
                       
                       const realGardu = matchingGds.length > 0 
                         ? matchingGds.length 
@@ -764,9 +769,9 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       const realKvaGardu = matchingGds.length > 0 
                         ? totalKvaGds 
                         : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0);
-                      const realCust = matchingGds.length > 0
-                        ? totalCustGds
-                        : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.customerCount || 0), 0) : (feeder.customerCount ?? 0));
+                      const realCust = hasSecs
+                        ? totalSecCust
+                        : (feeder.customerCount ?? 0);
 
                       return (
                         <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FeederTrip, MasterFeeder, MasterSection, MasterGarduHubung } from '../../types';
+import { FeederTrip, MasterFeeder, MasterSection, MasterGarduHubung, getDownstreamCoveredSections } from '../../types';
 import { 
   X, 
   Zap, 
@@ -61,13 +61,15 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const availableFeeders = useMemo(() => {
     const list = masterFeeders.length > 0 
       ? masterFeeders.map(f => {
-          const sec = (masterSections || []).find(s => s.feederName.toLowerCase() === f.feederName.toLowerCase());
+          const secList = (masterSections || []).filter(s => s.feederName && s.feederName.trim().toLowerCase() === f.feederName.trim().toLowerCase());
+          const totalSecCust = secList.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
+          const sec = secList[0];
           const secSupply = sec?.substationOrGh;
           const gh = f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : (secSupply && secSupply !== '-' && secSupply.startsWith('GH') ? secSupply : null);
           const sub = (secSupply && secSupply !== '-' && secSupply !== 'GI/GH') ? secSupply : (gh ? gh : (f.substationName || 'GI Passo (20kV)'));
           return { 
             name: f.feederName, 
-            cust: f.customerCount !== undefined && f.customerCount !== null ? f.customerCount : 0,
+            cust: secList.length > 0 ? totalSecCust : (Number(f.customerCount) || 0),
             substation: sub,
             garduHubung: gh,
             lengthKm: f.lengthKms || 15
@@ -81,7 +83,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
           lengthKm: 15
         }));
     return [...list].sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true, sensitivity: 'base' }));
-  }, [masterFeeders]);
+  }, [masterFeeders, masterSections]);
 
   // Available GHs list
   const availableGHList = masterGarduHubung.length > 0
@@ -89,8 +91,13 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     : ['GH Bandara', 'GH Baguala', 'GH Wayame', 'GH Poka'];
 
   // Master total customers sum across all feeders
-  const masterTotalCustomers = masterFeeders.reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
-  const defaultUlpCustomers = masterTotalCustomers > 0 ? masterTotalCustomers : 45200;
+  const masterTotalCustomers = useMemo(() => {
+    return masterFeeders.length > 0 
+      ? masterFeeders.reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0) 
+      : 0;
+  }, [masterFeeders]);
+
+  const defaultUlpCustomers = 0;
 
   // 1. Basic Info State (Default Blank / Empty for Manual Input)
   const [feederName, setFeederName] = useState('');
@@ -110,8 +117,8 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   // 2. Load & Power State (Blank)
   const [currentAmpere, setCurrentAmpere] = useState<string>(''); // Beban Arus Penyulang (A)
   
-  // 3. Customer & SAIDI/SAIFI State
-  const [totalUlpCustomers, setTotalUlpCustomers] = useState<number | string>(defaultUlpCustomers);
+  // 3. Customer & SAIDI/SAIFI State (Default 0 for Total Pelanggan ULP)
+  const [totalUlpCustomers, setTotalUlpCustomers] = useState<number | string>(0);
   const [affectedCustomers, setAffectedCustomers] = useState<string>('');
   
   // 4. Incident Detail State (Blank)
@@ -190,6 +197,50 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     return branches;
   }, [matchingSections]);
 
+  // Real-Time Synchronization Helper for Customer Counts from Master Data & Master Section
+  const syncCustomerCountFromMaster = (
+    fName: string = feederName,
+    sourceType: 'GI' | 'GH' | 'PERCABANGAN' = supplySourceType,
+    secKey: string = selectedSectionKey
+  ) => {
+    if (!fName) return;
+
+    // Filter masterSections ("data section") for this feeder
+    const secList = (masterSections || []).filter(
+      s => s.feederName && s.feederName.trim().toLowerCase() === fName.trim().toLowerCase()
+    );
+
+    if (sourceType === 'PERCABANGAN') {
+      if (secKey) {
+        const foundSec = secList.find(s => s.id === secKey || s.sectionName === secKey);
+        if (foundSec && foundSec.customerCount !== undefined && foundSec.customerCount !== null) {
+          setAffectedCustomers(foundSec.customerCount.toString());
+          return;
+        }
+        const covered = getDownstreamCoveredSections(fName, secKey, masterSections);
+        if (covered && covered.totalCustomers > 0) {
+          setAffectedCustomers(covered.totalCustomers.toString());
+          return;
+        }
+      }
+      // If no section key, check first section under matching feeder in masterSections
+      if (secList.length > 0 && secList[0].customerCount !== undefined && secList[0].customerCount !== null) {
+        setAffectedCustomers(secList[0].customerCount.toString());
+        return;
+      }
+    }
+
+    // Default for GI or GH (Full Feeder):
+    // Calculate sum of customerCount across all sections of this feeder from masterSections ("data section")
+    const totalSecCust = secList.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
+    if (totalSecCust > 0) {
+      setAffectedCustomers(totalSecCust.toString());
+    } else {
+      const foundFeeder = availableFeeders.find(f => f.name.toLowerCase() === fName.toLowerCase());
+      setAffectedCustomers(foundFeeder ? foundFeeder.cust.toString() : '0');
+    }
+  };
+
   // Reset or populate form whenever modal opens or tripToEdit changes
   useEffect(() => {
     if (isOpen) {
@@ -217,7 +268,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setSelectedBranchKey(tripToEdit.branchId || tripToEdit.branchName || '');
 
         setCurrentAmpere(tripToEdit.currentAmpere !== undefined && tripToEdit.currentAmpere !== null ? tripToEdit.currentAmpere.toString() : '');
-        setTotalUlpCustomers(tripToEdit.totalUlpCustomers || defaultUlpCustomers);
+        setTotalUlpCustomers(tripToEdit.totalUlpCustomers !== undefined && tripToEdit.totalUlpCustomers !== null ? tripToEdit.totalUlpCustomers : 0);
         setAffectedCustomers(tripToEdit.affectedCustomers !== undefined && tripToEdit.affectedCustomers !== null ? tripToEdit.affectedCustomers.toString() : '');
         setLocationKm(tripToEdit.locationKm || '');
         setCoordinates(tripToEdit.coordinates || '');
@@ -230,7 +281,6 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       } else {
         const defaultFeeder = availableFeeders[0]?.name || '';
         const found = availableFeeders.find(f => f.name === defaultFeeder);
-        const initialCust = found ? found.cust : 0;
         setFeederName(defaultFeeder);
         setTripDate(new Date().toISOString().split('T')[0]);
         setTripTime('');
@@ -238,13 +288,16 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setDurationMinutes(0);
         setRelayType('GFR / OCR');
         
+        let initialSourceType: 'GI' | 'GH' | 'PERCABANGAN' = 'GI';
         // Default supply source based on feeder GH info
         if (found?.garduHubung) {
           setTripScope('PERCABANGAN');
+          initialSourceType = 'GH';
           setSupplySourceType('GH');
           setSelectedGhName(found.garduHubung);
         } else {
           setTripScope('UTAMA');
+          initialSourceType = 'GI';
           setSupplySourceType('GI');
           setSelectedGhName('GH Bandara');
         }
@@ -252,8 +305,12 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setSelectedSectionKey('');
         setSelectedBranchKey('');
         setCurrentAmpere('');
-        setTotalUlpCustomers(defaultUlpCustomers);
+        setTotalUlpCustomers(0);
+        
+        // Sync customer count from Master Data
+        const initialCust = found ? found.cust : 0;
         setAffectedCustomers(initialCust.toString());
+
         setLocationKm('');
         setCoordinates('');
         setCause('');
@@ -264,7 +321,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setIL3('');
       }
     }
-  }, [isOpen, masterFeeders, tripToEdit]);
+  }, [isOpen, masterFeeders, tripToEdit, masterTotalCustomers]);
 
   // Auto calculate Duration whenever tripTime or recoveryTime changes with robust parsing & overnight support
   useEffect(() => {
@@ -312,21 +369,24 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const handleFeederChange = (name: string) => {
     setFeederName(name);
     const foundFeeder = availableFeeders.find(f => f.name === name);
+    let newSourceType: 'GI' | 'GH' | 'PERCABANGAN' = supplySourceType;
     if (foundFeeder) {
-      setAffectedCustomers(foundFeeder.cust.toString());
       if (foundFeeder.garduHubung) {
         setSelectedGhName(foundFeeder.garduHubung);
+        newSourceType = 'GH';
         setSupplySourceType('GH');
         setTripScope('PERCABANGAN');
       } else {
+        newSourceType = 'GI';
         setSupplySourceType('GI');
         setTripScope('UTAMA');
       }
-    } else {
-      setAffectedCustomers('0');
     }
     setSelectedSectionKey('');
     setSelectedBranchKey('');
+
+    // Real-time synchronization of customer data
+    syncCustomerCountFromMaster(name, newSourceType, '');
   };
 
   // Realtime calculated values
@@ -337,7 +397,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const ensKwh = Math.round(kwPadam * durationHours);
   const financialLossCalc = Math.round(ensKwh * TARIFF_PER_KWH);
 
-  const ulpCustVal = Number(totalUlpCustomers) || 45200;
+  const ulpCustVal = Number(totalUlpCustomers) || 0;
   const affCustVal = Number(affectedCustomers) || 0;
 
   // SAIDI Contribution (Jam/Plg)
@@ -793,6 +853,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   onClick={() => {
                     setSupplySourceType('GI');
                     setTripScope('UTAMA');
+                    syncCustomerCountFromMaster(feederName, 'GI', selectedSectionKey);
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
                     supplySourceType === 'GI'
@@ -824,6 +885,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   onClick={() => {
                     setSupplySourceType('GH');
                     setTripScope('PERCABANGAN');
+                    syncCustomerCountFromMaster(feederName, 'GH', selectedSectionKey);
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
                     supplySourceType === 'GH'
@@ -855,6 +917,12 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   onClick={() => {
                     setSupplySourceType('PERCABANGAN');
                     setTripScope('PERCABANGAN');
+                    let targetSec = selectedSectionKey;
+                    if (!targetSec && matchingSections.length > 0) {
+                      targetSec = matchingSections[0].id;
+                      setSelectedSectionKey(targetSec);
+                    }
+                    syncCustomerCountFromMaster(feederName, 'PERCABANGAN', targetSec);
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
                     supplySourceType === 'PERCABANGAN'
@@ -931,14 +999,16 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                     <select
                       value={selectedSectionKey}
                       onChange={(e) => {
-                        setSelectedSectionKey(e.target.value);
+                        const newSecKey = e.target.value;
+                        setSelectedSectionKey(newSecKey);
                         // Reset branch selection if section changes
-                        const sec = matchingSections.find(s => s.id === e.target.value);
+                        const sec = matchingSections.find(s => s.id === newSecKey);
                         if (sec?.fcoBranches && sec.fcoBranches.length > 0) {
                           setSelectedBranchKey(sec.fcoBranches[0].id || sec.fcoBranches[0].fcoBranchName);
                         } else {
                           setSelectedBranchKey('');
                         }
+                        syncCustomerCountFromMaster(feederName, 'PERCABANGAN', newSecKey);
                       }}
                       className={`w-full p-2 rounded-xl border font-bold text-xs ${
                         isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
@@ -947,7 +1017,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                       <option value="">-- Pilih Section Penyulang --</option>
                       {matchingSections.map(sec => (
                         <option key={sec.id} value={sec.id}>
-                          {sec.sectionName} ({sec.lengthKms} km) • {sec.substationOrGh}
+                          {sec.sectionName} ({sec.customerCount ? sec.customerCount.toLocaleString('id-ID') : 0} Plg • {sec.lengthKms} km)
                         </option>
                       ))}
                       {matchingSections.length === 0 && (
@@ -1070,9 +1140,15 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                 <Users className="w-4 h-4" />
                 <span>4. Pelanggan Terdampak & Kalkulasi SAIDI/SAIFI</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400">
-                Formula Standar PLN
-              </span>
+              <button
+                type="button"
+                onClick={() => syncCustomerCountFromMaster()}
+                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                title="Klik untuk sinkronkan ulang data pelanggan dengan Master Data Feeder/Section"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Sinkron Real-Time Master Data</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1085,7 +1161,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                     type="number"
                     value={totalUlpCustomers}
                     onChange={(e) => setTotalUlpCustomers(e.target.value)}
-                    placeholder="45200"
+                    placeholder="0"
                     className={`w-full p-2.5 pl-3 pr-12 rounded-xl border font-bold text-sm ${
                       isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'
                     }`}
