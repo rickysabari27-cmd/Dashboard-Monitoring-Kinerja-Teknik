@@ -3,14 +3,16 @@ import { CustomSelect } from '../CustomSelect';
 import { MasterFeeder, MasterSection, MasterGarduDistribusi, FeederTrip, FeederHealth, InspectionRecord, SpkTask } from '../../types';
 import { 
   ResponsiveContainer, 
+  ComposedChart, 
   BarChart, 
   Bar, 
+  Line, 
+  Area, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip as RechartsTooltip, 
-  Cell, 
-  ReferenceLine 
+  Cell 
 } from 'recharts';
 import { 
   Activity, 
@@ -1142,12 +1144,6 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
             <span className="text-slate-400">Energy Loss (ENS):</span>
             <span className="font-bold text-amber-300">{data.ensKwh.toLocaleString('id-ID')} kWh</span>
           </div>
-          {data.isTargetExceeded && (
-            <div className="mt-1 text-[10px] text-amber-400 font-bold flex items-center gap-1 pt-1 border-t border-slate-800">
-              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
-              <span>Melebihi ambang batas target (&gt;1 trip)</span>
-            </div>
-          )}
         </div>
       );
     }
@@ -1540,8 +1536,12 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
           <div className="lg:col-span-8 flex flex-col justify-between">
             <div className="h-64 sm:h-72 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyOutageTrend} margin={{ top: 20, right: 15, left: -15, bottom: 5 }}>
+                <ComposedChart data={monthlyOutageTrend} margin={{ top: 20, right: 15, left: -15, bottom: 5 }}>
                   <defs>
+                    <linearGradient id="trendAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.0} />
+                    </linearGradient>
                     <linearGradient id="barGradientNormal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.9} />
                       <stop offset="100%" stopColor="#0284c7" stopOpacity={0.5} />
@@ -1569,7 +1569,12 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
                     allowDecimals={false} 
                   />
                   <RechartsTooltip content={<CustomMonthlyTrendTooltip />} />
-                  <ReferenceLine y={1} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: 'Target Max 1x', fill: '#f59e0b', fontSize: 9, position: 'insideTopRight' }} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="count" 
+                    fill="url(#trendAreaGradient)" 
+                    stroke="none" 
+                  />
                   <Bar dataKey="count" name="Jumlah Gangguan" radius={[8, 8, 0, 0]} maxBarSize={38}>
                     {monthlyOutageTrend.map((entry, index) => {
                       const fill = entry.count === 0 
@@ -1591,7 +1596,16 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
                       );
                     })}
                   </Bar>
-                </BarChart>
+                  <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    name="Trenline Gangguan" 
+                    stroke="#38bdf8" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, fill: '#38bdf8', stroke: '#0c162d', strokeWidth: 2 }} 
+                    activeDot={{ r: 7, fill: '#fbbf24', stroke: '#ffffff', strokeWidth: 2 }} 
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
 

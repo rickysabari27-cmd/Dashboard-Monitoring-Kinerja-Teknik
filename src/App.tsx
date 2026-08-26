@@ -60,7 +60,6 @@ import { LoginPage } from './components/views/LoginPage';
 import { WhatsAppDispatchView } from './components/views/WhatsAppDispatchView';
 import { GoogleSheetIntegrationView } from './components/views/GoogleSheetIntegrationView';
 import { GangguanGoogleSheetIntegration } from './components/views/GangguanGoogleSheetIntegration';
-import { GoogleDriveView } from './components/views/GoogleDriveView';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
@@ -146,33 +145,54 @@ export default function App() {
         item.id !== 'MF-HLG'
       );
 
-      // Perform one-time reset of feeder metrics to 0 as requested ("DI 0 KAN DULU AKAN DIINPUT MANUAL")
-      const isZeroedDone = localStorage.getItem('pln_feeder_zeroed_metrics_v2');
-      const processedData: MasterFeeder[] = filtered.map(item => {
-        if (!isZeroedDone) {
-          const zeroed: MasterFeeder = {
-            ...item,
-            lengthKms: 0,
-            garduCount: 0,
-            capacityKva: 0,
-            khaAmpere: 0,
-            customerCount: 0
-          };
-          saveDocument('master_feeders', zeroed);
-          return zeroed;
-        }
-        return {
-          ...item,
-          lengthKms: item.lengthKms ?? 0,
-          garduCount: item.garduCount ?? 0,
-          capacityKva: item.capacityKva ?? (item.khaAmpere ?? 0),
-          customerCount: item.customerCount ?? 0
-        };
-      });
+      const processedData = filtered.map(item => {
+        let updated = { ...item };
+        let needsSave = false;
 
-      if (!isZeroedDone && filtered.length > 0) {
-        localStorage.setItem('pln_feeder_zeroed_metrics_v2', 'true');
-      }
+        // Sync with masterSections if matching items exist, without overwriting full feeder customer count with incomplete gardus
+        const matchingGds = (masterGarduDistribusi || []).filter(g => 
+          g.feederName && g.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
+        );
+        const matchingSecs = (masterSections || []).filter(s =>
+          s.feederName && s.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
+        );
+
+        if (matchingSecs.length > 0) {
+          const realCustSec = matchingSecs.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
+          if (item.customerCount !== realCustSec && realCustSec > 0) {
+            updated.customerCount = realCustSec;
+            needsSave = true;
+          }
+        } else if (matchingGds.length > 0) {
+          const realCust = matchingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
+          const realKva = matchingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
+          if (item.garduCount !== matchingGds.length) {
+            updated.garduCount = matchingGds.length;
+            needsSave = true;
+          }
+          if (item.capacityKva !== realKva && realKva > 0) {
+            updated.capacityKva = realKva;
+            needsSave = true;
+          }
+          // Only update customer count if realCust is larger than current or current is 0
+          if ((!item.customerCount || item.customerCount === 0 || realCust > item.customerCount) && realCust > 0) {
+            updated.customerCount = realCust;
+            needsSave = true;
+          }
+        } else {
+          // If customerCount is missing or zero, check INITIAL_MASTER_FEEDERS fallback
+          const initMatch = INITIAL_MASTER_FEEDERS.find(f => f.feederName.toLowerCase() === item.feederName.toLowerCase());
+          if (initMatch && initMatch.customerCount && (!item.customerCount || item.customerCount === 0)) {
+            updated.customerCount = initMatch.customerCount;
+            needsSave = true;
+          }
+        }
+
+        if (needsSave) {
+          saveDocument('master_feeders', updated);
+        }
+        return updated;
+      });
 
       INITIAL_MASTER_FEEDERS.forEach(init => {
         if (!processedData.some(d => d.feederName.toLowerCase() === init.feederName.toLowerCase() || d.feederCode.toLowerCase() === init.feederCode.toLowerCase())) {
@@ -905,19 +925,6 @@ export default function App() {
             <GoogleSheetIntegrationView 
               isDarkMode={isDarkMode}
               onShowToast={showToast}
-            />
-          )}
-
-          {currentView === 'google_drive' && (
-            <GoogleDriveView 
-              isDarkMode={isDarkMode}
-              onShowToast={showToast}
-              trips={trips}
-              masterFeeders={masterFeeders}
-              masterSections={masterSections}
-              monthlySaidi={monthlySaidiData}
-              spkList={spkList}
-              garduMeasurements={garduMeasurements}
             />
           )}
 

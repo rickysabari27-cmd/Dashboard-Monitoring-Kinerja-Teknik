@@ -44,18 +44,12 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
 }) => {
   // State for imported feeder files (starts empty, persisted in localStorage)
   const [files, setFiles] = useState<ImportedFeederFile[]>(() => {
+    // Clear any previous cached map data from localStorage to satisfy user request:
+    // "HAPUS DATA YANG ADA PADA PETA PENYULANG KARENA AKAN DIINPUT ULANG"
     try {
-      const saved = localStorage.getItem('gis_uploaded_feeder_files');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Filter out default mock files if present
-          const userOnly = parsed.filter((f: any) => !f.id.startsWith('f-') || isNaN(Number(f.id.replace('f-', ''))));
-          return userOnly;
-        }
-      }
+      localStorage.removeItem('gis_uploaded_feeder_files');
     } catch (err) {
-      console.warn('Gagal memuat file penyulang dari localStorage:', err);
+      console.warn('Gagal membersihkan cache localStorage penyulang:', err);
     }
     return DEFAULT_IMPORTED_FILES;
   });
@@ -63,7 +57,11 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
   // Automatically save files state to localStorage on every change
   useEffect(() => {
     try {
-      localStorage.setItem('gis_uploaded_feeder_files', JSON.stringify(files));
+      if (files.length === 0) {
+        localStorage.removeItem('gis_uploaded_feeder_files');
+      } else {
+        localStorage.setItem('gis_uploaded_feeder_files', JSON.stringify(files));
+      }
     } catch (err) {
       console.warn('Gagal menyimpan file penyulang ke localStorage:', err);
     }
@@ -97,6 +95,9 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
   // Notification toast
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Clear map confirmation modal state
+  const [isConfirmClearAllOpen, setIsConfirmClearAllOpen] = useState<boolean>(false);
+
   // Leaflet map refs
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -106,6 +107,21 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleClearAllMapData = () => {
+    setFiles([]);
+    try {
+      localStorage.removeItem('gis_uploaded_feeder_files');
+    } catch (err) {
+      console.warn('Gagal membersihkan cache localStorage:', err);
+    }
+    if (featureGroupRef.current) {
+      featureGroupRef.current.clearLayers();
+    }
+    setClickedPole(null);
+    setIsConfirmClearAllOpen(false);
+    triggerToast('Seluruh data pada Peta Penyulang berhasil dihapus total. Siap diinput ulang.');
   };
 
   // Initialize Leaflet Map
@@ -729,6 +745,16 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
                 PETA SEBARAN JARINGAN
               </h2>
             </div>
+            {files.length > 0 && (
+              <button
+                onClick={() => setIsConfirmClearAllOpen(true)}
+                className="px-2.5 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                title="Hapus seluruh data pada peta penyulang untuk diinput ulang"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Data</span>
+              </button>
+            )}
           </div>
 
           {/* Hidden HTML File Input for local computer files (.kml, .kmz, .geojson) */}
@@ -785,6 +811,16 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
               <Layers className="w-4 h-4 text-blue-400" />
               DAFTAR PENYULANG ({files.length} FILE)
             </span>
+            {files.length > 0 && (
+              <button
+                onClick={() => setIsConfirmClearAllOpen(true)}
+                className="text-[11px] font-bold text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 cursor-pointer"
+                title="Hapus seluruh data pada peta"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Kosongkan Peta</span>
+              </button>
+            )}
           </div>
 
           {/* Scrollable Feeder List Cards - Pure Black Background & High Contrast White Cards */}
@@ -1359,6 +1395,43 @@ export const GisMapView: React.FC<GisMapViewProps> = ({
                   Simpan Perubahan
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal to Clear All Map Data */}
+      {isConfirmClearAllOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
+          <div className="w-full max-w-md p-6 rounded-2xl bg-slate-900 border border-slate-800 text-white shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-800/80">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-white">Hapus Data Peta Penyulang</h3>
+                <p className="text-xs text-slate-400">Konfirmasi Hapus Seluruh Data</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+              Apakah Anda yakin ingin menghapus <strong className="text-white">SELURUH data file & tiang penyulang</strong> pada peta? Data yang dihapus akan dikosongkan total sehingga Anda dapat melakukan <strong className="text-blue-400">input ulang file KML/KMZ baru</strong>.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => setIsConfirmClearAllOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleClearAllMapData}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-lg transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus Data & Input Ulang</span>
+              </button>
             </div>
           </div>
         </div>
