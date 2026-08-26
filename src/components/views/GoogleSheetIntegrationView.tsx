@@ -45,10 +45,62 @@ export const GoogleSheetIntegrationView: React.FC<GoogleSheetIntegrationViewProp
     return localStorage.getItem('pln_gas_web_app_url') || '';
   });
   const [loading, setLoading] = useState<boolean>(false);
-  const [records, setRecords] = useState<SheetRecord[]>([]);
+  const [records, setRecords] = useState<SheetRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem('pln_peta_pohon_synced_records');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat record tersimpan:', err);
+    }
+    return [
+      { waktu: '08/06/2026', penyulang: 'Waiheru 3', section: 'GI Passo - GH Baguala', pohon: 'Trambesi', koordinatPohon: '-3.620343, 128.254475', eviden: 'Form Peta Pohon_Images/6.Sebelum.034347.jpg', inspektor: 'Andre Gabriel', eksekutor: 'TIM 1', keteranganEksekusi: 'BELUM EKSEKUSI' },
+      { waktu: '08/06/2026', penyulang: 'Waiheru 3', section: 'GI Passo - GH Baguala', pohon: 'Trambesi', koordinatPohon: '-3.622563, 128.249726', eviden: 'Form Peta Pohon_Images/7.Sebelum.034516.jpg', inspektor: 'Andre Gabriel', eksekutor: 'TIM 1', keteranganEksekusi: 'BELUM EKSEKUSI' },
+      { waktu: '12/06/2026', penyulang: 'Bandara 1', section: 'PMCB Bandara 1 - LBS Riang', pohon: 'Liar', koordinatPohon: '-3.689462, 128.112152', eviden: 'Form Peta Pohon_Images/13.Sebelum.071450.jpg', inspektor: 'Ricky', eksekutor: '51 Laha', keteranganEksekusi: 'Sudah Eksekusi' },
+      { waktu: '15/06/2026', penyulang: 'Allang', section: 'RECLOSER NAMAHATU - LBS SAMAHUKU', pohon: 'Kelapa', koordinatPohon: '-3.7222, 128.0623', eviden: '', inspektor: 'Ricky', eksekutor: '', keteranganEksekusi: 'Belum' }
+    ];
+  });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'data' | 'config' | 'script'>('data');
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
+
+  // Auto-save synced records to localStorage whenever they change
+  useEffect(() => {
+    try {
+      if (records.length > 0) {
+        localStorage.setItem('pln_peta_pohon_synced_records', JSON.stringify(records));
+      }
+    } catch (err) {
+      console.warn('Gagal menyimpan data ke localStorage:', err);
+    }
+  }, [records]);
+
+  // Auto-sync from Google Apps Script Web App on mount if URL is configured
+  useEffect(() => {
+    if (webAppUrl.trim()) {
+      handleFetchDataSilently();
+    }
+  }, []);
+
+  // Silent fetch on mount without throwing toast errors
+  const handleFetchDataSilently = async () => {
+    if (!webAppUrl.trim()) return;
+    try {
+      const res = await fetch(webAppUrl.trim(), { method: 'GET', mode: 'cors' });
+      const json = await res.json();
+      if (Array.isArray(json) && json.length > 0) {
+        setRecords(json);
+      } else if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+        setRecords(json.data);
+      }
+    } catch (err) {
+      console.info('Auto fetch silent fail - using local cached records');
+    }
+  };
 
   // Form for adding a new record to Google Sheet matching the exact columns
   const [formWaktu, setFormWaktu] = useState<string>(new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-'));
@@ -83,15 +135,16 @@ export const GoogleSheetIntegrationView: React.FC<GoogleSheetIntegrationViewProp
       });
       
       const json = await res.json();
-      if (Array.isArray(json)) {
-        setRecords(json);
-        onShowToast(`Berhasil memuat ${json.length} baris data dari Google Sheet!`);
-      } else if (json.data && Array.isArray(json.data)) {
-        setRecords(json.data);
-        onShowToast(`Berhasil memuat ${json.data.length} baris data dari Google Sheet!`);
+      const rowsList = Array.isArray(json) 
+        ? json 
+        : (json && Array.isArray(json.data) ? json.data : (json && Array.isArray(json.records) ? json.records : null));
+
+      if (rowsList) {
+        setRecords(rowsList);
+        onShowToast(`Berhasil memuat ${rowsList.length} baris data dari Google Sheet!`);
       } else {
         setRecords([]);
-        onShowToast('Format data dari Google Sheet tidak valid (harus array JSON).');
+        onShowToast('Format data dari Google Sheet tidak sesuai standar.');
       }
     } catch (err: any) {
       console.warn('Gagal fetch langsung (kemungkinan CORS/URL salah), menggunakan simulasi data Google Sheet:', err);
@@ -136,22 +189,44 @@ export const GoogleSheetIntegrationView: React.FC<GoogleSheetIntegrationViewProp
 
     setLoading(true);
     try {
-      await fetch(webAppUrl.trim(), {
+      const res = await fetch(webAppUrl.trim(), {
         method: 'POST',
-        mode: 'no-cors',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify(newRow)
       });
 
+      let resData: any = null;
+      try {
+        resData = await res.json();
+      } catch (parseErr) {}
+
+      if (resData && resData.status === 'error') {
+        throw new Error(resData.message || 'Gagal menyimpan data');
+      }
+
       setRecords(prev => [newRow, ...prev]);
       onShowToast('Data berhasil dikirim & disimpan ke Google Sheet via Google Apps Script!');
       setActiveTab('data');
-    } catch (err) {
-      console.error(err);
-      setRecords(prev => [newRow, ...prev]);
-      onShowToast('Data tersimpan secara lokal (Gagal terhubung ke Apps Script endpoint).');
+    } catch (err: any) {
+      console.warn('Direct POST fetch error, trying fallback mode:', err);
+      try {
+        await fetch(webAppUrl.trim(), {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify(newRow)
+        });
+        setRecords(prev => [newRow, ...prev]);
+        onShowToast('Data dikirim ke Google Sheet (Mode ketersambungan alternatif).');
+        setActiveTab('data');
+      } catch (fallbackErr) {
+        setRecords(prev => [newRow, ...prev]);
+        onShowToast('Data tersimpan secara lokal (Gagal terhubung ke Apps Script endpoint).');
+      }
     } finally {
       setLoading(false);
     }
@@ -159,14 +234,51 @@ export const GoogleSheetIntegrationView: React.FC<GoogleSheetIntegrationViewProp
 
   const appsScriptCode = `/**
  * Google Apps Script untuk Backend PLN ULP Baguala (Peta Pohon / ROW)
- * Simpan kode ini di Extensions > Apps Script pada Google Sheet Anda.
+ * Target Spreadsheet: https://docs.google.com/spreadsheets/d/1VqRWY5-gReGhFmHpbhZNu5yMK_wzmx2aGuUNFTbOWfw/edit
  */
+
+var TARGET_SPREADSHEET_ID = '1VqRWY5-gReGhFmHpbhZNu5yMK_wzmx2aGuUNFTbOWfw';
+
+function getTargetSheet() {
+  try {
+    if (TARGET_SPREADSHEET_ID && TARGET_SPREADSHEET_ID.length > 10) {
+      return SpreadsheetApp.openById(TARGET_SPREADSHEET_ID).getActiveSheet();
+    }
+  } catch (e) {
+    // Fallback jika script terikat langsung pada dokumen sheet
+  }
+  return SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+}
+
 function doGet(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var sheet = getTargetSheet();
+  var defaultHeaders = ['Waktu', 'Penyulang', 'Section', 'Pohon', 'Koordinat Pohon', 'Eviden', 'Inspektor', 'Eksekutor', 'Keterangan Eksekusi'];
+  var fieldMapping = {
+    waktu: 'Waktu',
+    penyulang: 'Penyulang',
+    section: 'Section',
+    pohon: 'Pohon',
+    koordinatPohon: 'Koordinat Pohon',
+    eviden: 'Eviden',
+    inspektor: 'Inspektor',
+    eksekutor: 'Eksekutor',
+    keteranganEksekusi: 'Keterangan Eksekusi'
+  };
   
-  // Header otomatis sesuai tabel PLN
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Waktu', 'Penyulang', 'Section', 'Pohon', 'Koordinat Pohon', 'Eviden', 'Inspektor', 'Eksekutor', 'Keterangan Eksekusi']);
+    sheet.appendRow(defaultHeaders);
+    var initResponse = {
+      status: 'success',
+      message: 'Sheet diinisialisasi dengan header standar',
+      timestamp: new Date().toISOString(),
+      sheetName: sheet.getName(),
+      totalRows: 1,
+      headers: defaultHeaders,
+      fieldMapping: fieldMapping,
+      data: []
+    };
+    return ContentService.createTextOutput(JSON.stringify(initResponse))
+      .setMimeType(ContentService.MimeType.JSON);
   }
   
   var rows = sheet.getDataRange().getValues();
@@ -175,43 +287,111 @@ function doGet(e) {
   
   for (var i = 1; i < rows.length; i++) {
     var row = rows[i];
+    var isEmpty = true;
+    for (var c = 0; c < row.length; c++) {
+      if (row[c] !== '' && row[c] !== null && row[c] !== undefined) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (isEmpty) continue;
+
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
-      obj[headers[j]] = row[j];
+      var value = row[j];
+      if (value instanceof Date) {
+        value = value.toISOString();
+      }
+      var keyName = String(headers[j] || '').trim();
+      if (keyName) {
+        obj[keyName] = value;
+      }
     }
     data.push(obj);
   }
   
-  return ContentService.createTextOutput(JSON.stringify(data))
+  var responsePayload = {
+    status: 'success',
+    message: 'Berhasil mengambil ' + data.length + ' baris data',
+    timestamp: new Date().toISOString(),
+    sheetName: sheet.getName(),
+    totalRows: sheet.getLastRow(),
+    headers: headers,
+    fieldMapping: fieldMapping,
+    data: data
+  };
+  
+  return ContentService.createTextOutput(JSON.stringify(responsePayload))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var sheet = getTargetSheet();
   try {
-    var data = JSON.parse(e.postData.contents);
-    
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Waktu', 'Penyulang', 'Section', 'Pohon', 'Koordinat Pohon', 'Eviden', 'Inspektor', 'Eksekutor', 'Keterangan Eksekusi']);
+    var contents = null;
+    if (e && e.postData && e.postData.contents) {
+      try {
+        contents = JSON.parse(e.postData.contents);
+      } catch (pErr) {
+        contents = e.parameter;
+      }
+    } else if (e && e.parameter) {
+      contents = e.parameter;
     }
     
-    sheet.appendRow([
-      data.waktu || '',
-      data.penyulang || '',
-      data.section || '',
-      data.pohon || '',
-      data.koordinatPohon || '',
-      data.eviden || '',
-      data.inspektor || '',
-      data.eksekutor || '',
-      data.keteranganEksekusi || 'BELUM EKSEKUSI'
-    ]);
+    if (!contents) {
+      throw new Error("Tidak ada data POST yang diterima");
+    }
+
+    var defaultHeaders = ['Waktu', 'Penyulang', 'Section', 'Pohon', 'Koordinat Pohon', 'Eviden', 'Inspektor', 'Eksekutor', 'Keterangan Eksekusi'];
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(defaultHeaders);
+    }
     
-    return ContentService.createTextOutput(JSON.stringify({status: 'success'}))
+    var items = Array.isArray(contents) ? contents : [contents];
+    for (var k = 0; k < items.length; k++) {
+      var itemData = items[k];
+      sheet.appendRow([
+        itemData.waktu || itemData.Waktu || '',
+        itemData.penyulang || itemData.Penyulang || '',
+        itemData.section || itemData.Section || '',
+        itemData.pohon || itemData.Pohon || '',
+        itemData.koordinatPohon || itemData['Koordinat Pohon'] || itemData.Koordinat || '',
+        itemData.eviden || itemData.Eviden || '',
+        itemData.inspektor || itemData.Inspektor || '',
+        itemData.eksekutor || itemData.Eksekutor || '',
+        itemData.keteranganEksekusi || itemData['Keterangan Eksekusi'] || 'BELUM EKSEKUSI'
+      ]);
+    }
+    
+    var postResponse = {
+      status: 'success',
+      message: 'Berhasil menyimpan ' + items.length + ' data ke Google Sheet',
+      timestamp: new Date().toISOString(),
+      sheetName: sheet.getName(),
+      totalRows: sheet.getLastRow(),
+      insertedCount: items.length,
+      fieldMapping: {
+        waktu: 'Waktu',
+        penyulang: 'Penyulang',
+        section: 'Section',
+        pohon: 'Pohon',
+        koordinatPohon: 'Koordinat Pohon',
+        eviden: 'Eviden',
+        inspektor: 'Inspektor',
+        eksekutor: 'Eksekutor',
+        keteranganEksekusi: 'Keterangan Eksekusi'
+      }
+    };
+
+    return ContentService.createTextOutput(JSON.stringify(postResponse))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({status: 'error', message: err.toString()}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: err.toString(),
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }`;
 
@@ -269,6 +449,31 @@ function doPost(e) {
             <span>Sinkronkan Data Sheet</span>
           </button>
         </div>
+      </div>
+
+      {/* Target Google Sheet Callout Banner */}
+      <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-100">
+        <div className="flex items-center gap-3">
+          <FileSpreadsheet className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-emerald-200">File Spreadsheet Terintegrasi:</span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded border border-emerald-500/30">ID: 1VqRWY5-gReGhFmHpbhZNu5yMK_wzmx2aGuUNFTbOWfw</span>
+            </div>
+            <span className="text-slate-300 text-[11px] font-mono select-all block mt-0.5">
+              https://docs.google.com/spreadsheets/d/1VqRWY5-gReGhFmHpbhZNu5yMK_wzmx2aGuUNFTbOWfw/edit
+            </span>
+          </div>
+        </div>
+        <a
+          href="https://docs.google.com/spreadsheets/d/1VqRWY5-gReGhFmHpbhZNu5yMK_wzmx2aGuUNFTbOWfw/edit?gid=0#gid=0"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer shadow-sm"
+        >
+          <ExternalLink className="w-4 h-4" />
+          <span>Buka Google Sheet Target</span>
+        </a>
       </div>
 
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
