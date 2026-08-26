@@ -41,7 +41,8 @@ import {
   Sparkles,
   Waves,
   Cpu,
-  Check
+  Check,
+  RotateCcw
 } from 'lucide-react';
 
 export type MasterDataSubTab = 
@@ -96,6 +97,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const [feederToEdit, setFeederToEdit] = useState<MasterFeeder | null>(null);
   const [feederToDelete, setFeederToDelete] = useState<MasterFeeder | null>(null);
   const [isAddFeederOpen, setIsAddFeederOpen] = useState(false);
+  const [isResetFeedersModalOpen, setIsResetFeedersModalOpen] = useState(false);
 
   // Modals state for Section
   const [sectionToEdit, setSectionToEdit] = useState<MasterSection | null>(null);
@@ -272,7 +274,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   const [pmtScada, setPmtScada] = useState<'Terhubung SCADA' | 'Manual / Non-SCADA' | 'Gangguan Link'>('Terhubung SCADA');
   const [pmtStatus, setPmtStatus] = useState<'Masuk / ON' | 'Lepas / OFF' | 'Pemeliharaan'>('Masuk / ON');
 
-  // Handle Feeder Edit
+  // Handle Feeder Edit via Form Modal
   const openEditFeeder = (feeder: MasterFeeder) => {
     setFeederToEdit(feeder);
     setFCode(feeder.feederCode);
@@ -285,22 +287,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setFStatus(statusVal);
     setFOpStatus(feeder.operationalStatus || 'Operasi');
 
-    const matchingSections = masterSections.filter(
-      s => s.feederName && s.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
-    );
-    const totalSecCust = matchingSections.reduce((acc, s) => acc + (Number(s.customerCount) || 0), 0);
-    const hasSecs = matchingSections.length > 0;
-
-    const matchingGds = masterGarduDistribusi.filter(
-      g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
-    );
-    const totalKvaGds = matchingGds.reduce((acc, g) => acc + (Number(g.capacityKva) || 0), 0);
-
-    setFKha(matchingGds.length > 0 ? totalKvaGds : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0));
-    setFLength(hasSecs ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1)) : (feeder.lengthKms ?? 0));
-    setFGarduCount(matchingGds.length > 0 ? matchingGds.length : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0) : (feeder.garduCount ?? 0)));
-    setFCust(hasSecs ? totalSecCust : (feeder.customerCount ?? 0));
+    setFKha((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0);
+    setFLength(feeder.lengthKms ?? 0);
+    setFGarduCount(feeder.garduCount ?? 0);
+    setFCust(feeder.customerCount ?? 0);
     setFConfig(feeder.configuration || 'Looping');
+    setIsAddFeederOpen(true);
   };
 
   const handleSaveFeeder = (e: React.FormEvent) => {
@@ -370,6 +362,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setSecVoltageKv(sec.voltageKv !== undefined && sec.voltageKv !== null ? sec.voltageKv : '');
     setSecVoltageDrop(sec.voltageDropPercent !== undefined && sec.voltageDropPercent !== null ? sec.voltageDropPercent : '');
     setSecTemp(sec.temperatureCelsius !== undefined && sec.temperatureCelsius !== null ? sec.temperatureCelsius : '');
+    setIsAddSectionOpen(true);
   };
 
   const handleSaveSection = (e: React.FormEvent) => {
@@ -442,6 +435,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setGhOutList(gh.outgoingFeedersList);
     setGhType(gh.ghType);
     setGhStatus(gh.status);
+    setIsAddGhOpen(true);
   };
 
   const handleSaveGh = (e: React.FormEvent) => {
@@ -477,6 +471,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setGdLoc(gd.location);
     setGdCust(gd.customerCount ?? 0);
     setGdStatus(gd.status);
+    setIsAddGdOpen(true);
   };
 
   const handleSaveGd = (e: React.FormEvent) => {
@@ -512,6 +507,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     setPmtRating(pmt.currentRatingAmpere);
     setPmtScada(pmt.scadaStatus);
     setPmtStatus(pmt.status);
+    setIsAddPmtOpen(true);
   };
 
   const handleSavePmt = (e: React.FormEvent) => {
@@ -691,27 +687,41 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 }`}
               />
             </div>
-            <button
-              onClick={() => {
-                setFeederToEdit(null);
-                setFCode('');
-                setFName('');
-                setFGi('-');
-                setFGh('-');
-                setFStatus('Utama');
-                setFOpStatus('Operasi');
-                setFKha(0);
-                setFLength(0);
-                setFGarduCount(0);
-                setFCust(0);
-                setFConfig('Looping');
-                setIsAddFeederOpen(true);
-              }}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Data Penyulang</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsResetFeedersModalOpen(true)}
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all active:scale-95 cursor-pointer ${
+                  isDarkMode 
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' 
+                    : 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 shadow-xs'
+                }`}
+                title="Nol-kan Panjang KMS, Gardu, kVA, dan Pelanggan untuk input manual"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Nol-kan Semua Metrik (0)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setFeederToEdit(null);
+                  setFCode('');
+                  setFName('');
+                  setFGi('-');
+                  setFGh('-');
+                  setFStatus('Utama');
+                  setFOpStatus('Operasi');
+                  setFKha(0);
+                  setFLength(0);
+                  setFGarduCount(0);
+                  setFCust(0);
+                  setFConfig('Looping');
+                  setIsAddFeederOpen(true);
+                }}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Data Penyulang</span>
+              </button>
+            </div>
           </div>
 
           {/* Data Table */}
@@ -747,34 +757,17 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     })
                     .sort((a, b) => (a.feederName || a.feederCode || '').localeCompare(b.feederName || b.feederCode || '', undefined, { numeric: true }))
                     .map((feeder, idx) => {
-                      // Dynamically sync metrics with real sections and gardu distribusi
-                      const matchingSections = masterSections.filter(
-                        s => s.feederName && s.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
-                      );
-                      const matchingGds = masterGarduDistribusi.filter(
-                        g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
-                      );
-                      const totalKvaGds = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
-                      const hasSecs = matchingSections.length > 0;
-                      const totalSecCust = matchingSections.reduce((acc, s) => acc + (Number(s.customerCount) || 0), 0);
-                      
-                      const realGardu = matchingGds.length > 0 
-                        ? matchingGds.length 
-                        : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0) : (feeder.garduCount ?? 0));
-                      
-                      const realLength = hasSecs 
-                        ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1))
-                        : (feeder.lengthKms ?? 0);
-                      
-                      const realKvaGardu = matchingGds.length > 0 
-                        ? totalKvaGds 
-                        : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0);
-                      const realCust = hasSecs
-                        ? totalSecCust
-                        : (feeder.customerCount ?? 0);
+                      const realGardu = feeder.garduCount ?? 0;
+                      const realLength = feeder.lengthKms ?? 0;
+                      const realKvaGardu = (feeder as any).capacityKva ?? feeder.khaAmpere ?? 0;
+                      const realCust = feeder.customerCount ?? 0;
 
                       return (
-                        <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                        <tr 
+                          key={`${feeder.id || 'feeder'}-${idx}`} 
+                          onDoubleClick={() => openEditFeeder(feeder)}
+                          className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                        >
                           <td className="px-1.5 py-2 text-center font-bold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{idx + 1}</td>
                           <td className="px-2 py-2 text-center font-black text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.feederCode}</td>
                           <td className="px-2 py-2 text-center font-bold text-slate-900 dark:text-slate-100 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
@@ -817,18 +810,18 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                             {realCust}
                           </td>
                           <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.configuration || 'Looping'}</td>
-                          <td className="px-1 py-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
+                          <td className="px-1 py-2 text-center" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 onClick={() => openEditFeeder(feeder)}
-                                className="p-1 rounded hover:bg-blue-500/10 text-blue-500 cursor-pointer active:scale-90"
-                                title="Edit Penyulang"
+                                className="p-1 rounded hover:bg-blue-500/15 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 cursor-pointer active:scale-90 transition-all border border-blue-200 dark:border-blue-500/30"
+                                title="Edit Data Penyulang"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => setFeederToDelete(feeder)}
-                                className="p-1 rounded hover:bg-rose-500/10 text-rose-500 cursor-pointer active:scale-90"
+                                className="p-1 rounded hover:bg-rose-500/15 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 cursor-pointer active:scale-90 transition-all border border-rose-200 dark:border-rose-500/30"
                                 title="Hapus Penyulang"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2724,6 +2717,52 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset All Feeder Metrics Confirmation Modal */}
+      {isResetFeedersModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className={`w-full max-w-sm p-6 rounded-2xl shadow-2xl border text-center ${
+            isDarkMode ? 'bg-[#0F172A] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-3">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <h4 className="font-extrabold text-base mb-1">Nol-kan Metrik Penyulang?</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Semua nilai <b>Panjang (KMS)</b>, <b>Jumlah Gardu (BH)</b>, <b>Kapasitas Gardu (kVA)</b>, dan <b>Jumlah Pelanggan</b> pada semua data penyulang akan di-set ke <b>0</b> agar siap diinputkan secara manual satu per satu.
+            </p>
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                onClick={() => setIsResetFeedersModalOpen(false)} 
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  masterFeeders.forEach(f => {
+                    const zeroed: MasterFeeder = {
+                      ...f,
+                      lengthKms: 0,
+                      garduCount: 0,
+                      capacityKva: 0,
+                      khaAmpere: 0,
+                      customerCount: 0
+                    };
+                    onSaveMasterFeeder(zeroed);
+                  });
+                  setIsResetFeedersModalOpen(false);
+                }} 
+                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold cursor-pointer"
+              >
+                Ya, Set ke 0
+              </button>
+            </div>
           </div>
         </div>
       )}
