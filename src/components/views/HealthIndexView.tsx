@@ -69,10 +69,17 @@ interface HealthIndexViewProps {
 // Utility to normalize and match feeder names across different formats (e.g. "Hutumuri" vs "Penyulang Hutumuri")
 export const matchFeederName = (nameA?: string, nameB?: string): boolean => {
   if (!nameA || !nameB) return false;
-  const cleanA = nameA.toLowerCase().replace(/^penyulang\s+/i, '').replace(/[^a-z0-9]/g, '');
-  const cleanB = nameB.toLowerCase().replace(/^penyulang\s+/i, '').replace(/[^a-z0-9]/g, '');
+  const normalize = (str: string) => {
+    return str
+      .toLowerCase()
+      .replace(/\s*\([^)]*\)/g, '')
+      .replace(/^(penyulang|feeder|fdr)\s+/i, '')
+      .replace(/[^a-z0-9]/g, '');
+  };
+  const cleanA = normalize(nameA);
+  const cleanB = normalize(nameB);
   if (!cleanA || !cleanB) return false;
-  return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
+  return cleanA === cleanB;
 };
 
 export const isSpkDone = (status?: string): boolean => {
@@ -536,7 +543,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
     baseList.sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true, sensitivity: 'base' }));
 
     return baseList.map((item) => {
-      const feederTrips = filteredTripsByPeriod.filter(t => t.feederName.toLowerCase() === item.name.toLowerCase());
+      const feederTrips = filteredTripsByPeriod.filter(t => matchFeederName(t.feederName, item.name));
       const tripsCount = feederTrips.length;
       
       const totalSaidi = feederTrips.reduce((acc, t) => {
@@ -843,29 +850,38 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
 
   // Total Trips Count in filtered scope
   const totalTripsScope = useMemo(() => {
-    return filteredFeeders.reduce((acc, f) => acc + f.tripsCount, 0);
-  }, [filteredFeeders]);
+    if (selectedFeeder === 'ALL') {
+      return filteredTripsByPeriod.length;
+    }
+    return filteredTripsByPeriod.filter(t => matchFeederName(t.feederName, selectedFeeder)).length;
+  }, [filteredTripsByPeriod, selectedFeeder]);
 
   // Aggregate Key Indicators (SAIDI, SAIFI, ENS)
   const totalSaidiHours = useMemo(() => {
-    return filteredFeeders.reduce((acc, f) => acc + f.totalSaidiHours, 0);
-  }, [filteredFeeders]);
+    return filteredTripsByPeriod.reduce((acc, t) => {
+      const saidi = t.saidiHours ?? ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp));
+      return acc + (saidi || 0);
+    }, 0);
+  }, [filteredTripsByPeriod, defaultTotalUlp]);
 
   const avgSaidiHours = useMemo(() => {
     return totalCount > 0 ? Number((totalSaidiHours / totalCount).toFixed(3)) : 0.045;
   }, [totalSaidiHours, totalCount]);
 
   const totalSaifiCount = useMemo(() => {
-    return filteredFeeders.reduce((acc, f) => acc + f.totalSaifiCount, 0);
-  }, [filteredFeeders]);
+    return filteredTripsByPeriod.reduce((acc, t) => {
+      const saifi = t.saifiCount ?? ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp));
+      return acc + (saifi || 0);
+    }, 0);
+  }, [filteredTripsByPeriod, defaultTotalUlp]);
 
   const avgSaifiCount = useMemo(() => {
     return totalCount > 0 ? Number((totalSaifiCount / totalCount).toFixed(3)) : 0.038;
   }, [totalSaifiCount, totalCount]);
 
   const totalEnsKwh = useMemo(() => {
-    return filteredFeeders.reduce((acc, f) => acc + f.totalEnsKwh, 0);
-  }, [filteredFeeders]);
+    return filteredTripsByPeriod.reduce((acc, t) => acc + (t.ensKwh || 0), 0);
+  }, [filteredTripsByPeriod]);
 
   const totalEnsJutaRupiah = useMemo(() => {
     // Standard PLN TDL Rp 1.444,7 / kWh
@@ -876,7 +892,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
   const relevantTripsForFindings = useMemo(() => {
     return filteredTripsByPeriod.filter(trip => {
       if (selectedFeeder === 'ALL') return true;
-      return trip.feederName.toLowerCase() === selectedFeeder.toLowerCase();
+      return matchFeederName(trip.feederName, selectedFeeder);
     });
   }, [filteredTripsByPeriod, selectedFeeder]);
 
@@ -1058,8 +1074,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
     // Filter trips matching selected feeder and year scope
     const tripsInScope = trips.filter(t => {
       const { year: tYear } = getTripYearMonth(t);
-      const matchesFeeder = selectedFeeder === 'ALL' || 
-        (t.feederName && t.feederName.trim().toLowerCase() === selectedFeeder.trim().toLowerCase());
+      const matchesFeeder = selectedFeeder === 'ALL' || matchFeederName(t.feederName, selectedFeeder);
       const matchesYear = selectedYear === 'ALL' || tYear === selectedYear;
       return matchesFeeder && matchesYear;
     });
@@ -1269,7 +1284,7 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
 
           <div className="pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400">
             <span>Standar PLN ULP Baguala</span>
-            <span className="text-emerald-400 font-bold">14 Feeder Terpantau</span>
+            <span className="text-emerald-400 font-bold">{totalCount} Feeder Terpantau</span>
           </div>
         </div>
 
@@ -1293,10 +1308,21 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
             </p>
           </div>
 
-          <div className="pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[9px] font-bold text-emerald-400">
+          <div className={`pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[9px] font-bold ${
+            (totalCount > 0 ? totalTripsScope / totalCount : 0) > 1.0 ? 'text-rose-400' : 'text-emerald-400'
+          }`}>
             <span className="flex items-center gap-0.5">
-              <ArrowDownRight className="w-3 h-3" />
-              -15% vs Bln Lalu
+              {(totalCount > 0 ? totalTripsScope / totalCount : 0) > 1.0 ? (
+                <>
+                  <AlertTriangle className="w-3 h-3" />
+                  Melampaui Target
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3" />
+                  On Target
+                </>
+              )}
             </span>
             <span className="text-slate-400 font-normal">Target: &lt; 1x/fd</span>
           </div>
@@ -1313,19 +1339,30 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
             </div>
             <div className="flex items-baseline gap-1 my-1">
               <span className="text-2xl sm:text-3xl font-black text-blue-400">
-                {avgSaidiHours.toString().replace('.', ',')}
+                {totalSaidiHours.toFixed(3).replace('.', ',')}
               </span>
               <span className="text-xs font-bold text-slate-400">Jam/Plg</span>
             </div>
             <p className="text-[10px] text-slate-400">
-              Durasi: <span className="font-bold text-white">{(avgSaidiHours * 60).toFixed(1)}</span> Menit/Plg
+              Durasi: <span className="font-bold text-white">{(totalSaidiHours * 60).toFixed(1)}</span> Menit/Plg
             </p>
           </div>
 
-          <div className="pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[9px] font-bold text-emerald-400">
+          <div className={`pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[9px] font-bold ${
+            totalSaidiHours > 6.00 ? 'text-rose-400' : 'text-emerald-400'
+          }`}>
             <span className="flex items-center gap-0.5">
-              <CheckCircle2 className="w-3 h-3" />
-              On Target
+              {totalSaidiHours > 6.00 ? (
+                <>
+                  <AlertTriangle className="w-3 h-3" />
+                  Melampaui Target
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3" />
+                  On Target
+                </>
+              )}
             </span>
             <span className="text-slate-400 font-normal">Target: 6.00 Jam</span>
           </div>
@@ -1342,21 +1379,32 @@ export const HealthIndexView: React.FC<HealthIndexViewProps> = ({
             </div>
             <div className="flex items-baseline gap-1 my-1">
               <span className="text-2xl sm:text-3xl font-black text-cyan-400">
-                {avgSaifiCount.toString().replace('.', ',')}
+                {totalSaifiCount.toFixed(3).replace('.', ',')}
               </span>
               <span className="text-xs font-bold text-slate-400">Kali/Plg</span>
             </div>
             <p className="text-[10px] text-slate-400">
-              Total Padam: <span className="font-bold text-white">{totalSaifiCount.toFixed(2)}</span> Kali
+              Rata-rata/Feeder: <span className="font-bold text-white">{avgSaifiCount.toFixed(3)}</span> Kali
             </p>
           </div>
 
-          <div className="pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[9px] font-bold text-emerald-400">
+          <div className={`pt-2 mt-2 border-t border-slate-800/60 flex items-center justify-between text-[9px] font-bold ${
+            totalSaifiCount > 3.00 ? 'text-rose-400' : 'text-emerald-400'
+          }`}>
             <span className="flex items-center gap-0.5">
-              <CheckCircle2 className="w-3 h-3" />
-              On Target
+              {totalSaifiCount > 3.00 ? (
+                <>
+                  <AlertTriangle className="w-3 h-3" />
+                  Melampaui Target
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3" />
+                  On Target
+                </>
+              )}
             </span>
-            <span className="text-slate-400 font-normal">Target: 0.12 Kali</span>
+            <span className="text-slate-400 font-normal">Target: 3.00 Kali</span>
           </div>
         </div>
 

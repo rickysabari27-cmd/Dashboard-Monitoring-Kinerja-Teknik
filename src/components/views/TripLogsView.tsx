@@ -162,7 +162,14 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
   // Aggregates for filtered view
   const totalEns = sortedTrips.reduce((acc, t) => acc + (t.ensKwh || 0), 0);
   const totalLoss = sortedTrips.reduce((acc, t) => acc + (t.financialLossIdr || 0), 0);
-  const totalSaidiHours = sortedTrips.reduce((acc, t) => acc + (t.saidiHours || 0), 0);
+  const totalSaidiHours = sortedTrips.reduce((acc, t) => {
+    const saidi = t.saidiHours ?? ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp));
+    return acc + (saidi || 0);
+  }, 0);
+  const totalSaifiCount = sortedTrips.reduce((acc, t) => {
+    const saifi = t.saifiCount ?? ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp));
+    return acc + (saifi || 0);
+  }, 0);
 
   return (
     <div className={`space-y-4 font-sans text-slate-100 min-h-screen p-1 sm:p-2 select-none ${
@@ -323,7 +330,8 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
           {sortedTrips.length > 0 && (
             <div className="flex items-center gap-3 text-[10px] text-slate-400">
               <span>Total ENS: <strong className="text-amber-400">{totalEns.toLocaleString('id-ID')} kWh</strong></span>
-              <span>Total SAIDI: <strong className="text-cyan-400">{totalSaidiHours.toFixed(3)} Jam</strong></span>
+              <span>Total SAIDI: <strong className="text-blue-400">{totalSaidiHours.toFixed(3)} Jam/Plg</strong></span>
+              <span>Total SAIFI: <strong className="text-cyan-400">{totalSaifiCount.toFixed(3)} Kali/Plg</strong></span>
               <span>Total Kerugian: <strong className="text-rose-400">{formatRupiah(totalLoss)}</strong></span>
             </div>
           )}

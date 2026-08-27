@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   MasterFeeder, 
   MasterSection, 
   MasterGarduHubung, 
   MasterGarduDistribusi, 
   MasterPemutus,
+  FeederTrip,
   BranchDevice,
   getSectionBranches,
   getDownstreamCoveredSections
@@ -58,6 +59,7 @@ interface MasterDataViewProps {
   masterGarduHubung?: MasterGarduHubung[];
   masterGarduDistribusi?: MasterGarduDistribusi[];
   masterPemutus?: MasterPemutus[];
+  trips?: FeederTrip[];
   onSaveMasterFeeder: (feeder: any) => void;
   onDeleteMasterFeeder: (id: string) => void;
   onSaveMasterSection?: (section: any) => void;
@@ -78,6 +80,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
   masterGarduHubung = [],
   masterGarduDistribusi = [],
   masterPemutus = [],
+  trips = [],
   onSaveMasterFeeder,
   onDeleteMasterFeeder,
   onSaveMasterSection,
@@ -91,6 +94,51 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<MasterDataSubTab>('penyulang');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Utility to normalize and match feeder names consistently across modules
+  const matchFeederName = (nameA?: string, nameB?: string): boolean => {
+    if (!nameA || !nameB) return false;
+    const normalize = (str: string) => {
+      return str
+        .toLowerCase()
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/^(penyulang|feeder|fdr)\s+/i, '')
+        .replace(/[^a-z0-9]/g, '');
+    };
+    const cleanA = normalize(nameA);
+    const cleanB = normalize(nameB);
+    if (!cleanA || !cleanB) return false;
+    return cleanA === cleanB;
+  };
+
+  // Fallback total ULP customer count
+  const defaultTotalUlp = useMemo(() => {
+    const sum = masterFeeders.reduce((acc, f) => acc + (Number(f.customerCount) || 0), 0);
+    return sum > 0 ? sum : 45200;
+  }, [masterFeeders]);
+
+  // Synchronized System-wide Reliability Aggregates (SAIDI, SAIFI, ENS, Trips)
+  const systemSaidiSaifiEns = useMemo(() => {
+    let totalTripsCount = (trips || []).length;
+    let totalSaidiHours = 0;
+    let totalSaifiCount = 0;
+    let totalEnsKwh = 0;
+
+    (trips || []).forEach(t => {
+      const saidi = t.saidiHours ?? ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp));
+      const saifi = t.saifiCount ?? ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp));
+      totalSaidiHours += (saidi || 0);
+      totalSaifiCount += (saifi || 0);
+      totalEnsKwh += (t.ensKwh || 0);
+    });
+
+    return {
+      totalTripsCount,
+      totalSaidiHours,
+      totalSaifiCount,
+      totalEnsKwh
+    };
+  }, [trips, defaultTotalUlp]);
 
   // Modals state for Feeder
   const [feederToEdit, setFeederToEdit] = useState<MasterFeeder | null>(null);
@@ -630,49 +678,49 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Penyulang Utama</span>
-                <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-xl font-black text-blue-700 dark:text-blue-400">
-                {masterFeeders.filter(f => (!f.garduHubung || f.garduHubung === '-') && (f.status || 'Utama') === 'Utama').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
-              </div>
-            </div>
-
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Penyulang Percabangan</span>
-                <div className="p-1.5 rounded-lg bg-yellow-500/15 text-yellow-600 dark:text-yellow-400">
-                  <Activity className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-xl font-black text-amber-700 dark:text-yellow-400">
-                {masterFeeders.filter(f => (f.garduHubung && f.garduHubung !== '-') || f.status === 'Percabangan').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
-              </div>
-            </div>
-
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Penyulang Operasi</span>
-                <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Gangguan</span>
+                <div className="p-1.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
                   <Zap className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
-                {masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-rose-700 dark:text-rose-400">
+                {systemSaidiSaifiEns.totalTripsCount} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Trip</span>
               </div>
             </div>
 
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Tidak Operasi</span>
-                <div className="p-1.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
-                  <AlertCircle className="w-4 h-4" />
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">SAIDI ULP</span>
+                <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                  <Activity className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-xl font-black text-rose-700 dark:text-rose-400">
-                {masterFeeders.filter(f => f.operationalStatus === 'Tidak Operasi').length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Feeder</span>
+              <div className="text-xl font-black text-blue-700 dark:text-blue-400">
+                {systemSaidiSaifiEns.totalSaidiHours.toFixed(3)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Jam/Plg</span>
+              </div>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">SAIFI ULP</span>
+                <div className="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
+                  <Activity className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl font-black text-cyan-700 dark:text-cyan-400">
+                {systemSaidiSaifiEns.totalSaifiCount.toFixed(3)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Kali/Plg</span>
+              </div>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">ENS Loss ULP</span>
+                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Gauge className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl font-black text-amber-700 dark:text-amber-400">
+                {systemSaidiSaifiEns.totalEnsKwh.toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">kWh</span>
               </div>
             </div>
           </div>
@@ -731,6 +779,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu (BH)</th>
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu (KVA)</th>
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Pelanggan</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-rose-300 font-black">Trip</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-blue-300 font-black">SAIDI (Jam)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-cyan-300 font-black">SAIFI (Kali)</th>
+                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-amber-300 font-black">ENS (kWh)</th>
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Konfigurasi</th>
                     <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
                   </tr>
@@ -749,10 +801,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     .map((feeder, idx) => {
                       // Dynamically sync metrics with real sections and gardu distribusi
                       const matchingSections = masterSections.filter(
-                        s => s.feederName && s.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
+                        s => s.feederName && matchFeederName(s.feederName, feeder.feederName)
                       );
                       const matchingGds = masterGarduDistribusi.filter(
-                        g => g.feederName && g.feederName.trim().toLowerCase() === feeder.feederName.trim().toLowerCase()
+                        g => g.feederName && matchFeederName(g.feederName, feeder.feederName)
                       );
                       const totalKvaGds = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
                       const hasSecs = matchingSections.length > 0;
@@ -772,6 +824,19 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       const realCust = hasSecs
                         ? totalSecCust
                         : (feeder.customerCount ?? 0);
+
+                      // Synchronized Feeder Reliability Metrics (SAIDI, SAIFI, ENS)
+                      const feederTrips = (trips || []).filter(t => matchFeederName(t.feederName, feeder.feederName));
+                      const tripCount = feederTrips.length;
+                      const feederSaidi = feederTrips.reduce((acc, t) => {
+                        const saidi = t.saidiHours ?? ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp));
+                        return acc + (saidi || 0);
+                      }, 0);
+                      const feederSaifi = feederTrips.reduce((acc, t) => {
+                        const saifi = t.saifiCount ?? ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp));
+                        return acc + (saifi || 0);
+                      }, 0);
+                      const feederEns = feederTrips.reduce((acc, t) => acc + (t.ensKwh || 0), 0);
 
                       return (
                         <tr key={`${feeder.id || 'feeder'}-${idx}`} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/40 transition-colors">
@@ -815,6 +880,24 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                           </td>
                           <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                             {realCust}
+                          </td>
+                          <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                              tripCount > 3 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' :
+                              tripCount > 0 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
+                              'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            }`}>
+                              {tripCount} x
+                            </span>
+                          </td>
+                          <td className="px-1.5 py-2 text-center font-black text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            {feederSaidi.toFixed(3)}
+                          </td>
+                          <td className="px-1.5 py-2 text-center font-black text-cyan-600 dark:text-cyan-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            {feederSaifi.toFixed(3)}
+                          </td>
+                          <td className="px-1.5 py-2 text-center font-black text-amber-600 dark:text-amber-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
+                            {feederEns.toLocaleString('id-ID')}
                           </td>
                           <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.configuration || 'Looping'}</td>
                           <td className="px-1 py-2 text-center">
@@ -2559,6 +2642,44 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               </button>
             </div>
             <form onSubmit={handleSaveFeeder} className="space-y-4 text-xs">
+              {fName && (
+                (() => {
+                  const fTrips = (trips || []).filter(t => matchFeederName(t.feederName, fName));
+                  const count = fTrips.length;
+                  const saidi = fTrips.reduce((acc, t) => acc + (t.saidiHours ?? ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp))), 0);
+                  const saifi = fTrips.reduce((acc, t) => acc + (t.saifiCount ?? ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp))), 0);
+                  const ens = fTrips.reduce((acc, t) => acc + (t.ensKwh || 0), 0);
+
+                  return (
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-white space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-black text-indigo-300">
+                        <span className="flex items-center gap-1.5">
+                          <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Kinerja Keandalan (Tersinkron Realtime)</span>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                          {count} Trip Gangguan
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800 text-[10px]">
+                        <div>
+                          <div className="text-slate-400">SAIDI:</div>
+                          <div className="text-blue-400 font-extrabold">{saidi.toFixed(3)} Jam/Plg</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">SAIFI:</div>
+                          <div className="text-cyan-400 font-extrabold">{saifi.toFixed(3)} Kali/Plg</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">ENS Loss:</div>
+                          <div className="text-amber-400 font-extrabold">{ens.toLocaleString('id-ID')} kWh</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Penyulang</label>

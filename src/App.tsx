@@ -965,6 +965,7 @@ export default function App() {
               masterGarduHubung={masterGarduHubung}
               masterGarduDistribusi={masterGarduDistribusi}
               masterPemutus={masterPemutus}
+              trips={trips}
               onSaveMasterFeeder={handleSaveMasterFeeder}
               onDeleteMasterFeeder={handleDeleteMasterFeeder}
               onSaveMasterSection={handleSaveMasterSection}
