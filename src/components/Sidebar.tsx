@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Section Header / Title as in Screenshot 1 */}
         <div className="hidden lg:flex items-center justify-between px-3 py-3 mb-3">
-          <span className="text-[12px] font-extrabold tracking-wider text-slate-300 uppercase">
+          <span className="text-[12px] font-extrabold tracking-wider text-slate-200 uppercase">
             MENU SYSTEM
           </span>
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
@@ -116,27 +116,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }
                 }}
                 className={`
-                  w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group
+                  w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group cursor-pointer
                   ${item.locked 
                     ? 'opacity-40 cursor-not-allowed text-slate-500' 
                     : isActive 
-                      ? 'bg-[#102A5C] text-blue-400 font-bold shadow-xs' 
-                      : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'}
+                      ? 'bg-blue-600 text-white font-extrabold shadow-md shadow-blue-600/30' 
+                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'}
                 `}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-400' : item.locked ? 'text-slate-600' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : item.locked ? 'text-slate-600' : 'text-slate-400 group-hover:text-blue-400'}`} />
                   <span className="truncate text-left">{item.label}</span>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   {item.badge && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      isActive 
+                        ? 'bg-blue-800/80 text-white border border-blue-400/40' 
+                        : item.badge.includes('WA') || item.badge.includes('Apps')
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-blue-900/60 text-blue-300 border border-blue-700/50'
+                    }`}>
                       {item.badge}
                     </span>
                   )}
                   {item.hasSub && (
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                   )}
                   {item.locked && (
                     <Lock className="w-3.5 h-3.5 text-slate-500" />
@@ -150,19 +156,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Footer info in sidebar with User Session & Logout */}
         <div className="mt-auto pt-3 border-t border-slate-800/80 space-y-2">
           {currentUser ? (
-            <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between gap-2">
+            <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-500/40 flex items-center justify-center shrink-0 font-bold text-xs text-cyan-400">
+                <div className="w-8 h-8 rounded-full bg-blue-600 border border-blue-400 flex items-center justify-center shrink-0 font-bold text-xs text-white">
                   {currentUser.name.charAt(0)}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-slate-100 truncate">{currentUser.name}</span>
-                  <span className="text-[10px] text-cyan-400 font-semibold truncate">{currentUser.role}</span>
+                  <span className="text-xs font-black text-white truncate">{currentUser.name}</span>
+                  <span className="text-[10px] text-blue-400 font-bold truncate">{currentUser.role}</span>
                 </div>
               </div>
               <button
                 onClick={onLogout}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/15 transition-colors shrink-0 cursor-pointer"
                 title="Logout dari Sistem"
               >
                 <LogOut className="w-4 h-4" />
@@ -171,16 +177,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <button
               onClick={onOpenLogin}
-              className="w-full py-2 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+              className="w-full py-2 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <LogIn className="w-4 h-4 text-cyan-400" />
+              <LogIn className="w-4 h-4 text-emerald-400" />
               <span>Login Akun PLN</span>
             </button>
           )}
 
-          <div className="flex items-center justify-between px-1 text-[10px] text-slate-500">
-            <span>PLN ULP Baguala</span>
-            <span>v2.4 Live SCADA</span>
+          <div className="flex items-center justify-between px-1 text-[10px] text-slate-400">
+            <span className="font-semibold">PLN ULP Baguala</span>
+            <span className="font-bold text-emerald-400">v2.4 Online</span>
           </div>
         </div>
       </aside>

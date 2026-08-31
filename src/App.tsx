@@ -47,6 +47,7 @@ import { KpiCards } from './components/KpiCards';
 import { TripFrequencyChart } from './components/TripFrequencyChart';
 import { SaidiSaifiChart } from './components/SaidiSaifiChart';
 
+import { MainDashboardView } from './components/views/MainDashboardView';
 import { GisMapView } from './components/views/GisMapView';
 import { TripLogsView } from './components/views/TripLogsView';
 import { HealthIndexView } from './components/views/HealthIndexView';
@@ -705,151 +706,32 @@ export default function App() {
 
           {/* View Content Renderer */}
           {currentView === 'dashboard' && (
-            <div className="space-y-6">
-              
-              {/* Top Section Header */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Dashboard Kinerja & Keandalan 20kV
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    PLN ULP Baguala • Sistem Keandalan <span className="font-bold text-emerald-600 dark:text-emerald-400">98.6%</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* 4 Summary Cards */}
-              <KpiCards 
-                isDarkMode={isDarkMode}
-                setCurrentView={setCurrentView}
-                totalTrips={totalTripsCount}
-                totalInspections={totalInspectionsCount}
-                totalRowPoints={totalRowPointsCount}
-                saidiVal={saidiVal}
-                saidiTarget={saidiTarget}
-                financialLossTotal={financialLossTotal}
-              />
-
-              {/* Status Peralatan Pemutus & SCADA 20kV */}
-              {(() => {
-                const totalPemutus = masterPemutus.length;
-                const totalPmcb = masterPemutus.filter(p => p.equipmentType === 'PMCB').length;
-                const totalRecloser = masterPemutus.filter(p => p.equipmentType === 'Recloser').length;
-                const totalLbs = masterPemutus.filter(p => p.equipmentType && p.equipmentType.includes('LBS')).length;
-                const totalPmt = masterPemutus.filter(p => p.equipmentType === 'PMT' || p.equipmentType === 'PMT GI').length;
-                const totalFco = masterPemutus.filter(p => p.equipmentType === 'FCO' || p.equipmentType === 'SSO').length;
-                const totalScada = masterPemutus.filter(p => p.scadaStatus === 'Terhubung SCADA').length;
-
-                return (
-                  <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
-                    isDarkMode ? 'bg-slate-900/60 border-slate-800/80' : 'bg-white border-slate-200 shadow-xs'
-                  }`}>
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
-                          <SlidersHorizontal className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            Peralatan Pemutus & Otomasi SCADA 20kV
-                          </h3>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            Monitoring ketersediaan switching proteksi jaringan ULP Baguala
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setCurrentView('master_data')}
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Kelola Master Pemutus</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      {/* Total Alat Pemutus */}
-                      <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                        isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                      }`}>
-                        <span className="text-[10px] uppercase font-bold text-slate-500 block mb-0.5">Total Alat Pemutus</span>
-                        <div className="text-xl font-black text-blue-600 dark:text-blue-400">{totalPemutus} Unit</div>
-                      </div>
-
-                      {/* Dynamic cards: only shown if value > 0 */}
-                      {totalPmcb > 0 && (
-                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <span className="text-[10px] uppercase font-bold text-blue-500 block mb-0.5">PMCB</span>
-                          <div className="text-xl font-black text-blue-600 dark:text-blue-400">{totalPmcb} Unit</div>
-                        </div>
-                      )}
-
-                      {totalRecloser > 0 && (
-                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <span className="text-[10px] uppercase font-bold text-purple-500 block mb-0.5">Recloser / OCR</span>
-                          <div className="text-xl font-black text-purple-600 dark:text-purple-400">{totalRecloser} Unit</div>
-                        </div>
-                      )}
-
-                      {totalLbs > 0 && (
-                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <span className="text-[10px] uppercase font-bold text-emerald-500 block mb-0.5">LBS Motor / Manual</span>
-                          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">{totalLbs} Unit</div>
-                        </div>
-                      )}
-
-                      {totalPmt > 0 && (
-                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <span className="text-[10px] uppercase font-bold text-amber-500 block mb-0.5">PMT GI</span>
-                          <div className="text-xl font-black text-amber-600 dark:text-amber-400">{totalPmt} Unit</div>
-                        </div>
-                      )}
-
-                      {totalFco > 0 && (
-                        <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                          isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                        }`}>
-                          <span className="text-[10px] uppercase font-bold text-orange-500 block mb-0.5">FCO / SSO</span>
-                          <div className="text-xl font-black text-orange-600 dark:text-orange-400">{totalFco} Unit</div>
-                        </div>
-                      )}
-
-                      {/* Terhubung SCADA */}
-                      <div className={`flex-1 min-w-[130px] p-3 rounded-xl border ${
-                        isDarkMode ? 'bg-slate-800/40 border-slate-700/60' : 'bg-slate-50 border-slate-200'
-                      }`}>
-                        <span className="text-[10px] uppercase font-bold text-teal-500 block mb-0.5">Terhubung SCADA</span>
-                        <div className="text-xl font-black text-teal-600 dark:text-teal-400">{totalScada} Online</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Middle Section: Trip Frequency + Reliability Analysis */}
-              <TripFrequencyChart 
-                isDarkMode={isDarkMode}
-                data={MONTHLY_TRIP_DATA}
-                totalTrips={totalTripsCount}
-              />
-
-              {/* Bottom Section: SAIDI/SAIFI Trend + Feeder Donut Contribution */}
-              <SaidiSaifiChart 
-                isDarkMode={isDarkMode}
-                monthlySaidiData={monthlySaidiData}
-                feederContributions={FEEDER_CONTRIBUTION}
-              />
-
-            </div>
+            <MainDashboardView 
+              isDarkMode={isDarkMode}
+              setCurrentView={setCurrentView}
+              trips={trips}
+              monthlySaidiData={monthlySaidiData}
+              spkList={spkList}
+              garduMeasurements={garduMeasurements}
+              masterFeeders={masterFeeders}
+              masterSections={masterSections}
+              masterGarduHubung={masterGarduHubung}
+              masterGarduDistribusi={masterGarduDistribusi}
+              masterPemutus={masterPemutus}
+              materials={materials}
+              apdTools={apdTools}
+              vehicles={vehicles}
+              inspections={inspections}
+              rowTrees={ROW_TREES}
+              whatsAppMessages={whatsAppMessages}
+              onOpenInputGangguan={() => {
+                setEditingTrip(null);
+                setIsGangguanModalOpen(true);
+              }}
+              onOpenUniversalInput={handleOpenUniversalInput}
+              onOpenWhatsAppModal={(trip, cat) => handleOpenWhatsAppModal(trip, cat)}
+              onEditTrip={handleEditTrip}
+            />
           )}
 
           {currentView === 'gis' && (
