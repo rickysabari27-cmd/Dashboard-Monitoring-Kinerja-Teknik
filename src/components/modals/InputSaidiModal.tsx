@@ -47,45 +47,66 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
   const [rawForm, setRawForm] = useState<Record<string, string>>({});
 
   // When selected year/month changes or modal opens, sync rawForm from existing monthly data
+  // Helper to match month names robustly
+  const matchMonth = (m1?: string, m2?: string) => {
+    if (!m1 || !m2) return false;
+    const s1 = m1.trim().toLowerCase();
+    const s2 = m2.trim().toLowerCase();
+    if (s1 === s2) return true;
+    if ((s1 === 'jul' || s1 === 'juli') && (s2 === 'jul' || s2 === 'juli')) return true;
+    if ((s1 === 'ags' || s1 === 'agustus' || s1 === 'agt') && (s2 === 'ags' || s2 === 'agustus' || s2 === 'agt')) return true;
+    if ((s1 === 'jan' || s1 === 'januari') && (s2 === 'jan' || s2 === 'januari')) return true;
+    if ((s1 === 'feb' || s1 === 'februari') && (s2 === 'feb' || s2 === 'februari')) return true;
+    if ((s1 === 'mar' || s1 === 'maret') && (s2 === 'mar' || s2 === 'maret')) return true;
+    if ((s1 === 'apr' || s1 === 'april') && (s2 === 'apr' || s2 === 'april')) return true;
+    if ((s1 === 'mei' || s1 === 'may') && (s2 === 'mei' || s2 === 'may')) return true;
+    if ((s1 === 'jun' || s1 === 'juni') && (s2 === 'jun' || s2 === 'juni')) return true;
+    if ((s1 === 'sep' || s1 === 'september') && (s2 === 'sep' || s2 === 'september')) return true;
+    if ((s1 === 'okt' || s1 === 'oktober') && (s2 === 'okt' || s2 === 'oktober')) return true;
+    if ((s1 === 'nov' || s1 === 'november') && (s2 === 'nov' || s2 === 'november')) return true;
+    if ((s1 === 'des' || s1 === 'desember') && (s2 === 'des' || s2 === 'desember')) return true;
+    return s1.startsWith(s2) || s2.startsWith(s1);
+  };
+
   useEffect(() => {
     if (!isOpen) return;
-    const found = (monthlySaidiData || []).find(d => (d.year || 2026) === selectedYear && d.month === selectedMonth);
+    const found = (monthlySaidiData || []).find(d => (d.year || 2026) === selectedYear && matchMonth(d.month, selectedMonth));
     
     const sTargetM = found?.saidiTargetMenit !== undefined 
       ? found.saidiTargetMenit 
-      : (found?.saidiTarget ? Number((found.saidiTarget * 60).toFixed(2)) : 0);
+      : (found?.saidiTarget ? Number((found.saidiTarget * 60).toFixed(2)) : undefined);
     
     const sRealM = found?.saidiRealMenit !== undefined 
       ? found.saidiRealMenit 
-      : (found?.saidiReal ? Number((found.saidiReal * 60).toFixed(2)) : 0);
+      : (found?.saidiReal ? Number((found.saidiReal * 60).toFixed(2)) : undefined);
 
     setRawForm({
-      saidiTargetMenit: sTargetM !== undefined ? String(sTargetM) : '0',
-      saidiRealMenit: sRealM !== undefined ? String(sRealM) : '0',
-      saifiTarget: found?.saifiTarget !== undefined ? String(found.saifiTarget) : '0',
-      saifiReal: found?.saifiReal !== undefined ? String(found.saifiReal) : '0',
-      ensMwhTarget: found?.ensMwhTarget !== undefined ? String(found.ensMwhTarget) : '0',
-      ensMwhReal: found?.ensMwhReal !== undefined ? String(found.ensMwhReal) : '0',
-      susutPercentTarget: found?.susutPercentTarget !== undefined ? String(found.susutPercentTarget) : '0',
-      susutPercentReal: found?.susutPercentReal !== undefined ? String(found.susutPercentReal) : '0',
-      asetRuptlTarget: found?.asetRuptlTarget !== undefined ? String(found.asetRuptlTarget) : '100',
-      asetRuptlUlp: found?.asetRuptlUlp !== undefined ? String(found.asetRuptlUlp) : '0',
-      asetInvestasiTarget: found?.asetInvestasiTarget !== undefined ? String(found.asetInvestasiTarget) : '100',
-      asetInvestasiUlp: found?.asetInvestasiUlp !== undefined ? String(found.asetInvestasiUlp) : '0',
-      feedbackRatingNegatifTarget: found?.feedbackRatingNegatifTarget !== undefined ? String(found.feedbackRatingNegatifTarget) : '0',
-      feedbackRatingNegatifUlp: found?.feedbackRatingNegatifUlp !== undefined ? String(found.feedbackRatingNegatifUlp) : '0',
-      responseTimeTarget: found?.responseTimeTarget !== undefined ? String(found.responseTimeTarget) : '45',
-      responseTimeUlp: found?.responseTimeUlp !== undefined ? String(found.responseTimeUlp) : '0',
-      successRateAutoDispatchTarget: found?.successRateAutoDispatchTarget !== undefined ? String(found.successRateAutoDispatchTarget) : '95',
-      successRateAutoDispatchUlp: found?.successRateAutoDispatchUlp !== undefined ? String(found.successRateAutoDispatchUlp) : '0',
-      gangguanTmTarget: found?.gangguanTmTarget !== undefined ? String(found.gangguanTmTarget) : '0',
-      gangguanTmReal: found?.gangguanTmReal !== undefined ? String(found.gangguanTmReal) : '0',
-      kerusakanPeralatanTarget: found?.kerusakanPeralatanTarget !== undefined ? String(found.kerusakanPeralatanTarget) : '0',
-      kerusakanPeralatanReal: found?.kerusakanPeralatanReal !== undefined ? String(found.kerusakanPeralatanReal) : '0',
-      mvodTarget: found?.mvodTarget !== undefined ? String(found.mvodTarget) : '0',
-      mvodUlp: found?.mvodUlp !== undefined ? String(found.mvodUlp) : '0',
-      mttrSiaga1Target: found?.mttrSiaga1Target !== undefined ? String(found.mttrSiaga1Target) : '60',
-      mttrSiaga1Ulp: found?.mttrSiaga1Ulp !== undefined ? String(found.mttrSiaga1Ulp) : '0'
+      saidiTargetMenit: sTargetM !== undefined && sTargetM !== 0 ? String(sTargetM) : (sTargetM === 0 ? '0' : ''),
+      saidiRealMenit: sRealM !== undefined && sRealM !== 0 ? String(sRealM) : (sRealM === 0 ? '0' : ''),
+      saifiTarget: found?.saifiTarget !== undefined && found.saifiTarget !== 0 ? String(found.saifiTarget) : (found?.saifiTarget === 0 ? '0' : ''),
+      saifiReal: found?.saifiReal !== undefined && found.saifiReal !== 0 ? String(found.saifiReal) : (found?.saifiReal === 0 ? '0' : ''),
+      ensMwhTarget: found?.ensMwhTarget !== undefined && found.ensMwhTarget !== 0 ? String(found.ensMwhTarget) : (found?.ensMwhTarget === 0 ? '0' : ''),
+      ensMwhReal: found?.ensMwhReal !== undefined && found.ensMwhReal !== 0 ? String(found.ensMwhReal) : (found?.ensMwhReal === 0 ? '0' : ''),
+      susutPercentTarget: found?.susutPercentTarget !== undefined && found.susutPercentTarget !== 0 ? String(found.susutPercentTarget) : (found?.susutPercentTarget === 0 ? '0' : ''),
+      susutPercentReal: found?.susutPercentReal !== undefined && found.susutPercentReal !== 0 ? String(found.susutPercentReal) : (found?.susutPercentReal === 0 ? '0' : ''),
+      asetRuptlTarget: found?.asetRuptlTarget !== undefined && found.asetRuptlTarget !== 0 ? String(found.asetRuptlTarget) : (found?.asetRuptlTarget === 0 ? '0' : ''),
+      asetRuptlUlp: found?.asetRuptlUlp !== undefined && found.asetRuptlUlp !== 0 ? String(found.asetRuptlUlp) : (found?.asetRuptlUlp === 0 ? '0' : ''),
+      asetInvestasiTarget: found?.asetInvestasiTarget !== undefined && found.asetInvestasiTarget !== 0 ? String(found.asetInvestasiTarget) : (found?.asetInvestasiTarget === 0 ? '0' : ''),
+      asetInvestasiUlp: found?.asetInvestasiUlp !== undefined && found.asetInvestasiUlp !== 0 ? String(found.asetInvestasiUlp) : (found?.asetInvestasiUlp === 0 ? '0' : ''),
+      feedbackRatingNegatifTarget: found?.feedbackRatingNegatifTarget !== undefined && found.feedbackRatingNegatifTarget !== 0 ? String(found.feedbackRatingNegatifTarget) : (found?.feedbackRatingNegatifTarget === 0 ? '0' : ''),
+      feedbackRatingNegatifUlp: found?.feedbackRatingNegatifUlp !== undefined && found.feedbackRatingNegatifUlp !== 0 ? String(found.feedbackRatingNegatifUlp) : (found?.feedbackRatingNegatifUlp === 0 ? '0' : ''),
+      responseTimeTarget: found?.responseTimeTarget !== undefined && found.responseTimeTarget !== 0 ? String(found.responseTimeTarget) : (found?.responseTimeTarget === 0 ? '0' : ''),
+      responseTimeUlp: found?.responseTimeUlp !== undefined && found.responseTimeUlp !== 0 ? String(found.responseTimeUlp) : (found?.responseTimeUlp === 0 ? '0' : ''),
+      successRateAutoDispatchTarget: found?.successRateAutoDispatchTarget !== undefined && found.successRateAutoDispatchTarget !== 0 ? String(found.successRateAutoDispatchTarget) : (found?.successRateAutoDispatchTarget === 0 ? '0' : ''),
+      successRateAutoDispatchUlp: found?.successRateAutoDispatchUlp !== undefined && found.successRateAutoDispatchUlp !== 0 ? String(found.successRateAutoDispatchUlp) : (found?.successRateAutoDispatchUlp === 0 ? '0' : ''),
+      gangguanTmTarget: found?.gangguanTmTarget !== undefined && found.gangguanTmTarget !== 0 ? String(found.gangguanTmTarget) : (found?.gangguanTmTarget === 0 ? '0' : ''),
+      gangguanTmReal: found?.gangguanTmReal !== undefined && found.gangguanTmReal !== 0 ? String(found.gangguanTmReal) : (found?.gangguanTmReal === 0 ? '0' : ''),
+      kerusakanPeralatanTarget: found?.kerusakanPeralatanTarget !== undefined && found.kerusakanPeralatanTarget !== 0 ? String(found.kerusakanPeralatanTarget) : (found?.kerusakanPeralatanTarget === 0 ? '0' : ''),
+      kerusakanPeralatanReal: found?.kerusakanPeralatanReal !== undefined && found.kerusakanPeralatanReal !== 0 ? String(found.kerusakanPeralatanReal) : (found?.kerusakanPeralatanReal === 0 ? '0' : ''),
+      mvodTarget: found?.mvodTarget !== undefined && found.mvodTarget !== 0 ? String(found.mvodTarget) : (found?.mvodTarget === 0 ? '0' : ''),
+      mvodUlp: found?.mvodUlp !== undefined && found.mvodUlp !== 0 ? String(found.mvodUlp) : (found?.mvodUlp === 0 ? '0' : ''),
+      mttrSiaga1Target: found?.mttrSiaga1Target !== undefined && found.mttrSiaga1Target !== 0 ? String(found.mttrSiaga1Target) : (found?.mttrSiaga1Target === 0 ? '0' : ''),
+      mttrSiaga1Ulp: found?.mttrSiaga1Ulp !== undefined && found.mttrSiaga1Ulp !== 0 ? String(found.mttrSiaga1Ulp) : (found?.mttrSiaga1Ulp === 0 ? '0' : '')
     });
   }, [isOpen, selectedYear, selectedMonth, monthlySaidiData]);
 
@@ -495,19 +516,19 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (100%)</label>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (%)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
                       value={rawForm.asetRuptlTarget ?? ''}
                       onChange={(e) => handleInputChange('asetRuptlTarget', e.target.value)}
                       onFocus={handleFocus}
-                      placeholder="100"
+                      placeholder="0"
                       className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI</label>
+                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI (%)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
@@ -529,19 +550,19 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (100%)</label>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (%)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
                       value={rawForm.asetInvestasiTarget ?? ''}
                       onChange={(e) => handleInputChange('asetInvestasiTarget', e.target.value)}
                       onFocus={handleFocus}
-                      placeholder="100"
+                      placeholder="0"
                       className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI</label>
+                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI (%)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
@@ -604,19 +625,19 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (Max)</label>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (Menit)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
                       value={rawForm.responseTimeTarget ?? ''}
                       onChange={(e) => handleInputChange('responseTimeTarget', e.target.value)}
                       onFocus={handleFocus}
-                      placeholder="45"
+                      placeholder="0"
                       className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI</label>
+                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI (Menit)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
@@ -638,19 +659,19 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (Min)</label>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (%)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
                       value={rawForm.successRateAutoDispatchTarget ?? ''}
                       onChange={(e) => handleInputChange('successRateAutoDispatchTarget', e.target.value)}
                       onFocus={handleFocus}
-                      placeholder="95"
+                      placeholder="0"
                       className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI</label>
+                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI (%)</label>
                     <input 
                       type="text"
                       inputMode="decimal"
@@ -788,7 +809,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                       value={rawForm.mttrSiaga1Target ?? ''}
                       onChange={(e) => handleInputChange('mttrSiaga1Target', e.target.value)}
                       onFocus={handleFocus}
-                      placeholder="60"
+                      placeholder="0"
                       className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
                     />
                   </div>

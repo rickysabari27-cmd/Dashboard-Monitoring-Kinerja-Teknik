@@ -49,6 +49,27 @@ interface SaidiSaifiDetailViewProps {
 
 const MONTH_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
 
+// Helper to match month names robustly
+const matchMonth = (m1?: string, m2?: string) => {
+  if (!m1 || !m2) return false;
+  const s1 = m1.trim().toLowerCase();
+  const s2 = m2.trim().toLowerCase();
+  if (s1 === s2) return true;
+  if ((s1 === 'jul' || s1 === 'juli') && (s2 === 'jul' || s2 === 'juli')) return true;
+  if ((s1 === 'ags' || s1 === 'agustus' || s1 === 'agt') && (s2 === 'ags' || s2 === 'agustus' || s2 === 'agt')) return true;
+  if ((s1 === 'jan' || s1 === 'januari') && (s2 === 'jan' || s2 === 'januari')) return true;
+  if ((s1 === 'feb' || s1 === 'februari') && (s2 === 'feb' || s2 === 'februari')) return true;
+  if ((s1 === 'mar' || s1 === 'maret') && (s2 === 'mar' || s2 === 'maret')) return true;
+  if ((s1 === 'apr' || s1 === 'april') && (s2 === 'apr' || s2 === 'april')) return true;
+  if ((s1 === 'mei' || s1 === 'may') && (s2 === 'mei' || s2 === 'may')) return true;
+  if ((s1 === 'jun' || s1 === 'juni') && (s2 === 'jun' || s2 === 'juni')) return true;
+  if ((s1 === 'sep' || s1 === 'september') && (s2 === 'sep' || s2 === 'september')) return true;
+  if ((s1 === 'okt' || s1 === 'oktober') && (s2 === 'okt' || s2 === 'oktober')) return true;
+  if ((s1 === 'nov' || s1 === 'november') && (s2 === 'nov' || s2 === 'november')) return true;
+  if ((s1 === 'des' || s1 === 'desember') && (s2 === 'des' || s2 === 'desember')) return true;
+  return s1.startsWith(s2) || s2.startsWith(s1);
+};
+
 export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
   isDarkMode,
   data,
@@ -57,8 +78,8 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 }) => {
   // Filters & Display Unit Mode
   const [selectedYear, setSelectedYear] = useState<number>(2026);
-  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('Jan');
-  const [matrixPeriod, setMatrixPeriod] = useState<'s1' | 's2' | 'all'>('s1');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('ALL');
+  const [matrixPeriod, setMatrixPeriod] = useState<'s1' | 's2' | 'all'>('all');
   const [chartMetric, setChartMetric] = useState<
     'saidi' | 'saifi' | 'ens' | 'susut' | 'response' | 'autodispatch' | 'feedback' | 'gangguan' | 'kerusakan' | 'mvod' | 'mttr' | 'ruptl' | 'investasi'
   >('saidi');
@@ -89,7 +110,7 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 
   // Enrich data for all 12 months with exact matching from data
   const enrichedYearData = MONTH_ORDER.map(m => {
-    const d = (data || []).find(item => (item.year || 2026) === selectedYear && item.month === m);
+    const d = (data || []).find(item => (item.year || 2026) === selectedYear && matchMonth(item.month, m));
     const sTarget = d?.saidiTarget ?? 0;
     const sTargetM = d?.saidiTargetMenit !== undefined ? d.saidiTargetMenit : Number((sTarget * 60).toFixed(2));
     const sUp3 = d?.saidiUp3 ?? 0;
@@ -173,8 +194,14 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 
   // Selected/Latest row for the KPI header cards
   const latestRow = selectedMonthFilter !== 'ALL'
-    ? (enrichedYearData.find(d => d.month === selectedMonthFilter) || enrichedYearData[0])
-    : (filteredData.length > 0 ? filteredData[filteredData.length - 1] : enrichedYearData[0]);
+    ? (enrichedYearData.find(d => matchMonth(d.month, selectedMonthFilter)) || enrichedYearData[0])
+    : (
+        [...enrichedYearData].reverse().find(d => 
+          (d.saidiReal || 0) > 0 || (d.saifiReal || 0) > 0 || (d.ensLossJuta || 0) > 0 || 
+          (d.saidiRealMenit || 0) > 0 || (d.asetInvestasiUlp || 0) > 0 || (d.susutPercentReal || 0) > 0 ||
+          (d.saidiTarget || 0) > 0 || (d.saifiTarget || 0) > 0
+        ) || enrichedYearData[enrichedYearData.length - 1]
+      );
 
   // SAIDI YTD (Jam & Menit)
   const cumSaidiTarget = latestRow ? latestRow.saidiTarget : 0;
@@ -812,7 +839,7 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
               ? MONTH_ORDER.slice(6, 12) 
               : MONTH_ORDER;
 
-          const displayedData = matrixMonths.map(m => enrichedYearData.find(d => d.month === m) || enrichedYearData[0]);
+          const displayedData = matrixMonths.map(m => enrichedYearData.find(d => matchMonth(d.month, m)) || enrichedYearData[0]);
           const targetRow = displayedData[displayedData.length - 1];
 
           return (

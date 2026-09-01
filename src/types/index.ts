@@ -1,5 +1,6 @@
 export type ViewMode = 
   | 'dashboard'
+  | 'pb_pd'
   | 'gis'
   | 'health_index'
   | 'trips'
@@ -552,10 +553,71 @@ export interface WhatsAppMessage {
   recipientName: string;
   phoneNumber: string;
   recipientType: string;
-  category: 'Gangguan / Trip' | 'Penormalan' | 'SPK Lapangan' | 'Padam Terencana' | 'Emergency' | 'Lainnya';
+  category: 'Gangguan / Trip' | 'Penormalan' | 'SPK Lapangan' | 'Padam Terencana' | 'Emergency' | 'Pasang Baru / PD' | 'Lainnya';
   messageText: string;
   senderName: string;
   sentAt: string;
   status: 'Terkirim' | 'Diterima' | 'Dibaca' | 'Draft';
   feederRelated?: string;
 }
+
+export type PbPdRequestType = 
+  | 'Pasang Baru (PB)' 
+  | 'Perubahan Daya (PD)' 
+  | 'Migrasi Tarif / Prabayar' 
+  | 'Penyambungan Sementara (Pesta/Proyek)';
+
+export type PbPdTariffCategory = 
+  | 'R-1 (Rumah Tangga)' 
+  | 'R-2 / R-3 (Rumah Besar)'
+  | 'B-1 / B-2 (Bisnis Komersial)' 
+  | 'I-1 / I-2 / I-3 (Industri)' 
+  | 'P-1 / P-2 / P-3 (Pemerintah/PJU)' 
+  | 'S-1 / S-2 / S-3 (Sosial/Tempat Ibadah)';
+
+export type PbPdStatus = 
+  | 'Bayar / Registrasi' 
+  | 'Survey Teknis' 
+  | 'Terbit PK / SPK' 
+  | 'Penarikan JTR & SR' 
+  | 'Pasang Meter & Segel' 
+  | 'Nyala (Selesai)' 
+  | 'Kendala / Pending';
+
+export type PbPdNetworkRequirement = 
+  | 'Hanya Sambungan Rumah (SR)' 
+  | 'Perluasan JTR / Sisip Tiang' 
+  | 'Pasang Trafo Sisipan' 
+  | 'Tanpa Perluasan (Ganti APP)';
+
+export interface PbPdRegistration {
+  id: string;
+  registrationNumber: string; // No. Agenda / Registrasi PLN (e.g. 54120260801001)
+  idpel: string; // ID Pelanggan (12 digit atau BARU)
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  requestType: PbPdRequestType;
+  tariffCategory: PbPdTariffCategory;
+  oldPowerVa: number; // 0 jika Pasang Baru
+  newPowerVa: number; // e.g. 900, 1300, 2200, 3500, 5500, 7700, 11000, 13200, 23000, 33000
+  meterType: 'Prabayar (LPB)' | 'Pascabayar (Kwh Meter)';
+  feederName: string;
+  garduName: string;
+  tiangNumber?: string;
+  networkRequirement: PbPdNetworkRequirement;
+  registrationDate: string; // YYYY-MM-DD
+  paymentDate?: string; // YYYY-MM-DD
+  targetSlaDays?: number; // Target SLA dalam hari (e.g. 3, 5, 15, 25 hari)
+  targetSlaDate: string; // YYYY-MM-DD batas akhir TMP
+  energizedDate?: string; // YYYY-MM-DD Tanggal Nyala Selesai
+  status: PbPdStatus;
+  biayaPenyambunganIdr: number; // BP + UJL
+  assignedTeam?: string; // Petugas / Mitra Pelaksana
+  meterSerialNumber?: string; // No. Seri Meter KWH
+  meterSealNumber?: string; // No. Segel APP
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

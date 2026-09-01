@@ -284,6 +284,40 @@
         "feederRelated": { "type": "string" }
       },
       "required": ["id", "recipientName", "phoneNumber", "category", "messageText"]
+    },
+    "PbPdRegistration": {
+      "title": "PbPdRegistration",
+      "description": "Data permohonan pasang baru dan perubahan daya PLN ULP Baguala",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "registrationNumber": { "type": "string" },
+        "idpel": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "customerAddress": { "type": "string" },
+        "requestType": { "type": "string" },
+        "tariffCategory": { "type": "string" },
+        "oldPowerVa": { "type": "number" },
+        "newPowerVa": { "type": "number" },
+        "meterType": { "type": "string" },
+        "feederName": { "type": "string" },
+        "garduName": { "type": "string" },
+        "tiangNumber": { "type": "string" },
+        "networkRequirement": { "type": "string" },
+        "registrationDate": { "type": "string" },
+        "paymentDate": { "type": "string" },
+        "targetSlaDays": { "type": "number" },
+        "targetSlaDate": { "type": "string" },
+        "energizedDate": { "type": "string" },
+        "status": { "type": "string" },
+        "biayaPenyambunganIdr": { "type": "number" },
+        "assignedTeam": { "type": "string" },
+        "meterSerialNumber": { "type": "string" },
+        "meterSealNumber": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "registrationNumber", "customerName", "requestType", "newPowerVa", "status"]
     }
   },
   "firestore": {
@@ -346,6 +380,10 @@
     "/whatsapp_messages/{messageId}": {
       "schema": { "$ref": "#/entities/WhatsAppMessage" },
       "description": "Koleksi pesan broadcast dan dispatch WhatsApp"
+    },
+    "/pb_pd_registrations/{regId}": {
+      "schema": { "$ref": "#/entities/PbPdRegistration" },
+      "description": "Koleksi permohonan pasang baru dan perubahan daya"
     }
   }
 }

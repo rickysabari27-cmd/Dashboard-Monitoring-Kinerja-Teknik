@@ -16,7 +16,8 @@ import {
   UserAccess,
   InspectionRecord,
   WhatsAppMessage,
-  WhatsAppContact
+  WhatsAppContact,
+  PbPdRegistration
 } from './types';
 import { 
   INITIAL_TRIPS, 
@@ -37,7 +38,8 @@ import {
   INITIAL_APD_TOOLS,
   INITIAL_VEHICLES,
   INITIAL_USERS,
-  INITIAL_WHATSAPP_MESSAGES
+  INITIAL_WHATSAPP_MESSAGES,
+  INITIAL_PB_PD_DATA
 } from './data/mockData';
 import { syncCollection, saveDocument, deleteDocument } from './services/firebaseSync';
 
@@ -57,6 +59,7 @@ import { SaidiSaifiDetailView } from './components/views/SaidiSaifiDetailView';
 import { MaterialStockView } from './components/views/MaterialStockView';
 import { MasterDataView } from './components/views/MasterDataView';
 import { UserManagementView } from './components/views/UserManagementView';
+import { PbPdMonitoringView } from './components/views/PbPdMonitoringView';
 import { LoginPage } from './components/views/LoginPage';
 import { WhatsAppDispatchView } from './components/views/WhatsAppDispatchView';
 import { GoogleSheetIntegrationView } from './components/views/GoogleSheetIntegrationView';
@@ -95,6 +98,7 @@ export default function App() {
   const [users, setUsers] = useState<UserAccess[]>(INITIAL_USERS);
   const [inspections, setInspections] = useState<InspectionRecord[]>(INSPECTION_LIST);
   const [whatsAppMessages, setWhatsAppMessages] = useState<WhatsAppMessage[]>(INITIAL_WHATSAPP_MESSAGES);
+  const [pbPdList, setPbPdList] = useState<PbPdRegistration[]>(INITIAL_PB_PD_DATA);
 
   // Dark Mode DOM synchronization
   useEffect(() => {
@@ -230,6 +234,7 @@ export default function App() {
     const unsubVehicles = syncCollection<Vehicle>('vehicles', INITIAL_VEHICLES, (data) => setVehicles(data));
     const unsubUsers = syncCollection<UserAccess>('users_access', INITIAL_USERS, (data) => setUsers(data));
     const unsubWa = syncCollection<WhatsAppMessage>('whatsapp_messages', INITIAL_WHATSAPP_MESSAGES, (data) => setWhatsAppMessages(data));
+    const unsubPbPd = syncCollection<PbPdRegistration>('pb_pd_registrations', INITIAL_PB_PD_DATA, (data) => setPbPdList(data));
 
     return () => {
       unsubTrips();
@@ -246,6 +251,7 @@ export default function App() {
       unsubVehicles();
       unsubUsers();
       unsubWa();
+      unsubPbPd();
     };
   }, []);
 
@@ -554,6 +560,24 @@ export default function App() {
     showToast(`Data Alat Pemutus ${target ? target.equipmentCode : ''} berhasil dihapus!`);
   };
 
+  const normalizeMonthName = (m: string): string => {
+    if (!m) return 'Jan';
+    const s = m.trim().toLowerCase();
+    if (s.startsWith('jan')) return 'Jan';
+    if (s.startsWith('feb')) return 'Feb';
+    if (s.startsWith('mar')) return 'Mar';
+    if (s.startsWith('apr')) return 'Apr';
+    if (s.startsWith('mei') || s.startsWith('may')) return 'Mei';
+    if (s.startsWith('jun')) return 'Jun';
+    if (s.startsWith('jul')) return 'Jul';
+    if (s.startsWith('ag') || s.startsWith('aug')) return 'Ags';
+    if (s.startsWith('sep')) return 'Sep';
+    if (s.startsWith('ok') || s.startsWith('oct')) return 'Okt';
+    if (s.startsWith('nov')) return 'Nov';
+    if (s.startsWith('des') || s.startsWith('dec')) return 'Des';
+    return m;
+  };
+
   const handleUpdateSaidi = (
     year: number, 
     month: string, 
@@ -563,15 +587,16 @@ export default function App() {
     saifiTarget?: number,
     ensLossJuta?: number
   ) => {
-    const docId = `${month}_${year}`;
+    const cleanMonth = normalizeMonthName(month);
+    const docId = `${cleanMonth}_${year}`;
     setMonthlySaidiData(prev => {
-      const idx = prev.findIndex(item => (item.year || 2026) === year && item.month === month);
+      const idx = prev.findIndex(item => (item.year || 2026) === year && normalizeMonthName(item.month) === cleanMonth);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = {
           ...next[idx],
           year,
-          month,
+          month: cleanMonth,
           saidiReal,
           saifiReal,
           saidiTarget: saidiTarget !== undefined ? saidiTarget : next[idx].saidiTarget,
@@ -583,7 +608,7 @@ export default function App() {
       } else {
         const newRow: MonthlySaidiSaifiData = {
           year,
-          month,
+          month: cleanMonth,
           saidiReal,
           saifiReal,
           saidiTarget: saidiTarget ?? 0,
@@ -594,20 +619,22 @@ export default function App() {
         return [...prev, newRow];
       }
     });
-    showToast(`Kinerja SAIDI/SAIFI Bulan ${month} ${year} berhasil disimpan: ${saidiReal.toFixed(3)} Jam/Plg`);
+    showToast(`Kinerja SAIDI/SAIFI Bulan ${cleanMonth} ${year} berhasil disimpan: ${saidiReal.toFixed(3)} Jam/Plg`);
   };
 
   const handleUpdateSaidiRow = (updatedRow: MonthlySaidiSaifiData) => {
     const rowYear = updatedRow.year || 2026;
-    const docId = `${updatedRow.month}_${rowYear}`;
+    const cleanMonth = normalizeMonthName(updatedRow.month);
+    const docId = `${cleanMonth}_${rowYear}`;
     const cleanRow: MonthlySaidiSaifiData = {
       ...updatedRow,
       id: docId,
+      month: cleanMonth,
       year: rowYear
     };
 
     setMonthlySaidiData(prev => {
-      const idx = prev.findIndex(item => (item.year || 2026) === rowYear && item.month === updatedRow.month);
+      const idx = prev.findIndex(item => (item.year || 2026) === rowYear && normalizeMonthName(item.month) === cleanMonth);
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = { ...next[idx], ...cleanRow };
@@ -617,7 +644,7 @@ export default function App() {
     });
 
     saveDocument('saidi_saifi', cleanRow, docId);
-    showToast(`Data Target & Realisasi KPI Bulan ${updatedRow.month} ${rowYear} berhasil disimpan!`);
+    showToast(`Data Target & Realisasi KPI Bulan ${cleanMonth} ${rowYear} berhasil disimpan!`);
   };
 
   const handleSaveMaterial = (newMat: MaterialItem) => {
@@ -656,6 +683,27 @@ export default function App() {
     setMasterFeeders(prev => prev.filter(f => f.id !== feederId));
     deleteDocument('master_feeders', feederId);
     showToast(`Data Penyulang ${target ? target.feederName : ''} berhasil dihapus!`);
+  };
+
+  const handleSavePbPd = (newRecord: PbPdRegistration) => {
+    setPbPdList(prev => {
+      const idx = prev.findIndex(item => item.id === newRecord.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = newRecord;
+        return next;
+      }
+      return [newRecord, ...prev];
+    });
+    saveDocument('pb_pd_registrations', newRecord, newRecord.id);
+    showToast(`Permohonan ${newRecord.requestType} - ${newRecord.customerName} (${newRecord.registrationNumber}) berhasil disimpan!`);
+  };
+
+  const handleDeletePbPd = (id: string) => {
+    const target = pbPdList.find(p => p.id === id);
+    setPbPdList(prev => prev.filter(p => p.id !== id));
+    deleteDocument('pb_pd_registrations', id);
+    showToast(`Data permohonan ${target ? target.customerName : ''} berhasil dihapus!`);
   };
 
   // Render standalone Gardu Induk Login Page if user is logged out
@@ -757,6 +805,21 @@ export default function App() {
               onOpenUniversalInput={handleOpenUniversalInput}
               onOpenWhatsAppModal={(trip, cat) => handleOpenWhatsAppModal(trip, cat)}
               onEditTrip={handleEditTrip}
+            />
+          )}
+
+          {currentView === 'pb_pd' && (
+            <PbPdMonitoringView 
+              isDarkMode={isDarkMode}
+              registrations={pbPdList}
+              onSavePbPd={handleSavePbPd}
+              onDeletePbPd={handleDeletePbPd}
+              masterFeeders={masterFeeders}
+              masterGarduDistribusi={masterGarduDistribusi}
+              onOpenWhatsAppModal={(msgData) => {
+                setIsWhatsAppModalOpen(true);
+                if (msgData?.category) setWhatsAppModalCategory(msgData.category);
+              }}
             />
           )}
 
