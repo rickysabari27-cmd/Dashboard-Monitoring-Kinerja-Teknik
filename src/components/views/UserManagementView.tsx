@@ -61,7 +61,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     setEditingUser(null);
     setNik('');
     setName('');
-    setRole('Petugas Yantek');
+    setRole('Koordinator Yantek');
     setUnitName('');
     setEmail('');
     setPhone('');
@@ -135,8 +135,8 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
 
   const totalUsers = users.filter(u => u.status === 'Aktif').length || users.length;
   const activeUsers = users.filter(u => u.status === 'Aktif').length || users.length;
-  const supervisorCount = users.filter(u => u.role === 'Manager' || u.role === 'Team Leader' || u.role === 'Admin Yantek' || u.role === 'Admin').length;
-  const yantekCount = users.filter(u => u.role === 'Petugas Yantek').length;
+  const supervisorCount = users.filter(u => u.role === 'Manager' || u.role === 'Team Leader' || u.role === 'Staff Teknik' || u.role === 'Admin Yantek' || u.role === 'Admin').length;
+  const yantekCount = users.filter(u => u.role === 'Koordinator Yantek').length;
 
   const getRoleBadgeStyle = (r: UserAccess['role']) => {
     switch (r) {
@@ -144,11 +144,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
       case 'Team Leader':
         return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+      case 'Staff Teknik':
+        return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
       case 'Admin Yantek':
         return 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20';
       case 'Admin':
         return 'bg-blue-500/10 text-blue-600 dark:text-cyan-400 border-blue-500/20';
-      case 'Petugas Yantek':
+      case 'Koordinator Yantek':
       default:
         return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
     }
@@ -272,8 +274,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
               <option value="ALL">Semua Jabatan</option>
               <option value="Manager">Manager</option>
               <option value="Team Leader">Team Leader</option>
+              <option value="Staff Teknik">Staff Teknik</option>
               <option value="Admin Yantek">Admin Yantek</option>
-              <option value="Petugas Yantek">Petugas Yantek</option>
+              <option value="Koordinator Yantek">Koordinator Yantek</option>
               <option value="Admin">Admin</option>
             </select>
           </div>
@@ -453,8 +456,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   >
                     <option value="Manager">Manager</option>
                     <option value="Team Leader">Team Leader</option>
+                    <option value="Staff Teknik">Staff Teknik</option>
                     <option value="Admin Yantek">Admin Yantek</option>
-                    <option value="Petugas Yantek">Petugas Yantek</option>
+                    <option value="Koordinator Yantek">Koordinator Yantek</option>
                     <option value="Admin">Admin</option>
                   </select>
                 </div>

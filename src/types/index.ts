@@ -507,7 +507,7 @@ export interface UserAccess {
   id: string;
   nik: string;
   name: string;
-  role: 'Manager' | 'Team Leader' | 'Admin Yantek' | 'Petugas Yantek' | 'Admin';
+  role: 'Manager' | 'Team Leader' | 'Staff Teknik' | 'Admin Yantek' | 'Koordinator Yantek' | 'Admin';
   unitName: string;
   email: string;
   phone?: string;

@@ -1301,7 +1301,8 @@ export const INITIAL_VEHICLES: Vehicle[] = [
 export const INITIAL_USERS: UserAccess[] = [
   { id: 'USR-01', nik: '9218042PLN', name: 'M. Ricky Sabary', role: 'Team Leader', unitName: 'PLN ULP Baguala', email: 'rickysabari27@gmail.com', phone: '081234567890', status: 'Aktif', lastActive: 'Hari ini 12:45' },
   { id: 'USR-02', nik: '9512088PLN', name: 'Joni Doe', role: 'Team Leader', unitName: 'PLN ULP Baguala', email: 'joni.doe@pln.co.id', phone: '081298765432', status: 'Aktif', lastActive: 'Hari ini 11:30' },
-  { id: 'USR-03', nik: '9820011PLN', name: 'Tim Yantek Passo', role: 'Petugas Yantek', unitName: 'Posko Passo', email: 'yantek.passo@pln.co.id', phone: '085211223344', status: 'Aktif', lastActive: 'Hari ini 10:15' }
+  { id: 'USR-03', nik: '9820011PLN', name: 'Tim Yantek Passo', role: 'Koordinator Yantek', unitName: 'Posko Passo', email: 'yantek.passo@pln.co.id', phone: '085211223344', status: 'Aktif', lastActive: 'Hari ini 10:15' },
+  { id: 'USR-04', nik: '9715022PLN', name: 'Ahmad Staff Teknik', role: 'Staff Teknik', unitName: 'PLN ULP Baguala', email: 'ahmad.teknik@pln.co.id', phone: '081399887766', status: 'Aktif', lastActive: 'Hari ini 09:00' }
 ];
 
 export const INITIAL_WHATSAPP_CONTACTS: WhatsAppContact[] = [

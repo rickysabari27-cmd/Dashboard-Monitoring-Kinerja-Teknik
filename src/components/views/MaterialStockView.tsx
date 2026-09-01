@@ -871,7 +871,7 @@ export const MaterialStockView: React.FC<MaterialStockViewProps> = ({
                 Kelola User & Hak Akses Petugas Teknik
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Otorisasi Team Leader, Petugas Yantek & Admin
+                Otorisasi Team Leader, Staff Teknik, Koordinator Yantek & Admin
               </p>
             </div>
           </div>

@@ -103,7 +103,7 @@ export const WhatsAppDispatchView: React.FC<WhatsAppDispatchViewProps> = ({
 📍 *Lokasi*: ${currentTrip.locationKm}
 🔍 *Penyebab*: ${currentTrip.cause}
 👥 *Pelanggan Terdampak*: ${currentTrip.affectedCustomers?.toLocaleString('id-ID')} Pelanggan
-⏳ *Status*: Petugas Yantek sedang penelusuran lapangan.
+⏳ *Status*: Koordinator Yantek sedang penelusuran lapangan.
 ━━━━━━━━━━━━━━━━━━━━
 _Safety First - Utamakan Keselamatan K3!_`;
     } else if (cat === 'Penormalan' && currentTrip) {

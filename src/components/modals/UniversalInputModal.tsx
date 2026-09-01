@@ -277,7 +277,7 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
   // 10. User
   const [userNik, setUserNik] = useState('9820055PLN');
   const [userName, setUserName] = useState('Petugas Teknik Baguala');
-  const [userRole, setUserRole] = useState('Petugas Yantek');
+  const [userRole, setUserRole] = useState('Koordinator Yantek');
   const [userEmail, setUserEmail] = useState('yantek.baguala@pln.co.id');
 
   if (!isOpen) return null;
@@ -1763,8 +1763,9 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   <select value={userRole} onChange={(e) => setUserRole(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
                     <option value="Manager">Manager</option>
                     <option value="Team Leader">Team Leader</option>
+                    <option value="Staff Teknik">Staff Teknik</option>
                     <option value="Admin Yantek">Admin Yantek</option>
-                    <option value="Petugas Yantek">Petugas Yantek</option>
+                    <option value="Koordinator Yantek">Koordinator Yantek</option>
                     <option value="Admin">Admin</option>
                   </select>
                 </div>
