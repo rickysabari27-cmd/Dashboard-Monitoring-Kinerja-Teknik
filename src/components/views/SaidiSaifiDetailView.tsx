@@ -37,7 +37,10 @@ import {
   Activity,
   ChevronRight,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  Star,
+  Sparkles,
+  Percent
 } from 'lucide-react';
 
 interface SaidiSaifiDetailViewProps {
@@ -48,6 +51,29 @@ interface SaidiSaifiDetailViewProps {
 }
 
 const MONTH_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
+const FULL_MONTH_NAMES: Record<string, string> = {
+  Jan: 'Januari',
+  Feb: 'Februari',
+  Mar: 'Maret',
+  Apr: 'April',
+  Mei: 'Mei',
+  Jun: 'Juni',
+  Jul: 'Juli',
+  Ags: 'Agustus',
+  Sep: 'September',
+  Okt: 'Oktober',
+  Nov: 'November',
+  Des: 'Desember'
+};
+
+const CURRENT_APP_YEAR = new Date().getFullYear();
+
+// Build year options up to 2030 (2030 down to 2024)
+const YEAR_OPTIONS = Array.from({ length: 2030 - 2024 + 1 }, (_, i) => 2030 - i).map(year => ({
+  value: String(year),
+  label: String(year)
+}));
 
 // Helper to match month names robustly
 const matchMonth = (m1?: string, m2?: string) => {
@@ -70,6 +96,124 @@ const matchMonth = (m1?: string, m2?: string) => {
   return s1.startsWith(s2) || s2.startsWith(s1);
 };
 
+// Interface for KPI Scoring
+export interface KpiScoreResult {
+  score: number; // 0 - 110
+  scoreFormatted: string;
+  status: 'optimal' | 'memenuhi' | 'perhatian' | 'kurang';
+  badgeText: string;
+  badgeBg: string;
+  badgeTextCol: string;
+  badgeBorder: string;
+  predikat: string;
+}
+
+// Function to calculate KPI Score on 100% - 110% scale
+// Polarity:
+// - 'min' = Polaritas Negatif / Koefisien Negatif / Minimalkan / Semakin Kecil Semakin Baik:
+//   (SAIDI, SAIFI, ENS, Susut Distribusi, Response Time, Feedback Rating Negatif, Jumlah Gangguan TM, Kerusakan Peralatan)
+// - 'max' = Polaritas Positif / Koefisien Normal / Maksimalkan / Semakin Besar Semakin Baik:
+//   (Success Rate Auto Dispatch, MVOD Sesuai Kewenangan, MTTR Siaga 1 TM, Penambahan Aset RUPTL, Penambahan Aset Fisik Investasi)
+export const calculateKpiScore = (target: number, real: number, polarity: 'min' | 'max'): KpiScoreResult => {
+  // If target & real are both 0
+  if (target === 0 && real === 0) {
+    return {
+      score: 100,
+      scoreFormatted: '100,00%',
+      status: 'memenuhi',
+      badgeText: '100,0%',
+      badgeBg: 'bg-emerald-950/60',
+      badgeTextCol: 'text-emerald-300',
+      badgeBorder: 'border-emerald-500/30',
+      predikat: 'Standar Target (100%)'
+    };
+  }
+
+  let score = 100;
+
+  if (polarity === 'min') {
+    // POLARITAS NEGATIF (Minimalkan - Semakin Kecil Semakin Baik)
+    // Target adalah batas toleransi maksimum
+    if (target <= 0) {
+      if (real <= 0) {
+        score = 110;
+      } else {
+        score = Math.max(0, 100 - real * 10);
+      }
+    } else {
+      if (real <= target) {
+        // Realisasi lebih baik / efisien (di bawah batas target) -> Skor 100% s/d 110%
+        // Standar NKO PLN: ((2 * Target - Real) / Target) * 100%, dicap max 110%
+        const calculated = ((2 * target - real) / target) * 100;
+        score = Math.min(110, calculated);
+      } else {
+        // Realisasi melebihi batas toleransi target -> Skor turun proporsional di bawah 100%
+        const calculated = ((2 * target - real) / target) * 100;
+        score = Math.max(0, calculated);
+      }
+    }
+  } else {
+    // POLARITAS POSITIF (Maksimalkan - Semakin Besar Semakin Baik)
+    // Target adalah sasaran minimal yang harus dicapai
+    if (target <= 0) {
+      score = real > 0 ? 110 : 100;
+    } else {
+      // Standar NKO PLN: (Real / Target) * 100%, dicap max 110% dan min 0%
+      const ratio = (real / target) * 100;
+      score = Math.min(110, Math.max(0, ratio));
+    }
+  }
+
+  // Cap score to range [0, 110]
+  score = Math.min(110, Math.max(0, score));
+
+  let status: 'optimal' | 'memenuhi' | 'perhatian' | 'kurang' = 'memenuhi';
+  let predikat = 'Memenuhi Target';
+  let badgeBg = 'bg-teal-950/70';
+  let badgeTextCol = 'text-teal-300';
+  let badgeBorder = 'border-teal-500/40';
+
+  if (score >= 109.9) {
+    status = 'optimal';
+    predikat = 'Istimewa / Optimal (110%)';
+    badgeBg = 'bg-emerald-950/90';
+    badgeTextCol = 'text-[#00f5a0]';
+    badgeBorder = 'border-[#00f5a0]/60';
+  } else if (score >= 100) {
+    status = 'memenuhi';
+    predikat = 'Memenuhi Target (100% - 109%)';
+    badgeBg = 'bg-teal-950/70';
+    badgeTextCol = 'text-teal-300';
+    badgeBorder = 'border-teal-500/40';
+  } else if (score >= 90) {
+    status = 'perhatian';
+    predikat = 'Perlu Perhatian (90% - 99%)';
+    badgeBg = 'bg-amber-950/70';
+    badgeTextCol = 'text-amber-300';
+    badgeBorder = 'border-amber-500/40';
+  } else {
+    status = 'kurang';
+    predikat = 'Kurang / Over Limit (< 90%)';
+    badgeBg = 'bg-rose-950/70';
+    badgeTextCol = 'text-rose-300';
+    badgeBorder = 'border-rose-500/40';
+  }
+
+  const scoreFormatted = score.toFixed(2).replace('.', ',') + '%';
+  const badgeText = `${score.toFixed(1).replace('.', ',')}%`;
+
+  return {
+    score: Number(score.toFixed(2)),
+    scoreFormatted,
+    status,
+    badgeText,
+    badgeBg,
+    badgeTextCol,
+    badgeBorder,
+    predikat
+  };
+};
+
 export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
   isDarkMode,
   data,
@@ -77,12 +221,12 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
   onUpdateSaidiRow
 }) => {
   // Filters & Display Unit Mode
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedYear, setSelectedYear] = useState<number>(() => CURRENT_APP_YEAR);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('ALL');
   const [matrixPeriod, setMatrixPeriod] = useState<'s1' | 's2' | 'all'>('all');
   const [chartMetric, setChartMetric] = useState<
-    'saidi' | 'saifi' | 'ens' | 'susut' | 'response' | 'autodispatch' | 'feedback' | 'gangguan' | 'kerusakan' | 'mvod' | 'mttr' | 'ruptl' | 'investasi'
-  >('saidi');
+    'susut' | 'saidi' | 'saifi' | 'ens' | 'ruptl' | 'investasi' | 'feedback' | 'response' | 'autodispatch' | 'gangguan' | 'kerusakan' | 'mvod' | 'mttr'
+  >('susut');
   const [saidiUnitDisplay, setSaidiUnitDisplay] = useState<'menit' | 'jam'>('menit');
   const [ensUnitDisplay, setEnsUnitDisplay] = useState<'mwh' | 'juta'>('mwh');
 
@@ -110,7 +254,7 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 
   // Enrich data for all 12 months with exact matching from data
   const enrichedYearData = MONTH_ORDER.map(m => {
-    const d = (data || []).find(item => (item.year || 2026) === selectedYear && matchMonth(item.month, m));
+    const d = (data || []).find(item => (item.year || CURRENT_APP_YEAR) === selectedYear && matchMonth(item.month, m));
     const sTarget = d?.saidiTarget ?? 0;
     const sTargetM = d?.saidiTargetMenit !== undefined ? d.saidiTargetMenit : Number((sTarget * 60).toFixed(2));
     const sUp3 = d?.saidiUp3 ?? 0;
@@ -203,6 +347,14 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
         ) || enrichedYearData[enrichedYearData.length - 1]
       );
 
+  // Susut Distribusi YTD
+  const cumSusutTarget = latestRow ? latestRow.susutPercentTarget : 0;
+  const cumSusutUp3 = latestRow ? latestRow.susutPercentUp3 : 0;
+  const cumSusutReal = latestRow ? latestRow.susutPercentReal : 0;
+  const diffSusutVsTarget = cumSusutTarget - cumSusutReal;
+  const diffSusutVsUp3 = cumSusutUp3 - cumSusutReal;
+  const isSusutOnTarget = cumSusutReal <= cumSusutTarget;
+
   // SAIDI YTD (Jam & Menit)
   const cumSaidiTarget = latestRow ? latestRow.saidiTarget : 0;
   const cumSaidiTargetMenit = latestRow ? latestRow.saidiTargetMenit : 0;
@@ -235,6 +387,54 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 
   const isSaidiOnTarget = cumSaidiRealMenit <= cumSaidiTargetMenit;
   const isSaifiOnTarget = cumSaifiReal <= cumSaifiTarget;
+
+  // Calculate Scores (100% - 110%) for all 13 indicators on the current latestRow/Kumulatif
+  const scoreSusut = calculateKpiScore(latestRow?.susutPercentTarget ?? 0, latestRow?.susutPercentReal ?? 0, 'min');
+  const scoreSaidi = calculateKpiScore(latestRow?.saidiTargetMenit ?? 0, latestRow?.saidiRealMenit ?? 0, 'min');
+  const scoreSaifi = calculateKpiScore(latestRow?.saifiTarget ?? 0, latestRow?.saifiReal ?? 0, 'min');
+  const scoreEns = calculateKpiScore(latestRow?.ensMwhTarget ?? 0, latestRow?.ensMwhReal ?? 0, 'min');
+  const scoreResponse = calculateKpiScore(latestRow?.responseTimeTarget ?? 0, latestRow?.responseTimeUlp ?? 0, 'min');
+  const scoreFeedback = calculateKpiScore(latestRow?.feedbackRatingNegatifTarget ?? 0, latestRow?.feedbackRatingNegatifUlp ?? 0, 'min');
+  const scoreAutoDispatch = calculateKpiScore(latestRow?.successRateAutoDispatchTarget ?? 0, latestRow?.successRateAutoDispatchUlp ?? 0, 'max');
+  const scoreGangguan = calculateKpiScore(latestRow?.gangguanTmTarget ?? 0, latestRow?.gangguanTmReal ?? 0, 'min');
+  const scoreKerusakan = calculateKpiScore(latestRow?.kerusakanPeralatanTarget ?? 0, latestRow?.kerusakanPeralatanReal ?? 0, 'min');
+  const scoreMvod = calculateKpiScore(latestRow?.mvodTarget ?? 0, latestRow?.mvodUlp ?? 0, 'max');
+  const scoreMttr = calculateKpiScore(latestRow?.mttrSiaga1Target ?? 0, latestRow?.mttrSiaga1Ulp ?? 0, 'max');
+  const scoreRuptl = calculateKpiScore(latestRow?.asetRuptlTarget ?? 0, latestRow?.asetRuptlUlp ?? 0, 'max');
+  const scoreInvestasi = calculateKpiScore(latestRow?.asetInvestasiTarget ?? 0, latestRow?.asetInvestasiUlp ?? 0, 'max');
+
+  const allScoresList = [
+    // 1. Susut
+    { id: 1, category: 'Susut', name: 'Susut Distribusi Tanpa Emin', unit: '%', polarity: 'min' as const, target: latestRow?.susutPercentTarget ?? 0, real: latestRow?.susutPercentReal ?? 0, scoreObj: scoreSusut, icon: Zap, iconColor: 'text-cyan-400' },
+    
+    // 2. Keandalan Penyaluran Tenaga Listrik
+    { id: 2, category: 'Keandalan Penyaluran Tenaga Listrik', name: 'SAIDI (Lama Padam Kumulatif)', unit: 'menit/plg', polarity: 'min' as const, target: latestRow?.saidiTargetMenit ?? 0, real: latestRow?.saidiRealMenit ?? 0, scoreObj: scoreSaidi, icon: Clock, iconColor: 'text-sky-400' },
+    { id: 3, category: 'Keandalan Penyaluran Tenaga Listrik', name: 'SAIFI (Frekuensi Padam Kumulatif)', unit: 'kali/plg', polarity: 'min' as const, target: latestRow?.saifiTarget ?? 0, real: latestRow?.saifiReal ?? 0, scoreObj: scoreSaifi, icon: Zap, iconColor: 'text-[#00e5ff]' },
+    { id: 4, category: 'Keandalan Penyaluran Tenaga Listrik', name: 'ENS (Energy Not Served Loss)', unit: 'MWh', polarity: 'min' as const, target: latestRow?.ensMwhTarget ?? 0, real: latestRow?.ensMwhReal ?? 0, scoreObj: scoreEns, icon: DollarSign, iconColor: 'text-amber-400' },
+    
+    // 3. Penyelesaian Eksekusi RUPTL dan Investasi
+    { id: 5, category: 'Penyelesaian Eksekusi RUPTL dan Investasi', name: 'Penambahan Aset RUPTL', unit: '%', polarity: 'max' as const, target: latestRow?.asetRuptlTarget ?? 0, real: latestRow?.asetRuptlUlp ?? 0, scoreObj: scoreRuptl, icon: Target, iconColor: 'text-pink-400' },
+    { id: 6, category: 'Penyelesaian Eksekusi RUPTL dan Investasi', name: 'Penambahan Aset Penyelesaian Fisik Investasi', unit: '%', polarity: 'max' as const, target: latestRow?.asetInvestasiTarget ?? 0, real: latestRow?.asetInvestasiUlp ?? 0, scoreObj: scoreInvestasi, icon: Award, iconColor: 'text-emerald-400' },
+    
+    // 4. Peningkatan Pelayanan Pelanggan
+    { id: 7, category: 'Peningkatan Pelayanan Pelanggan', name: 'Feedback Rating Negatif pada PLN Mobile Gangguan', unit: 'kali', polarity: 'min' as const, target: latestRow?.feedbackRatingNegatifTarget ?? 0, real: latestRow?.feedbackRatingNegatifUlp ?? 0, scoreObj: scoreFeedback, icon: ShieldCheck, iconColor: 'text-purple-400' },
+    { id: 8, category: 'Peningkatan Pelayanan Pelanggan', name: 'Response Time atas Gangguan (diluar Clear Tamper)', unit: 'menit', polarity: 'min' as const, target: latestRow?.responseTimeTarget ?? 0, real: latestRow?.responseTimeUlp ?? 0, scoreObj: scoreResponse, icon: Clock, iconColor: 'text-teal-400' },
+    { id: 9, category: 'Peningkatan Pelayanan Pelanggan', name: 'Success Rate Auto Dispatch Gangguan Individual (diluar Clear Tamper)', unit: '%', polarity: 'max' as const, target: latestRow?.successRateAutoDispatchTarget ?? 0, real: latestRow?.successRateAutoDispatchUlp ?? 0, scoreObj: scoreAutoDispatch, icon: Target, iconColor: 'text-blue-400' },
+    
+    // 5. Keandalan JTM
+    { id: 10, category: 'Keandalan JTM', name: 'Gangguan TM (sesuai kewenangan)', unit: 'kali', polarity: 'min' as const, target: latestRow?.gangguanTmTarget ?? 0, real: latestRow?.gangguanTmReal ?? 0, scoreObj: scoreGangguan, icon: Activity, iconColor: 'text-rose-400' },
+    { id: 11, category: 'Keandalan JTM', name: 'Kerusakan Peralatan Distribusi (sesuai kewenangan)', unit: 'kali', polarity: 'min' as const, target: latestRow?.kerusakanPeralatanTarget ?? 0, real: latestRow?.kerusakanPeralatanReal ?? 0, scoreObj: scoreKerusakan, icon: AlertTriangle, iconColor: 'text-orange-400' },
+    
+    // 6. Emergency Response Time (ERT) Distribusi
+    { id: 12, category: 'Emergency Response Time (ERT) Distribusi', name: 'MVOD (sesuai kewenangan)', unit: '%', polarity: 'max' as const, target: latestRow?.mvodTarget ?? 0, real: latestRow?.mvodUlp ?? 0, scoreObj: scoreMvod, icon: Zap, iconColor: 'text-lime-400' },
+    { id: 13, category: 'Emergency Response Time (ERT) Distribusi', name: 'MTTR Siaga 1 TM (sesuai kewenangan)', unit: 'menit', polarity: 'max' as const, target: latestRow?.mttrSiaga1Target ?? 0, real: latestRow?.mttrSiaga1Ulp ?? 0, scoreObj: scoreMttr, icon: Clock, iconColor: 'text-indigo-400' }
+  ];
+
+  const totalScoreSum = allScoresList.reduce((acc, curr) => acc + curr.scoreObj.score, 0);
+  const avgOverallScore = Number((totalScoreSum / allScoresList.length).toFixed(2));
+  const countOptimal = allScoresList.filter(s => s.scoreObj.score >= 109.9).length;
+  const countMemenuhi = allScoresList.filter(s => s.scoreObj.score >= 100 && s.scoreObj.score < 109.9).length;
+  const countPerluPerhatian = allScoresList.filter(s => s.scoreObj.score < 100).length;
 
   const calculateENS = (kwh: number) => kwh * taripKwh;
 
@@ -280,20 +480,20 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 
   const getChartMetricMeta = () => {
     switch (chartMetric) {
+      case 'susut': return { target: 'susutPercentTarget', real: 'susutPercentReal', unit: '%', label: 'Susut Distribusi Tanpa Emin (%)' };
       case 'saidi': return { target: 'saidiTarget', real: 'saidiReal', unit: 'Jam/Plg', label: 'SAIDI (Lama Padam)' };
       case 'saifi': return { target: 'saifiTarget', real: 'saifiReal', unit: 'Kali/Plg', label: 'SAIFI (Frekuensi Padam)' };
-      case 'ens': return { target: 'ensMwhTarget', real: 'ensMwhReal', unit: 'MWh', label: 'ENS Energi Loss' };
-      case 'susut': return { target: 'susutPercentTarget', real: 'susutPercentReal', unit: '%', label: 'Susut Distribusi Tanpa Emin' };
-      case 'response': return { target: 'responseTimeTarget', real: 'responseTimeUlp', unit: 'Menit', label: 'Response Time Gangguan' };
-      case 'autodispatch': return { target: 'successRateAutoDispatchTarget', real: 'successRateAutoDispatchUlp', unit: '%', label: 'Success Rate Auto Dispatch' };
-      case 'feedback': return { target: 'feedbackRatingNegatifTarget', real: 'feedbackRatingNegatifUlp', unit: 'Kali', label: 'Feedback Rating Negatif PLN Mobile' };
-      case 'gangguan': return { target: 'gangguanTmTarget', real: 'gangguanTmReal', unit: 'Kali', label: 'Jumlah Gangguan TM' };
-      case 'kerusakan': return { target: 'kerusakanPeralatanTarget', real: 'kerusakanPeralatanReal', unit: 'Kali', label: 'Kerusakan Peralatan Distribusi' };
-      case 'mvod': return { target: 'mvodTarget', real: 'mvodUlp', unit: '%', label: 'MVOD' };
-      case 'mttr': return { target: 'mttrSiaga1Target', real: 'mttrSiaga1Ulp', unit: 'Menit', label: 'MTTR Siaga 1 TM' };
+      case 'ens': return { target: 'ensMwhTarget', real: 'ensMwhReal', unit: 'MWh', label: 'ENS (Energi Loss)' };
       case 'ruptl': return { target: 'asetRuptlTarget', real: 'asetRuptlUlp', unit: '%', label: 'Penambahan Aset RUPTL' };
-      case 'investasi': return { target: 'asetInvestasiTarget', real: 'asetInvestasiUlp', unit: '%', label: 'Aset Penyelesaian Fisik Investasi' };
-      default: return { target: 'saidiTarget', real: 'saidiReal', unit: 'Jam/Plg', label: 'SAIDI' };
+      case 'investasi': return { target: 'asetInvestasiTarget', real: 'asetInvestasiUlp', unit: '%', label: 'Penambahan Aset Penyelesaian Fisik Investasi' };
+      case 'feedback': return { target: 'feedbackRatingNegatifTarget', real: 'feedbackRatingNegatifUlp', unit: 'Kali', label: 'Feedback Rating Negatif pada PLN Mobile Gangguan' };
+      case 'response': return { target: 'responseTimeTarget', real: 'responseTimeUlp', unit: 'Menit', label: 'Response Time atas Gangguan (diluar Clear Tamper)' };
+      case 'autodispatch': return { target: 'successRateAutoDispatchTarget', real: 'successRateAutoDispatchUlp', unit: '%', label: 'Success Rate Auto Dispatch Gangguan Individual (diluar Clear Tamper)' };
+      case 'gangguan': return { target: 'gangguanTmTarget', real: 'gangguanTmReal', unit: 'Kali', label: 'Gangguan TM (sesuai kewenangan)' };
+      case 'kerusakan': return { target: 'kerusakanPeralatanTarget', real: 'kerusakanPeralatanReal', unit: 'Kali', label: 'Kerusakan Peralatan Distribusi (sesuai kewenangan)' };
+      case 'mvod': return { target: 'mvodTarget', real: 'mvodUlp', unit: '%', label: 'MVOD (sesuai kewenangan)' };
+      case 'mttr': return { target: 'mttrSiaga1Target', real: 'mttrSiaga1Ulp', unit: 'Menit', label: 'MTTR Siaga 1 TM (sesuai kewenangan)' };
+      default: return { target: 'susutPercentTarget', real: 'susutPercentReal', unit: '%', label: 'Susut Distribusi Tanpa Emin' };
     }
   };
 
@@ -461,11 +661,7 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
             <CustomSelect
               value={String(selectedYear)}
               onChange={(val) => setSelectedYear(Number(val))}
-              options={[
-                { value: '2026', label: '2026 (Berjalan)' },
-                { value: '2025', label: '2025 (Historis)' },
-                { value: '2024', label: '2024 (Historis)' }
-              ]}
+              options={YEAR_OPTIONS}
               activeColor="emerald"
             />
           </div>
@@ -473,13 +669,13 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
           {/* Select Bulan Filter */}
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-xs font-bold text-slate-400">Kumulatif Bulan:</span>
+            <span className="text-xs font-bold text-slate-400">Bulan:</span>
             <CustomSelect
               value={selectedMonthFilter}
               onChange={(val) => setSelectedMonthFilter(val)}
               options={[
-                { value: 'ALL', label: 'Semua Bulan (Setahun Full)' },
-                ...MONTH_ORDER.map(m => ({ value: m, label: `s/d Bulan ${m}` }))
+                { value: 'ALL', label: 'Pilih Bulan' },
+                ...MONTH_ORDER.map(m => ({ value: m, label: `Bulan ${FULL_MONTH_NAMES[m] || m}` }))
               ]}
               activeColor="emerald"
             />
@@ -487,10 +683,173 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
         </div>
       </div>
 
-      {/* 3-WAY COMPARISON CARDS GRID (Target KPI vs Realisasi KPI vs Realisasi ULP) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* BANNER EVALUASI & PENILAIAN SKOR KINERJA KPI (100% s.d. 110%) */}
+      <div className="p-5 rounded-2xl border bg-gradient-to-br from-[#071326] via-[#0c1833] to-[#071326] border-emerald-500/30 shadow-2xl relative overflow-hidden">
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shadow-lg">
+              <Star className="w-6 h-6 text-[#00f5a0]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-white tracking-tight flex items-center gap-2">
+                  EVALUASI PENILAIAN SKOR KINERJA KPI (100% s.d. 110%)
+                </h3>
+                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-[#00f5a0] border border-emerald-500/40 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-[#00f5a0]" />
+                  Standar Capaian PLN
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5 font-medium">
+                Penilaian terukur realisasi terhadap target KPI (Batas Maksimal 110,00% untuk capaian istimewa/efisien).
+              </p>
+            </div>
+          </div>
+
+          {/* Average Overall Score Capsule */}
+          <div className="flex items-center gap-3 bg-[#060c1a]/90 px-4 py-2.5 rounded-2xl border border-[#1b2b48] shadow-inner">
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                Total Rata-rata Skor KPI:
+              </span>
+              <span className="text-xs font-semibold text-slate-300">
+                {avgOverallScore >= 109.9 ? '🌟 Capaian Istimewa' : avgOverallScore >= 100 ? '✅ Memenuhi Target' : '⚠️ Perlu Perbaikan'}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className={`text-2xl font-black ${
+                avgOverallScore >= 109.9 ? 'text-[#00f5a0]' : avgOverallScore >= 100 ? 'text-teal-300' : 'text-amber-400'
+              }`}>
+                {avgOverallScore.toFixed(2).replace('.', ',')}%
+              </span>
+              <span className="text-[11px] font-bold text-slate-500">/ 110%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Scoring Status Breakdown Pills & Progress Gauge */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3 border-t border-[#1a2944] relative z-10">
+          <div className="p-3 rounded-xl bg-[#061022] border border-[#14233e] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00f5a0]" />
+              <span className="text-xs font-bold text-slate-300">Istimewa (110%)</span>
+            </div>
+            <span className="text-sm font-black text-[#00f5a0] px-2 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-500/30">
+              {countOptimal} Indikator
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[#061022] border border-[#14233e] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-teal-400" />
+              <span className="text-xs font-bold text-slate-300">Memenuhi (100-109%)</span>
+            </div>
+            <span className="text-sm font-black text-teal-300 px-2 py-0.5 rounded-lg bg-teal-950/80 border border-teal-500/30">
+              {countMemenuhi} Indikator
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[#061022] border border-[#14233e] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+              <span className="text-xs font-bold text-slate-300">Perhatian (&lt; 100%)</span>
+            </div>
+            <span className="text-sm font-black text-amber-400 px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-500/30">
+              {countPerluPerhatian} Indikator
+            </span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-[#061022] border border-[#14233e] flex flex-col justify-center">
+            <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+              <span>Meter Penilaian (0 - 110%):</span>
+              <span className="text-emerald-400 font-extrabold">{avgOverallScore.toFixed(1).replace('.', ',')}%</span>
+            </div>
+            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden relative">
+              <div 
+                className="h-full bg-gradient-to-r from-teal-500 via-emerald-400 to-[#00f5a0] transition-all duration-500 rounded-full"
+                style={{ width: `${Math.min(100, (avgOverallScore / 110) * 100)}%` }}
+              />
+              {/* 100% Mark Line */}
+              <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-white/80" 
+                style={{ left: `${(100 / 110) * 100}%` }}
+                title="Batas Target 100%"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3-WAY COMPARISON CARDS GRID (Target KPI vs Realisasi KPI vs Realisasi ULP + Penilaian Skor) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* CARD 1: SAIDI (LAMA PADAM) */}
+        {/* CARD 1: SUSUT DISTRIBUSI TANPA EMIN */}
+        <div className="p-5 rounded-2xl border flex flex-col justify-between bg-[#0c1427] border-[#1c2942] shadow-lg">
+          <div>
+            <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-3">
+              <span className="flex items-center gap-2 text-cyan-400 font-extrabold">
+                <Zap className="w-4 h-4 text-cyan-400" />
+                <span>Susut Distribusi</span>
+              </span>
+              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black ${
+                isSusutOnTarget ? 'bg-emerald-950/60 text-[#00f5a0] border border-emerald-800/50' : 'bg-rose-950/60 text-rose-400 border border-rose-800/50'
+              }`}>
+                {isSusutOnTarget ? '✅ Memenuhi KPI' : '⚠️ Over Target'}
+              </span>
+            </div>
+
+            {/* 3-Pillar Value Breakdown */}
+            <div className="space-y-2 mb-3">
+              {/* Target KPI */}
+              <div className="p-2.5 rounded-xl bg-[#070d19] border border-[#17253b] flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-400 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-slate-500" /> Target KPI (Max):
+                </span>
+                <span className="font-black text-slate-300">
+                  {formatComma(cumSusutTarget, 2)} %
+                </span>
+              </div>
+
+              {/* Realisasi KPI UP3 */}
+              <div className="p-2.5 rounded-xl bg-[#091124] border border-[#1b2b46] flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400" /> Realisasi KPI UP3:
+                </span>
+                <span className="font-black text-white">
+                  {formatComma(cumSusutUp3, 2)} %
+                </span>
+              </div>
+
+              {/* Realisasi ULP Baguala */}
+              <div className="p-3 rounded-xl bg-[#052e2b] border border-[#0f5c53] flex items-center justify-between text-xs">
+                <span className="font-extrabold text-[#00f5a0] flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-[#00f5a0]" /> Realisasi ULP Baguala:
+                </span>
+                <span className="text-base font-black text-[#00f5a0]">
+                  {formatComma(cumSusutReal, 2)} %
+                </span>
+              </div>
+
+              {/* Skor Penilaian 100% - 110% */}
+              <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${scoreSusut.badgeBg} ${scoreSusut.badgeBorder}`}>
+                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-[#00f5a0]" /> Penilaian Skor KPI:
+                </span>
+                <span className={`font-black text-xs ${scoreSusut.badgeTextCol}`}>
+                  {scoreSusut.scoreFormatted} ({scoreSusut.predikat.split('(')[0].trim()})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-[#1c2942] text-[11px] flex justify-between text-slate-400 font-medium">
+            <span>Vs Target: <strong className={diffSusutVsTarget >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSusutVsTarget >= 0 ? `-${formatComma(diffSusutVsTarget, 2)}%` : `+${formatComma(Math.abs(diffSusutVsTarget), 2)}%`}</strong></span>
+            <span>Vs Real UP3: <strong className={diffSusutVsUp3 >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSusutVsUp3 >= 0 ? `-${formatComma(diffSusutVsUp3, 2)}%` : `+${formatComma(Math.abs(diffSusutVsUp3), 2)}%`}</strong></span>
+          </div>
+        </div>
+
+        {/* CARD 2: SAIDI (LAMA PADAM) */}
         <div className="p-5 rounded-2xl border flex flex-col justify-between bg-[#0c1427] border-[#1c2942] shadow-lg">
           <div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-3">
@@ -556,6 +915,16 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   }
                 </span>
               </div>
+
+              {/* Skor Penilaian 100% - 110% */}
+              <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${scoreSaidi.badgeBg} ${scoreSaidi.badgeBorder}`}>
+                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-[#00f5a0]" /> Penilaian Skor KPI:
+                </span>
+                <span className={`font-black text-xs ${scoreSaidi.badgeTextCol}`}>
+                  {scoreSaidi.scoreFormatted} ({scoreSaidi.predikat.split('(')[0].trim()})
+                </span>
+              </div>
             </div>
           </div>
 
@@ -609,6 +978,16 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                 </span>
                 <span className="text-base font-black text-[#00f5a0]">
                   {formatComma(cumSaifiReal, 2)} <span className="text-xs font-normal">kali/plg</span>
+                </span>
+              </div>
+
+              {/* Skor Penilaian 100% - 110% */}
+              <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${scoreSaifi.badgeBg} ${scoreSaifi.badgeBorder}`}>
+                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-[#00f5a0]" /> Penilaian Skor KPI:
+                </span>
+                <span className={`font-black text-xs ${scoreSaifi.badgeTextCol}`}>
+                  {scoreSaifi.scoreFormatted} ({scoreSaifi.predikat.split('(')[0].trim()})
                 </span>
               </div>
             </div>
@@ -686,6 +1065,16 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   }
                 </span>
               </div>
+
+              {/* Skor Penilaian 100% - 110% */}
+              <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${scoreEns.badgeBg} ${scoreEns.badgeBorder}`}>
+                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-[#00f5a0]" /> Penilaian Skor KPI:
+                </span>
+                <span className={`font-black text-xs ${scoreEns.badgeTextCol}`}>
+                  {scoreEns.scoreFormatted} ({scoreEns.predikat.split('(')[0].trim()})
+                </span>
+              </div>
             </div>
           </div>
 
@@ -697,16 +1086,16 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
 
       </div>
 
-      {/* MULTI-SERIES RECHARTS: COMPARISON CHART (TARGET VS UP3 VS ULP) */}
+      {/* MULTI-SERIES RECHARTS: COMPARISON CHART (TARGET VS ULP) */}
       <div className="p-5 rounded-2xl border bg-[#0c1427] border-[#1c2942] shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h3 className="font-black text-base text-white flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-[#00f5a0]" />
-              GRAFIK TREN PERBANDINGAN TARGET KPI VS REALISASI UP3 VS REALISASI ULP {selectedYear}
+              GRAFIK TREN TARGET VS REALISASI KPI ULP {selectedYear}
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Visual perbandingan 3 seri data secara bulanan untuk menganalisis deviasi kinerja ULP Baguala terhadap target korporat
+              Visual perbandingan target korporat vs realisasi bulanan untuk menganalisis deviasi kinerja KPI ULP Baguala {selectedYear}
             </p>
           </div>
 
@@ -718,19 +1107,36 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
               onChange={(e) => setChartMetric(e.target.value as any)}
               className="px-3 py-1.5 rounded-xl bg-[#080e1e] border border-[#1b273e] text-xs font-black text-emerald-400 focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
-              <option value="saidi">SAIDI (Lama Padam - Jam/Plg)</option>
-              <option value="saifi">SAIFI (Frekuensi Padam - Kali/Plg)</option>
-              <option value="ens">ENS Energi Loss (MWh)</option>
-              <option value="susut">Susut Distribusi Tanpa Emin (%)</option>
-              <option value="ruptl">Penambahan Aset RUPTL (%)</option>
-              <option value="investasi">Aset Penyelesaian Investasi (%)</option>
-              <option value="feedback">Feedback Rating Negatif (Kali)</option>
-              <option value="response">Response Time Gangguan (Menit)</option>
-              <option value="autodispatch">Success Rate Auto Dispatch (%)</option>
-              <option value="gangguan">Jumlah Gangguan TM (Kali)</option>
-              <option value="kerusakan">Kerusakan Peralatan (Kali)</option>
-              <option value="mvod">MVOD (%)</option>
-              <option value="mttr">MTTR Siaga 1 TM (Menit)</option>
+              <optgroup label="1. Susut" className="text-slate-400 bg-[#0c1427]">
+                <option value="susut" className="text-emerald-300">Susut Distribusi Tanpa Emin (%)</option>
+              </optgroup>
+
+              <optgroup label="2. Keandalan Penyaluran Tenaga Listrik" className="text-slate-400 bg-[#0c1427]">
+                <option value="saidi" className="text-emerald-300">SAIDI (Lama Padam - Jam/Plg)</option>
+                <option value="saifi" className="text-emerald-300">SAIFI (Frekuensi Padam - Kali/Plg)</option>
+                <option value="ens" className="text-emerald-300">ENS (Energi Loss - MWh)</option>
+              </optgroup>
+
+              <optgroup label="3. Penyelesaian Eksekusi RUPTL dan Investasi" className="text-slate-400 bg-[#0c1427]">
+                <option value="ruptl" className="text-emerald-300">Penambahan Aset RUPTL (%)</option>
+                <option value="investasi" className="text-emerald-300">Penambahan Aset Penyelesaian Fisik Investasi (%)</option>
+              </optgroup>
+
+              <optgroup label="4. Peningkatan Pelayanan Pelanggan" className="text-slate-400 bg-[#0c1427]">
+                <option value="feedback" className="text-emerald-300">Feedback Rating Negatif pada PLN Mobile Gangguan (Kali)</option>
+                <option value="response" className="text-emerald-300">Response Time atas Gangguan (diluar Clear Tamper) (Menit)</option>
+                <option value="autodispatch" className="text-emerald-300">Success Rate Auto Dispatch Gangguan Individual (diluar Clear Tamper) (%)</option>
+              </optgroup>
+
+              <optgroup label="5. Keandalan JTM" className="text-slate-400 bg-[#0c1427]">
+                <option value="gangguan" className="text-emerald-300">Gangguan TM (sesuai kewenangan) (Kali)</option>
+                <option value="kerusakan" className="text-emerald-300">Kerusakan Peralatan Distribusi (sesuai kewenangan) (Kali)</option>
+              </optgroup>
+
+              <optgroup label="6. Emergency Response Time (ERT) Distribusi" className="text-slate-400 bg-[#0c1427]">
+                <option value="mvod" className="text-emerald-300">MVOD (sesuai kewenangan) (%)</option>
+                <option value="mttr" className="text-emerald-300">MTTR Siaga 1 TM (sesuai kewenangan) (Menit)</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -774,6 +1180,126 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
               />
             </ComposedChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* SCORECARD LENGKAP PENILAIAN 13 INDIKATOR KINERJA KPI (100% s.d. 110%) */}
+      <div className="p-5 rounded-2xl border bg-[#0c1427] border-[#1c2942] shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+              <Star className="w-4 h-4 text-[#00f5a0]" />
+              SCORECARD PENILAIAN INDIKATOR KINERJA KPI (ULP BAGUALA {selectedYear})
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Rincian kalkulasi skor penilaian 100% - 110% seluruh indikator terhadap target batas operasional PLN
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-bold">Periode:</span>
+            <span className="px-2.5 py-1 rounded-lg bg-[#070c19] text-[#00f5a0] text-xs font-black border border-[#1b2b48]">
+              {selectedMonthFilter === 'ALL' ? 'Kumulatif Berjalan (YTD)' : `Bulan ${selectedMonthFilter} ${selectedYear}`}
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left text-xs divide-y divide-[#1c2942]">
+            <thead className="bg-[#070c19] text-slate-400 uppercase font-extrabold text-[10px] tracking-wider">
+              <tr>
+                <th className="p-3 text-center w-12">No</th>
+                <th className="p-3">Indikator Kinerja KPI</th>
+                <th className="p-3 text-center">Polaritas</th>
+                <th className="p-3 text-center">Target</th>
+                <th className="p-3 text-center text-white">Realisasi ULP</th>
+                <th className="p-3 text-center text-slate-400">Deviasi</th>
+                <th className="p-3 text-center text-[#00f5a0]">Skor Penilaian (100% - 110%)</th>
+                <th className="p-3 text-center">Meter Capaian</th>
+                <th className="p-3 text-center">Predikat Kinerja</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1c2942] font-semibold text-slate-200">
+              {allScoresList.map((item, idx) => {
+                const isNewCategory = idx === 0 || allScoresList[idx - 1].category !== item.category;
+                const IconComp = item.icon;
+                const diff = item.polarity === 'min' ? (item.target - item.real) : (item.real - item.target);
+                const isBetter = diff >= 0;
+                
+                return (
+                  <React.Fragment key={item.id}>
+                    {isNewCategory && (
+                      <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                        <td colSpan={9} className="py-2.5 px-3.5 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                            <span>{item.category}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    <tr className="hover:bg-[#111c38]/50 transition-colors">
+                      <td className="p-3 text-center text-slate-400 font-mono font-bold">{idx + 1}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <IconComp className={`w-3.5 h-3.5 ${item.iconColor}`} />
+                          <span className="font-bold text-white">{item.name}</span>
+                          <span className="text-[10px] text-slate-500 font-normal">({item.unit})</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold ${
+                          item.polarity === 'min' 
+                            ? 'bg-sky-950/60 text-sky-400 border border-sky-800/40' 
+                            : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'
+                        }`}>
+                          {item.polarity === 'min' ? '🔻 Negatif (Minimalkan)' : '🔺 Normal (Maksimalkan)'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center text-slate-400 font-bold">
+                        {formatComma(item.target, item.unit === '%' ? 2 : item.unit === 'MWh' ? 3 : 1)} {item.unit}
+                      </td>
+                      <td className="p-3 text-center font-black text-white">
+                        {formatComma(item.real, item.unit === '%' ? 2 : item.unit === 'MWh' ? 3 : 1)} {item.unit}
+                      </td>
+                      <td className="p-3 text-center text-xs font-bold">
+                        <span className={isBetter ? 'text-[#00f5a0]' : 'text-rose-400'}>
+                          {isBetter ? '+' : ''}{formatComma(diff, 2)}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg font-black ${item.scoreObj.badgeBg} ${item.scoreObj.badgeTextCol} border ${item.scoreObj.badgeBorder}`}>
+                          {item.scoreObj.score >= 109.9 && <Star className="w-3 h-3 text-[#00f5a0]" />}
+                          {item.scoreObj.scoreFormatted}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center w-36">
+                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden relative">
+                          <div 
+                            className="h-full bg-gradient-to-r from-teal-500 to-[#00f5a0] rounded-full"
+                            style={{ width: `${Math.min(100, (item.scoreObj.score / 110) * 100)}%` }}
+                          />
+                          <div className="absolute top-0 bottom-0 w-0.5 bg-white/70" style={{ left: `${(100 / 110) * 100}%` }} />
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-black block whitespace-nowrap ${
+                          item.scoreObj.status === 'optimal' 
+                            ? 'bg-emerald-950 text-[#00f5a0] border border-[#00f5a0]/40' 
+                            : item.scoreObj.status === 'memenuhi'
+                              ? 'bg-teal-950 text-teal-300 border border-teal-500/40'
+                              : item.scoreObj.status === 'perhatian'
+                                ? 'bg-amber-950 text-amber-300 border border-amber-500/40'
+                                : 'bg-rose-950 text-rose-300 border border-rose-500/40'
+                        }`}>
+                          {item.scoreObj.predikat}
+                        </span>
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -853,12 +1379,23 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     {matrixMonths.map(m => (
                       <th key={m} className="p-3 text-center">{m}</th>
                     ))}
-                    <th className="p-3 text-center text-[#00f5a0]">Kumulatif / Akhir</th>
+                    <th className="p-3 text-center text-white">Kumulatif / Akhir</th>
+                    <th className="p-3 text-center text-[#00f5a0]">Skor Penilaian (100% - 110%)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#1c2942] font-semibold text-slate-200">
                   
-                  {/* Row 1: Susut % */}
+                  {/* CATEGORY 1: SUSUT */}
+                  <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                    <td colSpan={matrixMonths.length + 5} className="py-2 px-3 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                        <span>1. Susut</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row: Susut % */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-white flex items-center gap-2">
                       <Zap className="w-3.5 h-3.5 text-cyan-400" />
@@ -875,9 +1412,24 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-cyan-400 font-black">
                       {formatComma(targetRow?.susutPercentReal ?? 0, 2)}%
                     </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreSusut.badgeBg} ${scoreSusut.badgeTextCol} border ${scoreSusut.badgeBorder}`}>
+                        {scoreSusut.scoreFormatted}
+                      </span>
+                    </td>
                   </tr>
 
-                  {/* Row 3: SAIDI (Menit/Plg) */}
+                  {/* CATEGORY 2: KEANDALAN PENYALURAN TENAGA LISTRIK */}
+                  <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                    <td colSpan={matrixMonths.length + 5} className="py-2 px-3 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                        <span>2. Keandalan Penyaluran Tenaga Listrik</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row: SAIDI (Menit/Plg) */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-white flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5 text-sky-400" />
@@ -894,9 +1446,14 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-sky-400 font-black">
                       {formatComma(targetRow?.saidiRealMenit ?? 0, 2)} m
                     </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreSaidi.badgeBg} ${scoreSaidi.badgeTextCol} border ${scoreSaidi.badgeBorder}`}>
+                        {scoreSaidi.scoreFormatted}
+                      </span>
+                    </td>
                   </tr>
 
-                  {/* Row 4: SAIDI (Jam/Plg) */}
+                  {/* Row: SAIDI (Jam/Plg) */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-slate-300 flex items-center gap-2 pl-6">
                       <span>↳ SAIDI Konversi (Jam / Plg)</span>
@@ -912,9 +1469,14 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-slate-200 font-black">
                       {formatComma(targetRow?.saidiReal ?? 0, 3)} j
                     </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreSaidi.badgeBg} ${scoreSaidi.badgeTextCol} border ${scoreSaidi.badgeBorder}`}>
+                        {scoreSaidi.scoreFormatted}
+                      </span>
+                    </td>
                   </tr>
 
-                  {/* Row 5: SAIFI */}
+                  {/* Row: SAIFI */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-white flex items-center gap-2">
                       <Zap className="w-3.5 h-3.5 text-[#00e5ff]" />
@@ -931,13 +1493,18 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-[#00e5ff] font-black">
                       {formatComma(targetRow?.saifiReal ?? 0, 2)} x
                     </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreSaifi.badgeBg} ${scoreSaifi.badgeTextCol} border ${scoreSaifi.badgeBorder}`}>
+                        {scoreSaifi.scoreFormatted}
+                      </span>
+                    </td>
                   </tr>
 
-                  {/* Row 6: ENS Loss MWh */}
+                  {/* Row: ENS Loss MWh */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-white flex items-center gap-2">
                       <DollarSign className="w-3.5 h-3.5 text-amber-400" />
-                      <span>ENS (Energi Loss)</span>
+                      <span>ENS (Energi Loss - MWh)</span>
                     </td>
                     <td className="p-3 text-center text-slate-400">MWh</td>
                     <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.ensMwhTarget, 3)} MWh</td>
@@ -950,142 +1517,24 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-amber-400 font-black">
                       {formatComma(targetRow?.ensMwhReal ?? 0, 3)} MWh
                     </td>
-                  </tr>
-
-                  {/* Row 7: Response Time */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-teal-400" />
-                      <span>Response Time Pelayanan Gangguan</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">menit</td>
-                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.responseTimeTarget, 1)} m</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-teal-400 font-bold block">{formatComma(r.responseTimeUlp, 1)}</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.responseTimeTarget, 1)}</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-teal-400 font-black">
-                      {formatComma(targetRow?.responseTimeUlp ?? 0, 1)} m
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreEns.badgeBg} ${scoreEns.badgeTextCol} border ${scoreEns.badgeBorder}`}>
+                        {scoreEns.scoreFormatted}
+                      </span>
                     </td>
                   </tr>
 
-                  {/* Row 8: Feedback Rating Negatif */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                      <span>Feedback Rating Negatif PLN Mobile</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">kali</td>
-                    <td className="p-3 text-center text-slate-400">{(targetRow?.feedbackRatingNegatifTarget ?? 0)} kali</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-purple-400 font-bold block">{r.feedbackRatingNegatifUlp ?? 0}</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {r.feedbackRatingNegatifTarget ?? 0}</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-purple-400 font-black">
-                      {(targetRow?.feedbackRatingNegatifUlp ?? 0)} kali
+                  {/* CATEGORY 3: PENYELESAIAN EKSEKUSI RUPTL DAN INVESTASI */}
+                  <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                    <td colSpan={matrixMonths.length + 5} className="py-2 px-3 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                        <span>3. Penyelesaian Eksekusi RUPTL dan Investasi</span>
+                      </div>
                     </td>
                   </tr>
 
-                  {/* Row 9: Success Rate Auto Dispatch */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <Target className="w-3.5 h-3.5 text-blue-400" />
-                      <span>Success Rate Auto Dispatch</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">%</td>
-                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.successRateAutoDispatchTarget, 2)}%</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-blue-400 font-bold block">{formatComma(r.successRateAutoDispatchUlp, 2)}%</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.successRateAutoDispatchTarget, 2)}%</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-blue-400 font-black">
-                      {formatComma(targetRow?.successRateAutoDispatchUlp ?? 0, 2)}%
-                    </td>
-                  </tr>
-
-                  {/* Row 10: Gangguan TM */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <Activity className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Jumlah Gangguan Penulang / TM</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">kali</td>
-                    <td className="p-3 text-center text-slate-400">{targetRow?.gangguanTmTarget ?? 0} kali</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-rose-400 font-bold block">{r.gangguanTmReal || 0}</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {r.gangguanTmTarget || 0}</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-rose-400 font-black">
-                      {(targetRow?.gangguanTmReal ?? 0)} kali
-                    </td>
-                  </tr>
-
-                  {/* Row 11: Kerusakan Peralatan */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
-                      <span>Kerusakan Peralatan Distribusi</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">kali</td>
-                    <td className="p-3 text-center text-slate-400">{targetRow?.kerusakanPeralatanTarget ?? 0} kali</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-orange-400 font-bold block">{r.kerusakanPeralatanReal || 0}</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {r.kerusakanPeralatanTarget || 0}</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-orange-400 font-black">
-                      {(targetRow?.kerusakanPeralatanReal ?? 0)} kali
-                    </td>
-                  </tr>
-
-                  {/* Row 12: MVOD */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <Zap className="w-3.5 h-3.5 text-lime-400" />
-                      <span>MVOD Sesuai Kewenangan</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">%</td>
-                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.mvodTarget, 2)}%</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-lime-400 font-bold block">{formatComma(r.mvodUlp, 2)}%</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.mvodTarget, 2)}%</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-lime-400 font-black">
-                      {formatComma(targetRow?.mvodUlp ?? 0, 2)}%
-                    </td>
-                  </tr>
-
-                  {/* Row 13: MTTR Siaga 1 TM */}
-                  <tr className="hover:bg-[#111c38]/50">
-                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>MTTR Siaga 1 TM</span>
-                    </td>
-                    <td className="p-3 text-center text-slate-400">menit</td>
-                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.mttrSiaga1Target, 1)} m</td>
-                    {displayedData.map(r => (
-                      <td key={r.month} className="p-3 text-center">
-                        <span className="text-indigo-400 font-bold block">{formatComma(r.mttrSiaga1Ulp, 1)}</span>
-                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.mttrSiaga1Target, 1)}</span>
-                      </td>
-                    ))}
-                    <td className="p-3 text-center text-indigo-400 font-black">
-                      {formatComma(targetRow?.mttrSiaga1Ulp ?? 0, 1)} m
-                    </td>
-                  </tr>
-
-                  {/* Row 14: Penambahan Aset RUPTL */}
+                  {/* Row: Penambahan Aset RUPTL */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-white flex items-center gap-2">
                       <Target className="w-3.5 h-3.5 text-pink-400" />
@@ -1102,13 +1551,18 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-pink-400 font-black">
                       {formatComma(targetRow?.asetRuptlUlp ?? 0, 2)}%
                     </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreRuptl.badgeBg} ${scoreRuptl.badgeTextCol} border ${scoreRuptl.badgeBorder}`}>
+                        {scoreRuptl.scoreFormatted}
+                      </span>
+                    </td>
                   </tr>
 
-                  {/* Row 15: Penambahan Aset Investasi */}
+                  {/* Row: Penambahan Aset Investasi */}
                   <tr className="hover:bg-[#111c38]/50">
                     <td className="p-3 font-extrabold text-white flex items-center gap-2">
                       <Award className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Penambahan Aset Fisik Investasi (%)</span>
+                      <span>Penambahan Aset Penyelesaian Fisik Investasi (%)</span>
                     </td>
                     <td className="p-3 text-center text-slate-400">%</td>
                     <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.asetInvestasiTarget, 2)}%</td>
@@ -1121,6 +1575,209 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                     <td className="p-3 text-center text-emerald-400 font-black">
                       {formatComma(targetRow?.asetInvestasiUlp ?? 0, 2)}%
                     </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreInvestasi.badgeBg} ${scoreInvestasi.badgeTextCol} border ${scoreInvestasi.badgeBorder}`}>
+                        {scoreInvestasi.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* CATEGORY 4: PENINGKATAN PELAYANAN PELANGGAN */}
+                  <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                    <td colSpan={matrixMonths.length + 5} className="py-2 px-3 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                        <span>4. Peningkatan Pelayanan Pelanggan</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row: Feedback Rating Negatif */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Feedback Rating Negatif pada PLN Mobile Gangguan</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali</td>
+                    <td className="p-3 text-center text-slate-400">{(targetRow?.feedbackRatingNegatifTarget ?? 0)} kali</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-purple-400 font-bold block">{r.feedbackRatingNegatifUlp ?? 0}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {r.feedbackRatingNegatifTarget ?? 0}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-purple-400 font-black">
+                      {(targetRow?.feedbackRatingNegatifUlp ?? 0)} kali
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreFeedback.badgeBg} ${scoreFeedback.badgeTextCol} border ${scoreFeedback.badgeBorder}`}>
+                        {scoreFeedback.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* Row: Response Time */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Response Time atas Gangguan (diluar Clear Tamper)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">menit</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.responseTimeTarget, 1)} m</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-teal-400 font-bold block">{formatComma(r.responseTimeUlp, 1)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.responseTimeTarget, 1)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-teal-400 font-black">
+                      {formatComma(targetRow?.responseTimeUlp ?? 0, 1)} m
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreResponse.badgeBg} ${scoreResponse.badgeTextCol} border ${scoreResponse.badgeBorder}`}>
+                        {scoreResponse.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* Row: Success Rate Auto Dispatch */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Success Rate Auto Dispatch Gangguan Individual (diluar Clear Tamper)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.successRateAutoDispatchTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-blue-400 font-bold block">{formatComma(r.successRateAutoDispatchUlp, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.successRateAutoDispatchTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-blue-400 font-black">
+                      {formatComma(targetRow?.successRateAutoDispatchUlp ?? 0, 2)}%
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreAutoDispatch.badgeBg} ${scoreAutoDispatch.badgeTextCol} border ${scoreAutoDispatch.badgeBorder}`}>
+                        {scoreAutoDispatch.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* CATEGORY 5: KEANDALAN JTM */}
+                  <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                    <td colSpan={matrixMonths.length + 5} className="py-2 px-3 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                        <span>5. Keandalan JTM</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row: Gangguan TM */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Activity className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Gangguan TM (sesuai kewenangan)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali</td>
+                    <td className="p-3 text-center text-slate-400">{targetRow?.gangguanTmTarget ?? 0} kali</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-rose-400 font-bold block">{r.gangguanTmReal || 0}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {r.gangguanTmTarget || 0}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-rose-400 font-black">
+                      {(targetRow?.gangguanTmReal ?? 0)} kali
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreGangguan.badgeBg} ${scoreGangguan.badgeTextCol} border ${scoreGangguan.badgeBorder}`}>
+                        {scoreGangguan.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* Row: Kerusakan Peralatan */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Kerusakan Peralatan Distribusi (sesuai kewenangan)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali</td>
+                    <td className="p-3 text-center text-slate-400">{targetRow?.kerusakanPeralatanTarget ?? 0} kali</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-orange-400 font-bold block">{r.kerusakanPeralatanReal || 0}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {r.kerusakanPeralatanTarget || 0}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-orange-400 font-black">
+                      {(targetRow?.kerusakanPeralatanReal ?? 0)} kali
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreKerusakan.badgeBg} ${scoreKerusakan.badgeTextCol} border ${scoreKerusakan.badgeBorder}`}>
+                        {scoreKerusakan.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* CATEGORY 6: EMERGENCY RESPONSE TIME (ERT) DISTRIBUSI */}
+                  <tr className="bg-[#091326] border-t-2 border-b border-[#1f3150]">
+                    <td colSpan={matrixMonths.length + 5} className="py-2 px-3 text-[11px] font-black uppercase tracking-wider text-emerald-400">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full inline-block" />
+                        <span>6. Emergency Response Time (ERT) Distribusi</span>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Row: MVOD */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-lime-400" />
+                      <span>MVOD (sesuai kewenangan) (%)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.mvodTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-lime-400 font-bold block">{formatComma(r.mvodUlp, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.mvodTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-lime-400 font-black">
+                      {formatComma(targetRow?.mvodUlp ?? 0, 2)}%
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreMvod.badgeBg} ${scoreMvod.badgeTextCol} border ${scoreMvod.badgeBorder}`}>
+                        {scoreMvod.scoreFormatted}
+                      </span>
+                    </td>
+                  </tr>
+
+                  {/* Row: MTTR Siaga 1 TM */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>MTTR Siaga 1 TM (sesuai kewenangan)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">menit</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.mttrSiaga1Target, 1)} m</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-indigo-400 font-bold block">{formatComma(r.mttrSiaga1Ulp, 1)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.mttrSiaga1Target, 1)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-indigo-400 font-black">
+                      {formatComma(targetRow?.mttrSiaga1Ulp ?? 0, 1)} m
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-black ${scoreMttr.badgeBg} ${scoreMttr.badgeTextCol} border ${scoreMttr.badgeBorder}`}>
+                        {scoreMttr.scoreFormatted}
+                      </span>
+                    </td>
                   </tr>
 
                 </tbody>
@@ -1128,6 +1785,47 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
             </div>
           );
         })()}
+      </div>
+
+      {/* PANDUAN & METODOLOGI PENILAIAN SKOR 100% s.d. 110% */}
+      <div className="p-5 rounded-2xl border bg-[#080f20] border-[#182642] text-xs text-slate-300 space-y-3">
+        <div className="flex items-center gap-2 text-white font-extrabold text-sm">
+          <Sparkles className="w-4 h-4 text-[#00f5a0]" />
+          <span>METODOLOGI & RUMUS PENILAIAN SKOR KINERJA PLN (100% s.d. 110%)</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="p-3.5 rounded-xl bg-[#050c1b] border border-[#132039]">
+            <h4 className="font-extrabold text-sky-400 mb-1.5 flex items-center gap-1.5">
+              <span>🔻 1. Koefisien / Polaritas Negatif &mdash; Minimalkan (Semakin Kecil dari Target Semakin Bagus)</span>
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
+              <strong className="text-slate-300">Indikator:</strong> SAIDI, SAIFI, ENS, Response Time Pelayanan Gangguan, Feedback Rating Negatif PLN Mobile, Jumlah Gangguan Penulang/TM, Kerusakan Peralatan Distribusi, Susut Distribusi Tanpa Emin.
+            </p>
+            <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
+              Target merupakan batas toleransi maksimum operasional. Semakin kecil angka realisasi di bawah batas target, semakin optimal efisiensi unit:
+            </p>
+            <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-1 font-mono">
+              <li><strong className="text-[#00f5a0]">Real &le; Target</strong>: Skor = ((2 &times; Target - Real) / Target) &times; 100% (Maksimal 110,00%)</li>
+              <li><strong className="text-rose-400">Real &gt; Target</strong>: Skor = ((2 &times; Target - Real) / Target) &times; 100% (Minimal 0,00%)</li>
+            </ul>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-[#050c1b] border border-[#132039]">
+            <h4 className="font-extrabold text-emerald-400 mb-1.5 flex items-center gap-1.5">
+              <span>🔺 2. Koefisien Normal / Polaritas Positif &mdash; Maksimalkan (Semakin Besar dari Target Semakin Bagus)</span>
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
+              <strong className="text-slate-300">Indikator:</strong> Success Rate Auto Dispatch, MVOD Sesuai Kewenangan, MTTR Siaga 1 TM, Penambahan Aset RUPTL, Penambahan Aset Fisik Investasi.
+            </p>
+            <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
+              Target merupakan sasaran minimal yang harus dicapai. Semakin tinggi realisasi yang dicapai melampaui batas target, semakin optimal skor capaian unit:
+            </p>
+            <ul className="list-disc list-inside text-[11px] text-slate-300 space-y-1 font-mono">
+              <li><strong className="text-[#00f5a0]">Real &ge; Target</strong>: Skor = (Real / Target) &times; 100% (Maksimal 110,00%)</li>
+              <li><strong className="text-rose-400">Real &lt; Target</strong>: Skor = (Real / Target) &times; 100% (Minimal 0,00%)</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* KALKULATOR SIMULASI KERUGIAN ENS */}

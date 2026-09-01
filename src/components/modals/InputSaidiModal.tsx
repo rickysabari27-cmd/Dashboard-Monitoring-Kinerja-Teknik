@@ -35,13 +35,13 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
   onUpdateSaidi,
   onSaveRow,
   isDarkMode,
-  initialYear = 2026,
+  initialYear = new Date().getFullYear(),
   initialMonth = 'Jan',
   monthlySaidiData = []
 }) => {
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
-  const [activeTab, setActiveTab] = useState<'keandalan' | 'susut' | 'investasi' | 'pelayanan' | 'keandalan_jtm'>('keandalan');
+  const [activeTab, setActiveTab] = useState<'susut' | 'keandalan' | 'investasi' | 'pelayanan' | 'keandalan_jtm' | 'ert_distribusi'>('susut');
 
   // String-based raw form state for smooth unhindered typing
   const [rawForm, setRawForm] = useState<Record<string, string>>({});
@@ -280,7 +280,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="w-full p-2.5 rounded-xl border border-[#1c2942] bg-[#0c1427] text-white font-extrabold"
               >
-                {[2026, 2025, 2024].map(y => (
+                {[2030, 2029, 2028, 2027, 2026, 2025, 2024].map(y => (
                   <option key={y} value={y}>Tahun {y}</option>
                 ))}
               </select>
@@ -303,23 +303,23 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
           <div className="flex gap-1.5 p-1 bg-[#070c19] rounded-xl border border-[#1c2942] text-xs font-extrabold overflow-x-auto">
             <button
               type="button"
-              onClick={() => setActiveTab('keandalan')}
-              className={`px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                activeTab === 'keandalan' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>SAIDI SAIFI ENS</span>
-            </button>
-            <button
-              type="button"
               onClick={() => setActiveTab('susut')}
               className={`px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
                 activeTab === 'susut' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Susut Distribusi</span>
+              <span>1. Susut Distribusi</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('keandalan')}
+              className={`px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                activeTab === 'keandalan' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>2. Keandalan Penyaluran Tenaga Listrik</span>
             </button>
             <button
               type="button"
@@ -329,7 +329,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
               }`}
             >
               <Target className="w-3.5 h-3.5" />
-              <span>Penambahan Aset</span>
+              <span>3. Eksekusi RUPTL & Investasi</span>
             </button>
             <button
               type="button"
@@ -339,7 +339,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Peningkatan Pelayanan Pelanggan</span>
+              <span>4. Peningkatan Pelayanan Pelanggan</span>
             </button>
             <button
               type="button"
@@ -349,11 +349,60 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>Keandalan JTM & ERT Distribusi</span>
+              <span>5. Keandalan JTM</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('ert_distribusi')}
+              className={`px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                activeTab === 'ert_distribusi' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>6. ERT Distribusi</span>
             </button>
           </div>
 
-          {/* TAB 1: SAIDI SAIFI ENS */}
+          {/* TAB 1: SUSUT DISTRIBUSI */}
+          {activeTab === 'susut' && (
+            <div className="space-y-4">
+              {/* Susut Distribusi (%) */}
+              <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
+                <div className="font-extrabold text-cyan-400 flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-cyan-400" />
+                  Susut Distribusi Tanpa Emin (%)
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (%)</label>
+                    <input 
+                      type="text"
+                      inputMode="decimal"
+                      value={rawForm.susutPercentTarget ?? ''}
+                      onChange={(e) => handleInputChange('susutPercentTarget', e.target.value)}
+                      onFocus={handleFocus}
+                      placeholder="0"
+                      className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI (%)</label>
+                    <input 
+                      type="text"
+                      inputMode="decimal"
+                      value={rawForm.susutPercentReal ?? ''}
+                      onChange={(e) => handleInputChange('susutPercentReal', e.target.value)}
+                      onFocus={handleFocus}
+                      placeholder="0"
+                      className="w-full p-2.5 rounded-lg bg-[#070c19] border border-emerald-500/40 text-[#00f5a0] font-black"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: KEANDALAN PENYALURAN TENAGA LISTRIK (SAIDI, SAIFI, ENS) */}
           {activeTab === 'keandalan' && (
             <div className="space-y-4">
               
@@ -465,53 +514,14 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
             </div>
           )}
 
-          {/* TAB: SUSUT DISTRIBUSI */}
-          {activeTab === 'susut' && (
-            <div className="space-y-4">
-              {/* Susut Distribusi (%) */}
-              <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
-                <div className="font-extrabold text-cyan-400 flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-cyan-400" />
-                  Susut Distribusi Tanpa Emin (%)
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Target KPI (%)</label>
-                    <input 
-                      type="text"
-                      inputMode="decimal"
-                      value={rawForm.susutPercentTarget ?? ''}
-                      onChange={(e) => handleInputChange('susutPercentTarget', e.target.value)}
-                      onFocus={handleFocus}
-                      placeholder="0"
-                      className="w-full p-2.5 rounded-lg bg-[#070c19] border border-[#1c2942] text-slate-200 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-[#00f5a0] block mb-1">Realisasi KPI (%)</label>
-                    <input 
-                      type="text"
-                      inputMode="decimal"
-                      value={rawForm.susutPercentReal ?? ''}
-                      onChange={(e) => handleInputChange('susutPercentReal', e.target.value)}
-                      onFocus={handleFocus}
-                      placeholder="0"
-                      className="w-full p-2.5 rounded-lg bg-[#070c19] border border-emerald-500/40 text-[#00f5a0] font-black"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: PENAMBAHAN ASET */}
+          {/* TAB 3: PENYELESAIAN EKSEKUSI RUPTL DAN INVESTASI */}
           {activeTab === 'investasi' && (
             <div className="space-y-4">
               
               {/* Penambahan Aset RUPTL */}
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
-                <div className="font-extrabold text-cyan-400 flex items-center gap-1.5">
-                  <Target className="w-4 h-4 text-cyan-400" />
+                <div className="font-extrabold text-pink-400 flex items-center gap-1.5">
+                  <Target className="w-4 h-4 text-pink-400" />
                   Penambahan Aset RUPTL (%)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -579,14 +589,14 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: PENINGKATAN PELAYANAN PELANGGAN */}
+          {/* TAB 4: PENINGKATAN PELAYANAN PELANGGAN */}
           {activeTab === 'pelayanan' && (
             <div className="space-y-4">
               
               {/* Feedback Rating Negatif PLN Mobile (Satuan: Kali) */}
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
-                <div className="font-extrabold text-rose-400 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <div className="font-extrabold text-purple-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-purple-400" />
                   Feedback Rating Negatif pada PLN Mobile Gangguan (Kali)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -621,7 +631,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
                 <div className="font-extrabold text-teal-400 flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-teal-400" />
-                  Response Time Gangguan (diluar Clear Tamper - Menit)
+                  Response Time atas Gangguan (diluar Clear Tamper - Menit)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -653,9 +663,9 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
 
               {/* Success Rate Auto Dispatch */}
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
-                <div className="font-extrabold text-cyan-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                  Success Rate Auto Dispatch Gangguan Individual (%)
+                <div className="font-extrabold text-blue-400 flex items-center gap-1.5">
+                  <Target className="w-4 h-4 text-blue-400" />
+                  Success Rate Auto Dispatch Gangguan Individual (diluar Clear Tamper - %)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -688,7 +698,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
             </div>
           )}
 
-          {/* TAB 4: KEANDALAN JTM & ERT DISTRIBUSI */}
+          {/* TAB 5: KEANDALAN JTM */}
           {activeTab === 'keandalan_jtm' && (
             <div className="space-y-4">
               
@@ -696,7 +706,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
                 <div className="font-extrabold text-rose-400 flex items-center gap-1.5">
                   <Activity className="w-4 h-4 text-rose-400" />
-                  Gangguan TM (Kali)
+                  Gangguan TM (sesuai kewenangan - Kali)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -728,9 +738,9 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
 
               {/* Kerusakan Peralatan Distribusi */}
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
-                <div className="font-extrabold text-amber-400 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
-                  Kerusakan Peralatan Distribusi (Kali)
+                <div className="font-extrabold text-orange-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-orange-400" />
+                  Kerusakan Peralatan Distribusi (sesuai kewenangan - Kali)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -760,11 +770,18 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {/* TAB 6: EMERGENCY RESPONSE TIME (ERT) DISTRIBUSI */}
+          {activeTab === 'ert_distribusi' && (
+            <div className="space-y-4">
+              
               {/* MVOD */}
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
-                <div className="font-extrabold text-violet-400 flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-violet-400" />
-                  MVOD (Sesuai Kewenangan - %)
+                <div className="font-extrabold text-lime-400 flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-lime-400" />
+                  MVOD (sesuai kewenangan - %)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -798,7 +815,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
               <div className="p-3.5 rounded-xl bg-[#081122] border border-[#1b2b46] space-y-2">
                 <div className="font-extrabold text-indigo-400 flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-indigo-400" />
-                  MTTR Siaga 1 TM (Menit)
+                  MTTR Siaga 1 TM (sesuai kewenangan - Menit)
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -849,7 +866,7 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
                 className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-950/60 flex items-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Simpan 12 KPI Distribusi</span>
+                <span>Simpan 13 KPI Distribusi</span>
               </button>
             </div>
           </div>

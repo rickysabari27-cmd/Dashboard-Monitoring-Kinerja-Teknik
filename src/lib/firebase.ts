@@ -1,31 +1,27 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
-}, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, '_connection_test_', 'ping'));
-    console.log('Firebase connection verified');
   } catch (error: any) {
-    const errCode = error?.code || '';
+    // Gracefully ignore offline warnings as Firestore handles offline persistence/caching automatically
     const errMessage = error?.message || String(error);
     if (
-      errCode === 'unavailable' || 
-      errMessage.includes('offline') || 
+      error?.code === 'unavailable' ||
+      errMessage.includes('offline') ||
       errMessage.includes('Could not reach') ||
       errMessage.includes('failed')
     ) {
-      console.log('Firestore operating in offline / local cache mode');
-    } else {
-      console.log('Firestore connection check:', errMessage);
+      // Normal behavior when device or sandbox is temporarily offline or establishing socket
+      return;
     }
   }
 }
