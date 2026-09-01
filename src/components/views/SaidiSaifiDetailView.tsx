@@ -13,6 +13,7 @@ import {
   Line,
   ComposedChart
 } from 'recharts';
+import { saveDocument } from '../../services/firebaseSync';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -34,7 +35,9 @@ import {
   Printer,
   ShieldCheck,
   Activity,
-  ChevronRight
+  ChevronRight,
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
 
 interface SaidiSaifiDetailViewProps {
@@ -52,10 +55,21 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
   onOpenInputSaidi,
   onUpdateSaidiRow
 }) => {
-  // Filters
+  // Filters & Display Unit Mode
   const [selectedYear, setSelectedYear] = useState<number>(2026);
-  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('Ags');
-  const [chartMetric, setChartMetric] = useState<'saidi' | 'saifi' | 'ens' | 'response'>('saidi');
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('Jan');
+  const [matrixPeriod, setMatrixPeriod] = useState<'s1' | 's2' | 'all'>('s1');
+  const [chartMetric, setChartMetric] = useState<
+    'saidi' | 'saifi' | 'ens' | 'susut' | 'response' | 'autodispatch' | 'feedback' | 'gangguan' | 'kerusakan' | 'mvod' | 'mttr' | 'ruptl' | 'investasi'
+  >('saidi');
+  const [saidiUnitDisplay, setSaidiUnitDisplay] = useState<'menit' | 'jam'>('menit');
+  const [ensUnitDisplay, setEnsUnitDisplay] = useState<'mwh' | 'juta'>('mwh');
+
+  // Helper to format decimal numbers with comma (,) for Indonesian locale
+  const formatComma = (val: number | undefined | null, decimals: number = 2): string => {
+    if (val === undefined || val === null || isNaN(val)) return '0,00';
+    return val.toFixed(decimals).replace('.', ',');
+  };
 
   // ENS Calculator State
   const [taripKwh, setTaripKwh] = useState<number>(1444.7);
@@ -73,25 +87,77 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
   const [editEnsUp3, setEditEnsUp3] = useState<number>(0);
   const [editEnsReal, setEditEnsReal] = useState<number>(0);
 
-  // Filter dataset by year
-  const yearData = data.filter(d => (d.year || 2026) === selectedYear);
+  // Enrich data for all 12 months with exact matching from data
+  const enrichedYearData = MONTH_ORDER.map(m => {
+    const d = (data || []).find(item => (item.year || 2026) === selectedYear && item.month === m);
+    const sTarget = d?.saidiTarget ?? 0;
+    const sTargetM = d?.saidiTargetMenit !== undefined ? d.saidiTargetMenit : Number((sTarget * 60).toFixed(2));
+    const sUp3 = d?.saidiUp3 ?? 0;
+    const sUp3M = d?.saidiUp3Menit !== undefined ? d.saidiUp3Menit : Number((sUp3 * 60).toFixed(2));
+    const sReal = d?.saidiReal ?? 0;
+    const sRealM = d?.saidiRealMenit !== undefined ? d.saidiRealMenit : Number((sReal * 60).toFixed(2));
 
-  // Enrich data with defaults for 3-way comparison if fields missing
-  const enrichedYearData = yearData.map(d => ({
-    ...d,
-    saidiTarget: d.saidiTarget || 6.0,
-    saidiUp3: d.saidiUp3 !== undefined ? d.saidiUp3 : Number((d.saidiTarget * 0.88).toFixed(3)),
-    saidiReal: d.saidiReal || 0,
-    saifiTarget: d.saifiTarget || 0.11,
-    saifiUp3: d.saifiUp3 !== undefined ? d.saifiUp3 : Number((d.saifiTarget * 0.90).toFixed(3)),
-    saifiReal: d.saifiReal || 0,
-    ensTargetJuta: d.ensTargetJuta !== undefined ? d.ensTargetJuta : Number((d.saidiTarget * 0.90).toFixed(2)),
-    ensUp3Juta: d.ensUp3Juta !== undefined ? d.ensUp3Juta : Number((d.saidiTarget * 0.78).toFixed(2)),
-    ensLossJuta: d.ensLossJuta || 0,
-    responseTimeTarget: d.responseTimeTarget || 45.0,
-    responseTimeUp3: d.responseTimeUp3 || 38.5,
-    responseTimeUlp: d.responseTimeUlp || 28.4
-  }));
+    const eTargetJuta = d?.ensTargetJuta ?? 0;
+    const eTargetMwh = d?.ensMwhTarget !== undefined ? d.ensMwhTarget : Number((eTargetJuta / 1.4447).toFixed(3));
+    const eUp3Juta = d?.ensUp3Juta ?? 0;
+    const eUp3Mwh = d?.ensMwhUp3 !== undefined ? d.ensMwhUp3 : Number((eUp3Juta / 1.4447).toFixed(3));
+    const eRealJuta = d?.ensLossJuta ?? 0;
+    const eRealMwh = d?.ensMwhReal !== undefined ? d.ensMwhReal : Number((eRealJuta / 1.4447).toFixed(3));
+
+    return {
+      month: m,
+      year: selectedYear,
+      ...d,
+      saidiTarget: sTarget,
+      saidiTargetMenit: sTargetM,
+      saidiUp3: sUp3,
+      saidiUp3Menit: sUp3M,
+      saidiReal: sReal,
+      saidiRealMenit: sRealM,
+      saifiTarget: d?.saifiTarget ?? 0,
+      saifiUp3: d?.saifiUp3 ?? 0,
+      saifiReal: d?.saifiReal ?? 0,
+      ensTargetJuta: eTargetJuta,
+      ensMwhTarget: eTargetMwh,
+      ensUp3Juta: eUp3Juta,
+      ensMwhUp3: eUp3Mwh,
+      ensLossJuta: eRealJuta,
+      ensMwhReal: eRealMwh,
+      responseTimeTarget: d?.responseTimeTarget ?? 0,
+      responseTimeUp3: d?.responseTimeUp3 ?? 0,
+      responseTimeUlp: d?.responseTimeUlp ?? 0,
+      successRateAutoDispatchTarget: d?.successRateAutoDispatchTarget ?? 0,
+      successRateAutoDispatchUp3: d?.successRateAutoDispatchUp3 ?? 0,
+      successRateAutoDispatchUlp: d?.successRateAutoDispatchUlp ?? 0,
+      feedbackRatingNegatifTarget: d?.feedbackRatingNegatifTarget ?? 0,
+      feedbackRatingNegatifUp3: d?.feedbackRatingNegatifUp3 ?? 0,
+      feedbackRatingNegatifUlp: d?.feedbackRatingNegatifUlp ?? 0,
+      gangguanTmTarget: d?.gangguanTmTarget ?? 0,
+      gangguanTmUp3: d?.gangguanTmUp3 ?? 0,
+      gangguanTmReal: d?.gangguanTmReal ?? 0,
+      kerusakanPeralatanTarget: d?.kerusakanPeralatanTarget ?? 0,
+      kerusakanPeralatanUp3: d?.kerusakanPeralatanUp3 ?? 0,
+      kerusakanPeralatanReal: d?.kerusakanPeralatanReal ?? 0,
+      mvodTarget: d?.mvodTarget ?? 0,
+      mvodUp3: d?.mvodUp3 ?? 0,
+      mvodUlp: d?.mvodUlp ?? 0,
+      mttrSiaga1Target: d?.mttrSiaga1Target ?? 0,
+      mttrSiaga1Up3: d?.mttrSiaga1Up3 ?? 0,
+      mttrSiaga1Ulp: d?.mttrSiaga1Ulp ?? 0,
+      asetRuptlTarget: d?.asetRuptlTarget ?? 0,
+      asetRuptlUp3: d?.asetRuptlUp3 ?? 0,
+      asetRuptlUlp: d?.asetRuptlUlp ?? 0,
+      asetInvestasiTarget: d?.asetInvestasiTarget ?? 0,
+      asetInvestasiUp3: d?.asetInvestasiUp3 ?? 0,
+      asetInvestasiUlp: d?.asetInvestasiUlp ?? 0,
+      penjualanGwhTarget: d?.penjualanGwhTarget ?? 0,
+      penjualanGwhUp3: d?.penjualanGwhUp3 ?? 0,
+      penjualanGwhReal: d?.penjualanGwhReal ?? 0,
+      susutPercentTarget: d?.susutPercentTarget ?? 0,
+      susutPercentUp3: d?.susutPercentUp3 ?? 0,
+      susutPercentReal: d?.susutPercentReal ?? 0
+    };
+  });
 
   // Filter dataset up to selected month (if month filter chosen)
   let filteredData = enrichedYearData;
@@ -105,36 +171,42 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
     }
   }
 
-  // Cumulative YTD values for the filtered period
-  const latestRow = filteredData.length > 0 ? filteredData[filteredData.length - 1] : null;
+  // Selected/Latest row for the KPI header cards
+  const latestRow = selectedMonthFilter !== 'ALL'
+    ? (enrichedYearData.find(d => d.month === selectedMonthFilter) || enrichedYearData[0])
+    : (filteredData.length > 0 ? filteredData[filteredData.length - 1] : enrichedYearData[0]);
 
-  // SAIDI YTD
+  // SAIDI YTD (Jam & Menit)
   const cumSaidiTarget = latestRow ? latestRow.saidiTarget : 0;
+  const cumSaidiTargetMenit = latestRow ? latestRow.saidiTargetMenit : 0;
   const cumSaidiUp3 = latestRow ? latestRow.saidiUp3 : 0;
+  const cumSaidiUp3Menit = latestRow ? latestRow.saidiUp3Menit : 0;
   const cumSaidiReal = latestRow ? latestRow.saidiReal : 0;
+  const cumSaidiRealMenit = latestRow ? latestRow.saidiRealMenit : 0;
 
   // SAIFI YTD
   const cumSaifiTarget = latestRow ? latestRow.saifiTarget : 0;
   const cumSaifiUp3 = latestRow ? latestRow.saifiUp3 : 0;
   const cumSaifiReal = latestRow ? latestRow.saifiReal : 0;
 
-  // ENS YTD Sum
-  const cumEnsTargetJuta = filteredData.reduce((acc, row) => acc + (row.ensTargetJuta || 0), 0);
-  const cumEnsUp3Juta = filteredData.reduce((acc, row) => acc + (row.ensUp3Juta || 0), 0);
-  const cumEnsLossJuta = filteredData.reduce((acc, row) => acc + (row.ensLossJuta || 0), 0);
+  // ENS YTD Sum / Latest Kumulatif
+  const cumEnsTargetJuta = latestRow ? latestRow.ensTargetJuta : 0;
+  const cumEnsTargetMwh = latestRow ? latestRow.ensMwhTarget : 0;
+  const cumEnsUp3Juta = latestRow ? latestRow.ensUp3Juta : 0;
+  const cumEnsUp3Mwh = latestRow ? latestRow.ensMwhUp3 : 0;
+  const cumEnsLossJuta = latestRow ? latestRow.ensLossJuta : 0;
+  const cumEnsLossMwh = latestRow ? latestRow.ensMwhReal : 0;
 
-  // Response Time Avg
-  const avgResponseTarget = 45.0;
-  const avgResponseUp3 = 38.5;
-  const avgResponseUlp = 28.4;
+  // Differences ULP vs Target KPI & ULP vs UP3 (using minutes for SAIDI if selected)
+  const diffSaidiVsTargetMenit = cumSaidiTargetMenit - cumSaidiRealMenit;
+  const diffSaidiVsUp3Menit = cumSaidiUp3Menit - cumSaidiRealMenit;
+  const diffSaidiVsTargetJam = cumSaidiTarget - cumSaidiReal;
+  const diffSaidiVsUp3Jam = cumSaidiUp3 - cumSaidiReal;
 
-  // Differences ULP vs Target KPI & ULP vs UP3
-  const diffSaidiVsTarget = cumSaidiTarget - cumSaidiReal; // positive = better (lower than target)
-  const diffSaidiVsUp3 = cumSaidiUp3 - cumSaidiReal;
   const diffSaifiVsTarget = cumSaifiTarget - cumSaifiReal;
   const diffSaifiVsUp3 = cumSaifiUp3 - cumSaifiReal;
 
-  const isSaidiOnTarget = cumSaidiReal <= cumSaidiTarget;
+  const isSaidiOnTarget = cumSaidiRealMenit <= cumSaidiTargetMenit;
   const isSaifiOnTarget = cumSaifiReal <= cumSaifiTarget;
 
   const calculateENS = (kwh: number) => kwh * taripKwh;
@@ -179,42 +251,120 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
     setEditingMonth(null);
   };
 
+  const getChartMetricMeta = () => {
+    switch (chartMetric) {
+      case 'saidi': return { target: 'saidiTarget', real: 'saidiReal', unit: 'Jam/Plg', label: 'SAIDI (Lama Padam)' };
+      case 'saifi': return { target: 'saifiTarget', real: 'saifiReal', unit: 'Kali/Plg', label: 'SAIFI (Frekuensi Padam)' };
+      case 'ens': return { target: 'ensMwhTarget', real: 'ensMwhReal', unit: 'MWh', label: 'ENS Energi Loss' };
+      case 'susut': return { target: 'susutPercentTarget', real: 'susutPercentReal', unit: '%', label: 'Susut Distribusi Tanpa Emin' };
+      case 'response': return { target: 'responseTimeTarget', real: 'responseTimeUlp', unit: 'Menit', label: 'Response Time Gangguan' };
+      case 'autodispatch': return { target: 'successRateAutoDispatchTarget', real: 'successRateAutoDispatchUlp', unit: '%', label: 'Success Rate Auto Dispatch' };
+      case 'feedback': return { target: 'feedbackRatingNegatifTarget', real: 'feedbackRatingNegatifUlp', unit: 'Kali', label: 'Feedback Rating Negatif PLN Mobile' };
+      case 'gangguan': return { target: 'gangguanTmTarget', real: 'gangguanTmReal', unit: 'Kali', label: 'Jumlah Gangguan TM' };
+      case 'kerusakan': return { target: 'kerusakanPeralatanTarget', real: 'kerusakanPeralatanReal', unit: 'Kali', label: 'Kerusakan Peralatan Distribusi' };
+      case 'mvod': return { target: 'mvodTarget', real: 'mvodUlp', unit: '%', label: 'MVOD' };
+      case 'mttr': return { target: 'mttrSiaga1Target', real: 'mttrSiaga1Ulp', unit: 'Menit', label: 'MTTR Siaga 1 TM' };
+      case 'ruptl': return { target: 'asetRuptlTarget', real: 'asetRuptlUlp', unit: '%', label: 'Penambahan Aset RUPTL' };
+      case 'investasi': return { target: 'asetInvestasiTarget', real: 'asetInvestasiUlp', unit: '%', label: 'Aset Penyelesaian Fisik Investasi' };
+      default: return { target: 'saidiTarget', real: 'saidiReal', unit: 'Jam/Plg', label: 'SAIDI' };
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
 
-  // Tooltip custom for 3-way comparison chart
+  // Tooltip custom for Target vs Realisasi chart
   const CustomComparisonTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const meta = getChartMetricMeta();
       return (
         <div className="p-3.5 rounded-xl shadow-2xl text-xs border bg-[#080e1e] border-[#1c2942] text-slate-100">
           <div className="font-extrabold text-[#00f5a0] mb-2 border-b border-[#1c2942] pb-1">
-            Periode: Bulan {label} {selectedYear}
+            Periode: Bulan {label} {selectedYear} ({meta.label})
           </div>
           <div className="space-y-1.5 font-bold">
             <div className="flex items-center justify-between gap-4 text-slate-400">
               <span className="flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 text-slate-400" /> Target KPI (UP3/Corporate):
+                <Target className="w-3.5 h-3.5 text-slate-400" /> Target KPI:
               </span>
-              <span>{payload[0]?.value} {chartMetric === 'saidi' ? 'Jam' : chartMetric === 'saifi' ? 'Kali' : chartMetric === 'ens' ? 'Jt Rp' : 'Menit'}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 text-sky-400">
-              <span className="flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-sky-400" /> Realisasi KPI UP3:
-              </span>
-              <span>{payload[1]?.value} {chartMetric === 'saidi' ? 'Jam' : chartMetric === 'saifi' ? 'Kali' : chartMetric === 'ens' ? 'Jt Rp' : 'Menit'}</span>
+              <span>{formatComma(payload[0]?.value, 2)} {meta.unit}</span>
             </div>
             <div className="flex items-center justify-between gap-4 text-[#00f5a0]">
               <span className="flex items-center gap-1.5">
-                <Award className="w-3.5 h-3.5 text-[#00f5a0]" /> Realisasi ULP Baguala:
+                <Award className="w-3.5 h-3.5 text-[#00f5a0]" /> Realisasi KPI:
               </span>
-              <span>{payload[2]?.value} {chartMetric === 'saidi' ? 'Jam' : chartMetric === 'saifi' ? 'Kali' : chartMetric === 'ens' ? 'Jt Rp' : 'Menit'}</span>
+              <span>{formatComma(payload[1]?.value, 2)} {meta.unit}</span>
             </div>
           </div>
         </div>
       );
     }
     return null;
+  };
+
+  const handleResetAllData = () => {
+    if (window.confirm("Apakah Anda yakin ingin mengosongkan/menghapus semua data Target & Realisasi KPI? Semua data akan di-reset menjadi 0 agar Anda dapat menginput manual dari awal.")) {
+      MONTH_ORDER.forEach((m) => {
+        const emptyRow: MonthlySaidiSaifiData = {
+          id: `${m}_${selectedYear}`,
+          year: selectedYear,
+          month: m,
+          saidiTargetMenit: 0,
+          saidiUp3Menit: 0,
+          saidiRealMenit: 0,
+          saidiTarget: 0,
+          saidiUp3: 0,
+          saidiReal: 0,
+          saifiTarget: 0,
+          saifiUp3: 0,
+          saifiReal: 0,
+          ensMwhTarget: 0,
+          ensMwhUp3: 0,
+          ensMwhReal: 0,
+          ensTargetJuta: 0,
+          ensUp3Juta: 0,
+          ensLossJuta: 0,
+          responseTimeTarget: 0,
+          responseTimeUp3: 0,
+          responseTimeUlp: 0,
+          successRateAutoDispatchTarget: 0,
+          successRateAutoDispatchUp3: 0,
+          successRateAutoDispatchUlp: 0,
+          feedbackRatingNegatifTarget: 0,
+          feedbackRatingNegatifUp3: 0,
+          feedbackRatingNegatifUlp: 0,
+          gangguanTmTarget: 0,
+          gangguanTmUp3: 0,
+          gangguanTmReal: 0,
+          kerusakanPeralatanTarget: 0,
+          kerusakanPeralatanUp3: 0,
+          kerusakanPeralatanReal: 0,
+          mvodTarget: 0,
+          mvodUp3: 0,
+          mvodUlp: 0,
+          mttrSiaga1Target: 0,
+          mttrSiaga1Up3: 0,
+          mttrSiaga1Ulp: 0,
+          asetRuptlTarget: 0,
+          asetRuptlUp3: 0,
+          asetRuptlUlp: 0,
+          asetInvestasiTarget: 0,
+          asetInvestasiUp3: 0,
+          asetInvestasiUlp: 0,
+          penjualanGwhTarget: 0,
+          penjualanGwhUp3: 0,
+          penjualanGwhReal: 0,
+          susutPercentTarget: 0,
+          susutPercentUp3: 0,
+          susutPercentReal: 0
+        };
+        if (onUpdateSaidiRow) {
+          onUpdateSaidiRow(emptyRow);
+        }
+        saveDocument('saidi_saifi', emptyRow, `${m}_${selectedYear}`);
+      });
+    }
   };
 
   return (
@@ -229,19 +379,28 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-black text-lg text-white tracking-tight">
-                Kinerja KPI — Perbandingan Target KPI vs Realisasi KPI vs Realisasi ULP
+                Kinerja KPI — Perbandingan Target KPI vs Realisasi KPI
               </h2>
               <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 PLN ULP BAGUALA
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5 font-medium">
-              Matriks perbandingan 3 pilar utama operational performance: <strong className="text-slate-300">Target KPI Korporat</strong> vs <strong className="text-sky-400">Realisasi KPI UP3</strong> vs <strong className="text-[#00f5a0]">Realisasi ULP Baguala</strong>
+              Matriks perbandingan kinerja operasional: <strong className="text-slate-300">Target KPI Korporat</strong> vs <strong className="text-[#00f5a0]">Realisasi KPI</strong>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={handleResetAllData}
+            className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer print:hidden"
+            title="Hapus / Kosongkan semua data Target & Realisasi KPI untuk input manual"
+          >
+            <RotateCcw className="w-4 h-4 text-rose-400" />
+            <span>Kosongkan Data Target & Realisasi</span>
+          </button>
+
           <button 
             onClick={handlePrint}
             className="px-3.5 py-2.5 bg-[#0f1d33] hover:bg-[#162744] text-slate-200 rounded-xl text-xs font-bold border border-[#1e3254] flex items-center gap-2 transition-all cursor-pointer print:hidden"
@@ -312,11 +471,22 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                 <Clock className="w-4 h-4 text-sky-400" />
                 <span>SAIDI (Lama Padam)</span>
               </span>
-              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black ${
-                isSaidiOnTarget ? 'bg-emerald-950/60 text-[#00f5a0] border border-emerald-800/50' : 'bg-rose-950/60 text-rose-400 border border-rose-800/50'
-              }`}>
-                {isSaidiOnTarget ? '✅ Memenuhi KPI' : '⚠️ Over Target'}
-              </span>
+              
+              {/* Unit Switcher */}
+              <div className="flex items-center bg-[#070d19] rounded-lg p-0.5 border border-[#17253b] text-[10px] font-black">
+                <button
+                  onClick={() => setSaidiUnitDisplay('menit')}
+                  className={`px-2 py-0.5 rounded ${saidiUnitDisplay === 'menit' ? 'bg-sky-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  menit/plg
+                </button>
+                <button
+                  onClick={() => setSaidiUnitDisplay('jam')}
+                  className={`px-2 py-0.5 rounded ${saidiUnitDisplay === 'jam' ? 'bg-sky-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  jam/plg
+                </button>
+              </div>
             </div>
 
             {/* 3-Pillar Value Breakdown */}
@@ -327,7 +497,10 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Target className="w-3.5 h-3.5 text-slate-500" /> Target KPI (Max):
                 </span>
                 <span className="font-black text-slate-300">
-                  {cumSaidiTarget.toFixed(3)} <span className="text-[10px] font-normal">Jam</span> ({ (cumSaidiTarget * 60).toFixed(1) } m)
+                  {saidiUnitDisplay === 'menit' 
+                    ? `${formatComma(cumSaidiTargetMenit, 2)} menit/plg`
+                    : `${formatComma(cumSaidiTarget, 3)} jam/plg`
+                  }
                 </span>
               </div>
 
@@ -337,7 +510,10 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Building2 className="w-3.5 h-3.5 text-sky-400" /> Realisasi KPI UP3:
                 </span>
                 <span className="font-black text-white">
-                  {cumSaidiUp3.toFixed(3)} <span className="text-[10px] font-normal">Jam</span> ({ (cumSaidiUp3 * 60).toFixed(1) } m)
+                  {saidiUnitDisplay === 'menit' 
+                    ? `${formatComma(cumSaidiUp3Menit, 2)} menit/plg`
+                    : `${formatComma(cumSaidiUp3, 3)} jam/plg`
+                  }
                 </span>
               </div>
 
@@ -347,15 +523,18 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Award className="w-4 h-4 text-[#00f5a0]" /> Realisasi ULP Baguala:
                 </span>
                 <span className="text-base font-black text-[#00f5a0]">
-                  {cumSaidiReal.toFixed(3)} <span className="text-xs font-normal">Jam</span>
+                  {saidiUnitDisplay === 'menit' 
+                    ? `${formatComma(cumSaidiRealMenit, 2)} menit/plg`
+                    : `${formatComma(cumSaidiReal, 3)} jam/plg`
+                  }
                 </span>
               </div>
             </div>
           </div>
 
           <div className="pt-2 border-t border-[#1c2942] text-[11px] flex justify-between text-slate-400 font-medium">
-            <span>Vs Target KPI: <strong className={diffSaidiVsTarget >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaidiVsTarget >= 0 ? `-${diffSaidiVsTarget.toFixed(3)} j` : `+${Math.abs(diffSaidiVsTarget).toFixed(3)} j`}</strong></span>
-            <span>Vs Real UP3: <strong className={diffSaidiVsUp3 >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaidiVsUp3 >= 0 ? `-${diffSaidiVsUp3.toFixed(3)} j` : `+${Math.abs(diffSaidiVsUp3).toFixed(3)} j`}</strong></span>
+            <span>Vs Target: <strong className={diffSaidiVsTargetMenit >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaidiVsTargetMenit >= 0 ? `-${formatComma(diffSaidiVsTargetMenit, 2)} m` : `+${formatComma(Math.abs(diffSaidiVsTargetMenit), 2)} m`}</strong></span>
+            <span>Vs Real UP3: <strong className={diffSaidiVsUp3Menit >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaidiVsUp3Menit >= 0 ? `-${formatComma(diffSaidiVsUp3Menit, 2)} m` : `+${formatComma(Math.abs(diffSaidiVsUp3Menit), 2)} m`}</strong></span>
           </div>
         </div>
 
@@ -382,7 +561,7 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Target className="w-3.5 h-3.5 text-slate-500" /> Target KPI (Max):
                 </span>
                 <span className="font-black text-slate-300">
-                  {cumSaifiTarget.toFixed(3)} <span className="text-[10px] font-normal">Kali/Plg</span>
+                  {formatComma(cumSaifiTarget, 2)} <span className="text-[10px] font-normal">kali/plg</span>
                 </span>
               </div>
 
@@ -392,7 +571,7 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Building2 className="w-3.5 h-3.5 text-[#00e5ff]" /> Realisasi KPI UP3:
                 </span>
                 <span className="font-black text-white">
-                  {cumSaifiUp3.toFixed(3)} <span className="text-[10px] font-normal">Kali/Plg</span>
+                  {formatComma(cumSaifiUp3, 2)} <span className="text-[10px] font-normal">kali/plg</span>
                 </span>
               </div>
 
@@ -402,15 +581,15 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Award className="w-4 h-4 text-[#00f5a0]" /> Realisasi ULP Baguala:
                 </span>
                 <span className="text-base font-black text-[#00f5a0]">
-                  {cumSaifiReal.toFixed(3)} <span className="text-xs font-normal">Kali/Plg</span>
+                  {formatComma(cumSaifiReal, 2)} <span className="text-xs font-normal">kali/plg</span>
                 </span>
               </div>
             </div>
           </div>
 
           <div className="pt-2 border-t border-[#1c2942] text-[11px] flex justify-between text-slate-400 font-medium">
-            <span>Vs Target KPI: <strong className={diffSaifiVsTarget >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaifiVsTarget >= 0 ? `-${diffSaifiVsTarget.toFixed(3)} x` : `+${Math.abs(diffSaifiVsTarget).toFixed(3)} x`}</strong></span>
-            <span>Vs Real UP3: <strong className={diffSaifiVsUp3 >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaifiVsUp3 >= 0 ? `-${diffSaifiVsUp3.toFixed(3)} x` : `+${Math.abs(diffSaifiVsUp3).toFixed(3)} x`}</strong></span>
+            <span>Vs Target: <strong className={diffSaifiVsTarget >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaifiVsTarget >= 0 ? `-${formatComma(diffSaifiVsTarget, 2)} x` : `+${formatComma(Math.abs(diffSaifiVsTarget), 2)} x`}</strong></span>
+            <span>Vs Real UP3: <strong className={diffSaifiVsUp3 >= 0 ? 'text-[#00f5a0]' : 'text-slate-400'}>{diffSaifiVsUp3 >= 0 ? `-${formatComma(diffSaifiVsUp3, 2)} x` : `+${formatComma(Math.abs(diffSaifiVsUp3), 2)} x`}</strong></span>
           </div>
         </div>
 
@@ -420,11 +599,24 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
             <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-3">
               <span className="flex items-center gap-2 text-[#fbbf24] font-extrabold">
                 <DollarSign className="w-4 h-4 text-[#fbbf24]" />
-                <span>KERUGIAN ENS (Energi Loss)</span>
+                <span>ENS (Energi Loss)</span>
               </span>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full font-black bg-amber-950/50 text-[#fbbf24] border border-amber-800/50">
-                Optimal Penjualan
-              </span>
+              
+              {/* Unit Switcher */}
+              <div className="flex items-center bg-[#070d19] rounded-lg p-0.5 border border-[#17253b] text-[10px] font-black">
+                <button
+                  onClick={() => setEnsUnitDisplay('mwh')}
+                  className={`px-2 py-0.5 rounded ${ensUnitDisplay === 'mwh' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  MWh
+                </button>
+                <button
+                  onClick={() => setEnsUnitDisplay('juta')}
+                  className={`px-2 py-0.5 rounded ${ensUnitDisplay === 'juta' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Rp Juta
+                </button>
+              </div>
             </div>
 
             {/* 3-Pillar Value Breakdown */}
@@ -435,17 +627,23 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Target className="w-3.5 h-3.5 text-slate-500" /> Target KPI Limit:
                 </span>
                 <span className="font-black text-slate-300">
-                  Rp {cumEnsTargetJuta.toFixed(2)} Jt
+                  {ensUnitDisplay === 'mwh' 
+                    ? `${formatComma(cumEnsTargetMwh, 3)} MWh`
+                    : `Rp ${formatComma(cumEnsTargetJuta, 2)} Jt`
+                  }
                 </span>
               </div>
 
               {/* Realisasi KPI UP3 */}
               <div className="p-2.5 rounded-xl bg-[#091124] border border-[#1b2b46] flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-[#fbbf24]" /> Realisasi UP3 (Avg):
+                  <Building2 className="w-3.5 h-3.5 text-[#fbbf24]" /> Realisasi UP3:
                 </span>
                 <span className="font-black text-white">
-                  Rp {cumEnsUp3Juta.toFixed(2)} Jt
+                  {ensUnitDisplay === 'mwh' 
+                    ? `${formatComma(cumEnsUp3Mwh, 3)} MWh`
+                    : `Rp ${formatComma(cumEnsUp3Juta, 2)} Jt`
+                  }
                 </span>
               </div>
 
@@ -455,15 +653,18 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
                   <Award className="w-4 h-4 text-[#fbbf24]" /> Realisasi ULP Baguala:
                 </span>
                 <span className="text-base font-black text-[#fbbf24]">
-                  Rp {cumEnsLossJuta.toFixed(2)} Jt
+                  {ensUnitDisplay === 'mwh' 
+                    ? `${formatComma(cumEnsLossMwh, 3)} MWh`
+                    : `Rp ${formatComma(cumEnsLossJuta, 2)} Jt`
+                  }
                 </span>
               </div>
             </div>
           </div>
 
           <div className="pt-2 border-t border-[#1c2942] text-[11px] flex justify-between text-slate-400 font-medium">
-            <span>Efisiensi Energi: <strong className="text-[#00f5a0]">+{ ((1 - (cumEnsLossJuta / (cumEnsTargetJuta || 1))) * 100).toFixed(1) }% Hemat</strong></span>
-            <span>Target Rp: <strong className="text-slate-200">Rp { (cumEnsTargetJuta - cumEnsLossJuta).toFixed(2) } Jt Margin</strong></span>
+            <span>Efisiensi: <strong className="text-[#00f5a0]">+{ formatComma((1 - (cumEnsLossMwh / (cumEnsTargetMwh || 1))) * 100, 1) }% Hemat</strong></span>
+            <span>Margin Target: <strong className="text-slate-200">{formatComma(cumEnsTargetMwh - cumEnsLossMwh, 3)} MWh</strong></span>
           </div>
         </div>
 
@@ -482,38 +683,28 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
             </p>
           </div>
 
-          {/* Metric Selector Buttons */}
-          <div className="flex items-center gap-1 p-1 bg-[#080e1e] rounded-xl border border-[#1b273e] text-xs font-extrabold">
-            <button
-              onClick={() => setChartMetric('saidi')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                chartMetric === 'saidi' 
-                  ? 'bg-emerald-600 text-white shadow-xs' 
-                  : 'text-slate-400 hover:text-white'
-              }`}
+          {/* Metric Selector Dropdown / Pills */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-400">Pilih Indikator KPI:</label>
+            <select
+              value={chartMetric}
+              onChange={(e) => setChartMetric(e.target.value as any)}
+              className="px-3 py-1.5 rounded-xl bg-[#080e1e] border border-[#1b273e] text-xs font-black text-emerald-400 focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
-              SAIDI (Jam)
-            </button>
-            <button
-              onClick={() => setChartMetric('saifi')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                chartMetric === 'saifi' 
-                  ? 'bg-emerald-600 text-white shadow-xs' 
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              SAIFI (Kali)
-            </button>
-            <button
-              onClick={() => setChartMetric('ens')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                chartMetric === 'ens' 
-                  ? 'bg-emerald-600 text-white shadow-xs' 
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              ENS (Jt Rp)
-            </button>
+              <option value="saidi">SAIDI (Lama Padam - Jam/Plg)</option>
+              <option value="saifi">SAIFI (Frekuensi Padam - Kali/Plg)</option>
+              <option value="ens">ENS Energi Loss (MWh)</option>
+              <option value="susut">Susut Distribusi Tanpa Emin (%)</option>
+              <option value="ruptl">Penambahan Aset RUPTL (%)</option>
+              <option value="investasi">Aset Penyelesaian Investasi (%)</option>
+              <option value="feedback">Feedback Rating Negatif (Kali)</option>
+              <option value="response">Response Time Gangguan (Menit)</option>
+              <option value="autodispatch">Success Rate Auto Dispatch (%)</option>
+              <option value="gangguan">Jumlah Gangguan TM (Kali)</option>
+              <option value="kerusakan">Kerusakan Peralatan (Kali)</option>
+              <option value="mvod">MVOD (%)</option>
+              <option value="mttr">MTTR Siaga 1 TM (Menit)</option>
+            </select>
           </div>
         </div>
 
@@ -527,38 +718,29 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
               <Tooltip content={<CustomComparisonTooltip />} />
               <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
               
-              {/* Target KPI (Dark Zinc Bar) */}
+              {/* Target KPI (Dark Slate Bar) */}
               <Bar 
-                dataKey={chartMetric === 'saidi' ? 'saidiTarget' : chartMetric === 'saifi' ? 'saifiTarget' : 'ensTargetJuta'} 
-                name="Target KPI (Batas Max)" 
-                fill="#334155" 
+                dataKey={getChartMetricMeta().target} 
+                name="Target KPI" 
+                fill="#475569" 
                 radius={[4, 4, 0, 0]}
-                barSize={14}
+                barSize={18}
               />
               
-              {/* Realisasi KPI UP3 (Sky Blue Bar) */}
+              {/* Realisasi KPI (Vibrant Emerald Bar) */}
               <Bar 
-                dataKey={chartMetric === 'saidi' ? 'saidiUp3' : chartMetric === 'saifi' ? 'saifiUp3' : 'ensUp3Juta'} 
-                name="Realisasi KPI UP3" 
-                fill="#0284c7" 
-                radius={[4, 4, 0, 0]}
-                barSize={14}
-              />
-              
-              {/* Realisasi ULP Baguala (Vibrant Emerald Bar) */}
-              <Bar 
-                dataKey={chartMetric === 'saidi' ? 'saidiReal' : chartMetric === 'saifi' ? 'saifiReal' : 'ensLossJuta'} 
-                name="Realisasi ULP Baguala" 
+                dataKey={getChartMetricMeta().real} 
+                name="Realisasi KPI" 
                 fill="#10b981" 
                 radius={[4, 4, 0, 0]}
-                barSize={14}
+                barSize={18}
               />
 
-              {/* Trend Line for ULP Baguala */}
+              {/* Trend Line for Realisasi */}
               <Line 
                 type="monotone" 
-                dataKey={chartMetric === 'saidi' ? 'saidiReal' : chartMetric === 'saifi' ? 'saifiReal' : 'ensLossJuta'} 
-                name="Tren ULP" 
+                dataKey={getChartMetricMeta().real} 
+                name="Tren Realisasi KPI" 
                 stroke="#00f5a0" 
                 strokeWidth={3} 
                 dot={{ r: 4, fill: '#00f5a0' }} 
@@ -568,206 +750,357 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
         </div>
       </div>
 
-      {/* REKAPITULASI TABEL DETIL: TARGET KPI VS REALISASI UP3 VS REALISASI ULP */}
+      {/* MATRIKS LENGKAP SCORECARD KPI ULP BAGUALA 2026 (MATCHING EXCEL DATA) */}
       <div className="p-5 rounded-2xl border bg-[#0c1427] border-[#1c2942] shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-              TABEL REKAPITULASI HARIAN & BULANAN: TARGET KPI VS REALISASI UP3 VS REALISASI ULP ({selectedYear})
-              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                Mode 3-Way Audit
-              </span>
+              <Award className="w-4 h-4 text-emerald-400" />
+              MATRIKS KINERJA KPI & PERFORMANCE INDICATORS (ULP BAGUALA {selectedYear})
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Matriks pembanding persentase capaian dan deviasi angka SAIDI, SAIFI & ENS antara ULP Baguala dengan Target KPI Korporat & UP3
+              Rincian seluruh indikator kinerja bulanan (Susut, SAIDI, SAIFI, ENS, Gangguan TM, Pelayanan, Aset) sesuai dokumen Excel PLN
             </p>
           </div>
 
-          <button 
-            onClick={onOpenInputSaidi}
-            className="text-xs font-extrabold text-emerald-400 hover:underline flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 cursor-pointer"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>Form Input Lengkap</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button 
+              onClick={onOpenInputSaidi}
+              className="text-xs font-extrabold text-white flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-3.5 py-1.5 rounded-xl shadow-md cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Input Target & Realisasi</span>
+            </button>
+
+            {/* Period Selector Tabs for Matriks Kinerja */}
+            <div className="flex items-center gap-1 bg-[#070c19] p-1 rounded-xl border border-[#1c2942] text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setMatrixPeriod('s1')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  matrixPeriod === 's1' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Semester 1 (Jan - Jun)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMatrixPeriod('s2')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  matrixPeriod === 's2' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Semester 2 (Jul - Des)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMatrixPeriod('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  matrixPeriod === 'all' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                12 Bulan (Full Year)
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b bg-[#070c19] border-[#1c2942] text-slate-400 uppercase font-extrabold text-[10px] tracking-wider">
-              <tr>
-                <th className="p-3">Bulan</th>
-                <th className="p-3 text-slate-400">Target KPI (Max)</th>
-                <th className="p-3 text-sky-400">Realisasi KPI UP3</th>
-                <th className="p-3 text-[#00f5a0]">Realisasi ULP Baguala</th>
-                <th className="p-3">SAIFI (Target / UP3 / ULP)</th>
-                <th className="p-3 text-right">ENS Loss (Target / UP3 / ULP)</th>
-                <th className="p-3 text-center">Status KPI ULP</th>
-                <th className="p-3 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1c2942] font-medium">
-              {enrichedYearData.map((row) => {
-                const isEditing = editingMonth === row.month;
-                const onTarget = row.saidiReal <= row.saidiTarget && row.saifiReal <= row.saifiTarget;
-                const saidiMinutes = (row.saidiReal * 60).toFixed(1);
+        {(() => {
+          const matrixMonths = matrixPeriod === 's1' 
+            ? MONTH_ORDER.slice(0, 6) 
+            : matrixPeriod === 's2' 
+              ? MONTH_ORDER.slice(6, 12) 
+              : MONTH_ORDER;
 
-                return (
-                  <tr key={row.month} className="hover:bg-[#111c38]/60 transition-colors">
-                    
-                    {/* Month */}
-                    <td className="p-3 font-black text-white">
-                      Bulan {row.month}
-                    </td>
+          const displayedData = matrixMonths.map(m => enrichedYearData.find(d => d.month === m) || enrichedYearData[0]);
+          const targetRow = displayedData[displayedData.length - 1];
 
-                    {/* Target KPI SAIDI */}
-                    <td className="p-3 font-extrabold text-slate-400">
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.001" 
-                          value={editSaidiTarget} 
-                          onChange={(e) => setEditSaidiTarget(Number(e.target.value))}
-                          className="w-20 p-1 border border-[#1c2942] rounded font-bold bg-[#070c19] text-white"
-                        />
-                      ) : (
-                        <span>{row.saidiTarget.toFixed(3)} Jam</span>
-                      )}
-                    </td>
-
-                    {/* Realisasi KPI UP3 */}
-                    <td className="p-3 font-extrabold text-sky-400">
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.001" 
-                          value={editSaidiUp3} 
-                          onChange={(e) => setEditSaidiUp3(Number(e.target.value))}
-                          className="w-20 p-1 border border-[#1c2942] rounded font-bold bg-[#070c19] text-white"
-                        />
-                      ) : (
-                        <span>{row.saidiUp3.toFixed(3)} Jam</span>
-                      )}
-                    </td>
-
-                    {/* Realisasi ULP Baguala */}
-                    <td className="p-3 font-black text-[#00f5a0]">
-                      {isEditing ? (
-                        <input 
-                          type="number" 
-                          step="0.001" 
-                          value={editSaidiReal} 
-                          onChange={(e) => setEditSaidiReal(Number(e.target.value))}
-                          className="w-20 p-1 border border-[#1c2942] rounded font-bold bg-[#070c19] text-white"
-                        />
-                      ) : (
-                        <div>
-                          <span>{row.saidiReal.toFixed(3)} Jam</span>
-                          <span className="text-[10px] text-slate-400 font-normal ml-1">({saidiMinutes} m)</span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* SAIFI Breakdown (Target / UP3 / ULP) */}
-                    <td className="p-3">
-                      {isEditing ? (
-                        <div className="flex gap-1">
-                          <input type="number" step="0.01" value={editSaifiTarget} onChange={(e) => setEditSaifiTarget(Number(e.target.value))} className="w-14 p-1 border border-[#1c2942] rounded bg-[#070c19] text-white" placeholder="Target" />
-                          <input type="number" step="0.01" value={editSaifiUp3} onChange={(e) => setEditSaifiUp3(Number(e.target.value))} className="w-14 p-1 border border-[#1c2942] rounded bg-[#070c19] text-white" placeholder="UP3" />
-                          <input type="number" step="0.01" value={editSaifiReal} onChange={(e) => setEditSaifiReal(Number(e.target.value))} className="w-14 p-1 border border-[#1c2942] rounded bg-[#070c19] text-white" placeholder="ULP" />
-                        </div>
-                      ) : (
-                        <div className="text-[11px] font-bold space-x-1">
-                          <span className="text-slate-400">{row.saifiTarget.toFixed(2)}</span>
-                          <span className="text-slate-600">/</span>
-                          <span className="text-sky-400">{row.saifiUp3.toFixed(2)}</span>
-                          <span className="text-slate-600">/</span>
-                          <span className="text-[#00f5a0]">{row.saifiReal.toFixed(2)} Kali</span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* ENS Breakdown */}
-                    <td className="p-3 text-right font-bold text-slate-200">
-                      <span className="text-[#fbbf24] font-black">
-                        Rp {row.ensLossJuta.toFixed(2)} Jt
-                      </span>
-                    </td>
-
-                    {/* Status KPI */}
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                        onTarget 
-                          ? 'bg-emerald-950/60 text-[#00f5a0] border border-emerald-800/50' 
-                          : 'bg-rose-950/60 text-rose-400 border border-rose-800/50'
-                      }`}>
-                        {onTarget ? 'Tercapai (Green)' : 'Over Target'}
-                      </span>
-                    </td>
-
-                    {/* Aksi Edit */}
-                    <td className="p-3 text-center">
-                      {isEditing ? (
-                        <button 
-                          onClick={() => saveInlineEdit(row.month)}
-                          className="p-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[10px] flex items-center gap-1 mx-auto shadow-xs"
-                        >
-                          <Check className="w-3 h-3" />
-                          <span>Simpan</span>
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => startInlineEdit(row)}
-                          className="p-1.5 rounded-lg hover:bg-[#162744] text-slate-400 hover:text-[#00f5a0]"
-                          title="Edit Target KPI vs Realisasi UP3 vs Realisasi ULP"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </td>
-
+          return (
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left text-xs divide-y divide-[#1c2942]">
+                <thead className="bg-[#070c19] text-slate-400 uppercase font-extrabold text-[10px] tracking-wider">
+                  <tr>
+                    <th className="p-3">Indikator Kinerja</th>
+                    <th className="p-3 text-center">Satuan</th>
+                    <th className="p-3 text-center">Target ({matrixPeriod === 's1' ? 'S1' : matrixPeriod === 's2' ? 'S2' : 'Tahunan'})</th>
+                    {matrixMonths.map(m => (
+                      <th key={m} className="p-3 text-center">{m}</th>
+                    ))}
+                    <th className="p-3 text-center text-[#00f5a0]">Kumulatif / Akhir</th>
                   </tr>
-                );
-              })}
-            </tbody>
+                </thead>
+                <tbody className="divide-y divide-[#1c2942] font-semibold text-slate-200">
+                  
+                  {/* Row 1: Susut % */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Susut Distribusi Tanpa Emin (%)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.susutPercentTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-cyan-400 font-bold block">{formatComma(r.susutPercentReal, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.susutPercentTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-cyan-400 font-black">
+                      {formatComma(targetRow?.susutPercentReal ?? 0, 2)}%
+                    </td>
+                  </tr>
 
-            {/* Bottom Kumulatif Summary Row */}
-            <tfoot className={`border-t-2 font-black ${
-              isDarkMode ? 'bg-black border-zinc-800 text-white' : 'bg-zinc-100 border-zinc-300 text-zinc-900'
-            }`}>
-              <tr>
-                <td className="p-3 text-emerald-500 dark:text-emerald-400 uppercase">
-                  KUMULATIF S/D {selectedMonthFilter === 'ALL' ? 'DES' : selectedMonthFilter} {selectedYear}
-                </td>
-                <td className="p-3 text-zinc-400">
-                  {cumSaidiTarget.toFixed(3)} Jam
-                </td>
-                <td className="p-3 text-zinc-300">
-                  {cumSaidiUp3.toFixed(3)} Jam
-                </td>
-                <td className="p-3 text-emerald-500 dark:text-emerald-400">
-                  {cumSaidiReal.toFixed(3)} Jam
-                </td>
-                <td className="p-3 text-xs">
-                  <span className="text-zinc-400">{cumSaifiTarget.toFixed(2)}</span> / <span className="text-zinc-300">{cumSaifiUp3.toFixed(2)}</span> / <span className="text-emerald-500">{cumSaifiReal.toFixed(2)} Kali</span>
-                </td>
-                <td className="p-3 text-right text-emerald-500 dark:text-emerald-400 font-black">
-                  Rp {cumEnsLossJuta.toFixed(2)} Jt
-                </td>
-                <td className="p-3 text-center">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                    isSaidiOnTarget && isSaifiOnTarget ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-zinc-300'
-                  }`}>
-                    {isSaidiOnTarget && isSaifiOnTarget ? '✅ Memenuhi KPI' : '⚠️ Over Target'}
-                  </span>
-                </td>
-                <td className="p-3 text-center text-zinc-400 text-[10px]">
-                  Total Audit
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+                  {/* Row 3: SAIDI (Menit/Plg) */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-sky-400" />
+                      <span>SAIDI (Kumulatif Menit / Plg)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">menit/plg</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.saidiTargetMenit, 2)}</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-sky-400 font-bold block">{formatComma(r.saidiRealMenit, 2)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.saidiTargetMenit, 2)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-sky-400 font-black">
+                      {formatComma(targetRow?.saidiRealMenit ?? 0, 2)} m
+                    </td>
+                  </tr>
+
+                  {/* Row 4: SAIDI (Jam/Plg) */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-slate-300 flex items-center gap-2 pl-6">
+                      <span>↳ SAIDI Konversi (Jam / Plg)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">jam/plg</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.saidiTarget, 3)} j</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-slate-200 font-bold block">{formatComma(r.saidiReal, 3)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.saidiTarget, 3)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-slate-200 font-black">
+                      {formatComma(targetRow?.saidiReal ?? 0, 3)} j
+                    </td>
+                  </tr>
+
+                  {/* Row 5: SAIFI */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-[#00e5ff]" />
+                      <span>SAIFI (Kumulatif Kali / Plg)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali/plg</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.saifiTarget, 2)}</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-[#00e5ff] font-bold block">{formatComma(r.saifiReal, 2)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.saifiTarget, 2)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-[#00e5ff] font-black">
+                      {formatComma(targetRow?.saifiReal ?? 0, 2)} x
+                    </td>
+                  </tr>
+
+                  {/* Row 6: ENS Loss MWh */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+                      <span>ENS (Energi Loss)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">MWh</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.ensMwhTarget, 3)} MWh</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-amber-400 font-bold block">{formatComma(r.ensMwhReal, 3)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.ensMwhTarget, 3)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-amber-400 font-black">
+                      {formatComma(targetRow?.ensMwhReal ?? 0, 3)} MWh
+                    </td>
+                  </tr>
+
+                  {/* Row 7: Response Time */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Response Time Pelayanan Gangguan</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">menit</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.responseTimeTarget, 1)} m</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-teal-400 font-bold block">{formatComma(r.responseTimeUlp, 1)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.responseTimeTarget, 1)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-teal-400 font-black">
+                      {formatComma(targetRow?.responseTimeUlp ?? 0, 1)} m
+                    </td>
+                  </tr>
+
+                  {/* Row 8: Feedback Rating Negatif */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Feedback Rating Negatif PLN Mobile</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali</td>
+                    <td className="p-3 text-center text-slate-400">{(targetRow?.feedbackRatingNegatifTarget ?? 0)} kali</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-purple-400 font-bold block">{r.feedbackRatingNegatifUlp ?? 0}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {r.feedbackRatingNegatifTarget ?? 0}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-purple-400 font-black">
+                      {(targetRow?.feedbackRatingNegatifUlp ?? 0)} kali
+                    </td>
+                  </tr>
+
+                  {/* Row 9: Success Rate Auto Dispatch */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-blue-400" />
+                      <span>Success Rate Auto Dispatch</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.successRateAutoDispatchTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-blue-400 font-bold block">{formatComma(r.successRateAutoDispatchUlp, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.successRateAutoDispatchTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-blue-400 font-black">
+                      {formatComma(targetRow?.successRateAutoDispatchUlp ?? 0, 2)}%
+                    </td>
+                  </tr>
+
+                  {/* Row 10: Gangguan TM */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Activity className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Jumlah Gangguan Penulang / TM</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali</td>
+                    <td className="p-3 text-center text-slate-400">{targetRow?.gangguanTmTarget ?? 0} kali</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-rose-400 font-bold block">{r.gangguanTmReal || 0}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {r.gangguanTmTarget || 0}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-rose-400 font-black">
+                      {(targetRow?.gangguanTmReal ?? 0)} kali
+                    </td>
+                  </tr>
+
+                  {/* Row 11: Kerusakan Peralatan */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Kerusakan Peralatan Distribusi</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">kali</td>
+                    <td className="p-3 text-center text-slate-400">{targetRow?.kerusakanPeralatanTarget ?? 0} kali</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-orange-400 font-bold block">{r.kerusakanPeralatanReal || 0}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {r.kerusakanPeralatanTarget || 0}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-orange-400 font-black">
+                      {(targetRow?.kerusakanPeralatanReal ?? 0)} kali
+                    </td>
+                  </tr>
+
+                  {/* Row 12: MVOD */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-lime-400" />
+                      <span>MVOD Sesuai Kewenangan</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.mvodTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-lime-400 font-bold block">{formatComma(r.mvodUlp, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.mvodTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-lime-400 font-black">
+                      {formatComma(targetRow?.mvodUlp ?? 0, 2)}%
+                    </td>
+                  </tr>
+
+                  {/* Row 13: MTTR Siaga 1 TM */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>MTTR Siaga 1 TM</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">menit</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.mttrSiaga1Target, 1)} m</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-indigo-400 font-bold block">{formatComma(r.mttrSiaga1Ulp, 1)}</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.mttrSiaga1Target, 1)}</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-indigo-400 font-black">
+                      {formatComma(targetRow?.mttrSiaga1Ulp ?? 0, 1)} m
+                    </td>
+                  </tr>
+
+                  {/* Row 14: Penambahan Aset RUPTL */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-pink-400" />
+                      <span>Penambahan Aset RUPTL (%)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.asetRuptlTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-pink-400 font-bold block">{formatComma(r.asetRuptlUlp, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.asetRuptlTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-pink-400 font-black">
+                      {formatComma(targetRow?.asetRuptlUlp ?? 0, 2)}%
+                    </td>
+                  </tr>
+
+                  {/* Row 15: Penambahan Aset Investasi */}
+                  <tr className="hover:bg-[#111c38]/50">
+                    <td className="p-3 font-extrabold text-white flex items-center gap-2">
+                      <Award className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Penambahan Aset Fisik Investasi (%)</span>
+                    </td>
+                    <td className="p-3 text-center text-slate-400">%</td>
+                    <td className="p-3 text-center text-slate-400">{formatComma(targetRow?.asetInvestasiTarget, 2)}%</td>
+                    {displayedData.map(r => (
+                      <td key={r.month} className="p-3 text-center">
+                        <span className="text-emerald-400 font-bold block">{formatComma(r.asetInvestasiUlp, 2)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Tgt: {formatComma(r.asetInvestasiTarget, 2)}%</span>
+                      </td>
+                    ))}
+                    <td className="p-3 text-center text-emerald-400 font-black">
+                      {formatComma(targetRow?.asetInvestasiUlp ?? 0, 2)}%
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
       {/* KALKULATOR SIMULASI KERUGIAN ENS */}

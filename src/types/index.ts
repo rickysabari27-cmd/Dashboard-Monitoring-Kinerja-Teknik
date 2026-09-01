@@ -93,20 +93,85 @@ export interface MonthlyTripData {
 }
 
 export interface MonthlySaidiSaifiData {
+  id?: string;
   year?: number;
   month: string;
+  
+  // 1. SAIDI (sesuai kewenangan)
   saidiReal: number; // Jam/Plg (Realisasi ULP Baguala)
   saidiTarget: number; // Jam/Plg (Target KPI)
   saidiUp3?: number; // Jam/Plg (Realisasi KPI UP3)
+  saidiRealMenit?: number; // Menit/Plg (Realisasi ULP Baguala)
+  saidiTargetMenit?: number; // Menit/Plg (Target KPI)
+  saidiUp3Menit?: number; // Menit/Plg (Realisasi KPI UP3)
+
+  // 2. SAIFI (sesuai kewenangan)
   saifiReal: number; // Kali/Plg (Realisasi ULP Baguala)
   saifiTarget: number; // Kali/Plg (Target KPI)
   saifiUp3?: number; // Kali/Plg (Realisasi KPI UP3)
+
+  // 3. ENS (sesuai kewenangan)
   ensLossJuta: number; // Rp Juta (Realisasi ULP Baguala)
   ensTargetJuta?: number; // Rp Juta (Target KPI)
   ensUp3Juta?: number; // Rp Juta (Realisasi KPI UP3)
-  responseTimeUlp?: number; // Menit (Realisasi ULP Baguala)
-  responseTimeTarget?: number; // Menit (Target KPI)
-  responseTimeUp3?: number; // Menit (Realisasi KPI UP3)
+  ensMwhReal?: number; // MWh (Realisasi ULP Baguala)
+  ensMwhTarget?: number; // MWh (Target KPI)
+  ensMwhUp3?: number; // MWh (Realisasi KPI UP3)
+
+  // 4. Penambahan Aset RUPTL (%)
+  asetRuptlTarget?: number;
+  asetRuptlUp3?: number;
+  asetRuptlUlp?: number;
+
+  // 5. Penambahan Aset Penyelesaian Fisik Investasi (%)
+  asetInvestasiTarget?: number;
+  asetInvestasiUp3?: number;
+  asetInvestasiUlp?: number;
+
+  // 6. Feedback Rating Negatif pada PLN Mobile Gangguan (Laporan / %)
+  feedbackRatingNegatifTarget?: number;
+  feedbackRatingNegatifUp3?: number;
+  feedbackRatingNegatifUlp?: number;
+
+  // 7. Response Time atas Gangguan (diluar Clear Tamper) (Menit)
+  responseTimeTarget?: number;
+  responseTimeUp3?: number;
+  responseTimeUlp?: number;
+
+  // 8. Success Rate Auto Dispatch Gangguan Individual (diluar Clear Tamper) (%)
+  successRateAutoDispatchTarget?: number;
+  successRateAutoDispatchUp3?: number;
+  successRateAutoDispatchUlp?: number;
+
+  // 9. Gangguan TM (sesuai kewenangan) (Kali)
+  gangguanTmTarget?: number;
+  gangguanTmUp3?: number;
+  gangguanTmReal?: number;
+
+  // 10. Kerusakan Peralatan Distribusi (sesuai kewenangan) (Unit / Kali)
+  kerusakanPeralatanTarget?: number;
+  kerusakanPeralatanUp3?: number;
+  kerusakanPeralatanReal?: number;
+
+  // 11. MVOD (sesuai kewenangan) (% / Jam)
+  mvodTarget?: number;
+  mvodUp3?: number;
+  mvodUlp?: number;
+
+  // 12. MTTR Siaga 1 TM (sesuai kewenangan) (Menit)
+  mttrSiaga1Target?: number;
+  mttrSiaga1Up3?: number;
+  mttrSiaga1Ulp?: number;
+
+  // Additional Commercial KPIs
+  penjualanGwhTarget?: number;
+  penjualanGwhUp3?: number;
+  penjualanGwhReal?: number;
+  susutPercentTarget?: number;
+  susutPercentUp3?: number;
+  susutPercentReal?: number;
+  pelangganTambahTarget?: number;
+  pelangganTambahReal?: number;
 }
 
 export interface FeederContribution {

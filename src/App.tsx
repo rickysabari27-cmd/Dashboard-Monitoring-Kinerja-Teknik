@@ -563,35 +563,61 @@ export default function App() {
     saifiTarget?: number,
     ensLossJuta?: number
   ) => {
-    setMonthlySaidiData(prev => prev.map(item => {
-      if ((item.year || 2026) === year && item.month === month) {
-        const updated = { 
-          ...item, 
+    const docId = `${month}_${year}`;
+    setMonthlySaidiData(prev => {
+      const idx = prev.findIndex(item => (item.year || 2026) === year && item.month === month);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = {
+          ...next[idx],
           year,
           month,
-          saidiReal, 
+          saidiReal,
           saifiReal,
-          saidiTarget: saidiTarget !== undefined ? saidiTarget : item.saidiTarget,
-          saifiTarget: saifiTarget !== undefined ? saifiTarget : item.saifiTarget,
-          ensLossJuta: ensLossJuta !== undefined ? ensLossJuta : item.ensLossJuta
+          saidiTarget: saidiTarget !== undefined ? saidiTarget : next[idx].saidiTarget,
+          saifiTarget: saifiTarget !== undefined ? saifiTarget : next[idx].saifiTarget,
+          ensLossJuta: ensLossJuta !== undefined ? ensLossJuta : next[idx].ensLossJuta
         };
-        saveDocument('saidi_saifi', updated, `${month}_${year}`);
-        return updated;
+        saveDocument('saidi_saifi', next[idx], docId);
+        return next;
+      } else {
+        const newRow: MonthlySaidiSaifiData = {
+          year,
+          month,
+          saidiReal,
+          saifiReal,
+          saidiTarget: saidiTarget ?? 0,
+          saifiTarget: saifiTarget ?? 0,
+          ensLossJuta: ensLossJuta ?? 0
+        };
+        saveDocument('saidi_saifi', newRow, docId);
+        return [...prev, newRow];
       }
-      return item;
-    }));
-    showToast(`Kinerja SAIDI/SAIFI ${month} ${year} diperbarui di Firebase: ${saidiReal.toFixed(3)} Jam/Plg`);
+    });
+    showToast(`Kinerja SAIDI/SAIFI Bulan ${month} ${year} berhasil disimpan: ${saidiReal.toFixed(3)} Jam/Plg`);
   };
 
   const handleUpdateSaidiRow = (updatedRow: MonthlySaidiSaifiData) => {
-    setMonthlySaidiData(prev => prev.map(item => {
-      if ((item.year || 2026) === (updatedRow.year || 2026) && item.month === updatedRow.month) {
-        saveDocument('saidi_saifi', updatedRow, `${updatedRow.month}_${updatedRow.year || 2026}`);
-        return updatedRow;
+    const rowYear = updatedRow.year || 2026;
+    const docId = `${updatedRow.month}_${rowYear}`;
+    const cleanRow: MonthlySaidiSaifiData = {
+      ...updatedRow,
+      id: docId,
+      year: rowYear
+    };
+
+    setMonthlySaidiData(prev => {
+      const idx = prev.findIndex(item => (item.year || 2026) === rowYear && item.month === updatedRow.month);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...cleanRow };
+        return next;
       }
-      return item;
-    }));
-    showToast(`Target & Realisasi ${updatedRow.month} ${updatedRow.year || 2026} berhasil disimpan ke Firebase!`);
+      return [...prev, cleanRow];
+    });
+
+    saveDocument('saidi_saifi', cleanRow, docId);
+    showToast(`Data Target & Realisasi KPI Bulan ${updatedRow.month} ${rowYear} berhasil disimpan!`);
   };
 
   const handleSaveMaterial = (newMat: MaterialItem) => {
@@ -903,6 +929,8 @@ export default function App() {
         isOpen={isSaidiModalOpen}
         onClose={() => setIsSaidiModalOpen(false)}
         onUpdateSaidi={handleUpdateSaidi}
+        onSaveRow={handleUpdateSaidiRow}
+        monthlySaidiData={monthlySaidiData}
         isDarkMode={isDarkMode}
       />
 

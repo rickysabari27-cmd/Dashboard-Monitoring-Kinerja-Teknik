@@ -18,8 +18,10 @@ import {
   WhatsAppMessage
 } from '../../types';
 import { 
+  ComposedChart,
   BarChart, 
   Bar, 
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -192,6 +194,12 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
     return (garduMeasurements || []).filter(g => isDateInPeriod(g.date, selectedYear, selectedMonth));
   }, [garduMeasurements, selectedYear, selectedMonth]);
 
+  // Helper to format decimal numbers with comma (,) for Indonesian locale
+  const formatDecimalComma = (val: number | undefined | null, decimals: number = 3) => {
+    if (val === undefined || val === null || isNaN(val)) return '0,000';
+    return val.toFixed(decimals).replace('.', ',');
+  };
+
   // Target SAIDI & SAIFI for the selected period
   const currentPeriodTargets = useMemo(() => {
     if (selectedMonth === 'ALL') {
@@ -349,18 +357,34 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
       .slice(0, 5);
   }, [feederHealthList]);
 
-  // Monthly Trip Breakdown Chart Data (Jan - Dec)
+  // Monthly Trip Breakdown Chart Data (Jan - Dec) with SAIDI & SAIFI Trend Lines
   const monthlyTripChartData = useMemo(() => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
     
     return monthNames.map((name, idx) => {
       const mNum = (idx + 1).toString().padStart(2, '0');
+      
+      // Filter feeder trips for this specific month (and selected year)
       const tripsInMonth = (trips || []).filter(t => {
         const d = t.tripDate || '';
         return isDateInPeriod(d, selectedYear, mNum);
       });
 
-      // Find monthly SAIDI real data if available
+      // Calculate SAIDI and SAIFI directly from trip penyulang records
+      const calcSaidi = tripsInMonth.reduce((acc, t) => {
+        const saidi = (t.saidiHours !== undefined && t.saidiHours !== null) 
+          ? t.saidiHours 
+          : ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp));
+        return acc + (saidi || 0);
+      }, 0);
+
+      const calcSaifi = tripsInMonth.reduce((acc, t) => {
+        const saifi = (t.saifiCount !== undefined && t.saifiCount !== null) 
+          ? t.saifiCount 
+          : ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp));
+        return acc + (saifi || 0);
+      }, 0);
+
       const saidiItem = (monthlySaidiData || []).find(s => {
         const matchY = !s.year || s.year.toString() === selectedYear;
         const matchM = s.month.toLowerCase().startsWith(name.toLowerCase().slice(0, 3));
@@ -371,13 +395,15 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
         month: name,
         monthCode: mNum,
         trips: tripsInMonth.length,
-        saidiReal: saidiItem ? saidiItem.saidiReal : (tripsInMonth.length * 0.05),
+        saidiReal: calcSaidi,
+        saifiReal: calcSaifi,
         saidiTarget: saidiItem ? saidiItem.saidiTarget : 0.150,
+        saifiTarget: saidiItem ? (saidiItem.saifiTarget || 0.200) : 0.200,
         ensLoss: tripsInMonth.reduce((acc, t) => acc + (t.ensKwh || 0), 0),
         isSelected: selectedMonth === mNum
       };
     });
-  }, [trips, selectedYear, selectedMonth, monthlySaidiData]);
+  }, [trips, selectedYear, selectedMonth, monthlySaidiData, defaultTotalUlp]);
 
   // Fault Cause Classification Pareto based on Filtered Trips
   const faultCausesData = useMemo(() => {
@@ -722,16 +748,16 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
 
           <div className="my-2">
             <div className="text-3xl font-black text-blue-600 dark:text-blue-400 flex items-baseline gap-1">
-              {kpiStats.totalSaidiHours.toFixed(3)}
+              {formatDecimalComma(kpiStats.totalSaidiHours, 3)}
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Jam/Plg</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Ekuivalen: <span className="font-bold text-slate-700 dark:text-slate-200">{(kpiStats.totalSaidiHours * 60).toFixed(1)} Menit/Plg</span>
+              Ekuivalen: <span className="font-bold text-slate-700 dark:text-slate-200">{(kpiStats.totalSaidiHours * 60).toFixed(1)} Menit/Plg</span> <span className="text-[10px] text-blue-500 font-semibold">(Desimal Koma)</span>
             </p>
           </div>
 
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform">
-            <span>{currentPeriodTargets.targetLabel}: &lt; {currentPeriodTargets.saidiTarget.toFixed(2)} j</span>
+            <span>{currentPeriodTargets.targetLabel}: &lt; {formatDecimalComma(currentPeriodTargets.saidiTarget, 2)} j</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </div>
         </div>
@@ -756,16 +782,16 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
 
           <div className="my-2">
             <div className="text-3xl font-black text-sky-600 dark:text-sky-400 flex items-baseline gap-1">
-              {kpiStats.totalSaifiCount.toFixed(3)}
+              {formatDecimalComma(kpiStats.totalSaifiCount, 3)}
               <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Kali/Plg</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              Plg Padam: <span className="font-bold text-slate-700 dark:text-slate-200">{kpiStats.totalCustomersAffected.toLocaleString('id-ID')}</span>
+              Plg Padam: <span className="font-bold text-slate-700 dark:text-slate-200">{kpiStats.totalCustomersAffected.toLocaleString('id-ID')}</span> <span className="text-[10px] text-sky-500 font-semibold">(Desimal Koma)</span>
             </p>
           </div>
 
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-sky-600 dark:text-sky-400 group-hover:translate-x-0.5 transition-transform">
-            <span>Target: &lt; {currentPeriodTargets.saifiTarget.toFixed(2)}x</span>
+            <span>Target: &lt; {formatDecimalComma(currentPeriodTargets.saifiTarget, 2)}x</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </div>
         </div>
@@ -957,21 +983,18 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 4. CHARTS ROW: Monthly Trip Breakdown Bar Chart (Left) + Fault Cause Pareto (Right) */}
+      {/* 4. CHARTS ROW: Monthly Trip Breakdown & SAIDI/SAIFI Trend Chart (Left) + Fault Cause Pareto (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left: Monthly Trips & SAIDI Trend (2 Cols) */}
+        {/* Left: Monthly Trips & SAIDI/SAIFI Trend (2 Cols) */}
         <div className={`lg:col-span-2 p-5 sm:p-6 rounded-3xl border transition-all ${
           isDarkMode ? 'bg-slate-900/60 border-slate-800/80' : 'bg-white border-slate-200 shadow-sm'
         }`}>
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  <BarChart className="w-4 h-4" />
-                </div>
                 <h3 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-                  Frekuensi Gangguan SUTM & Realisasi SAIDI ({selectedYear})
+                  Frekuensi Gangguan SUTM & Realisasi SAIDI / SAIFI ({selectedYear})
                 </h3>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -979,21 +1002,29 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center gap-3 text-xs font-bold">
+            <div className="flex flex-wrap items-center gap-3 text-xs font-bold">
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-md bg-blue-600"></span>
-                <span className="text-slate-600 dark:text-slate-300">Trip SUTM</span>
+                <span className="w-3 h-3 rounded-md bg-blue-600 inline-block"></span>
+                <span className="text-slate-600 dark:text-slate-300">Trip</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-md bg-sky-400"></span>
+                <span className="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span>
+                <span className="text-slate-600 dark:text-slate-300">Tren Trip</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span>
                 <span className="text-slate-600 dark:text-slate-300">SAIDI (Jam/Plg)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span>
+                <span className="text-slate-600 dark:text-slate-300">SAIFI (Kali/Plg)</span>
               </div>
             </div>
           </div>
 
           <div className="h-64 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
+              <ComposedChart 
                 data={monthlyTripChartData} 
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 onClick={(e: any) => {
@@ -1011,41 +1042,50 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
                   tick={{ fill: isDarkMode ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 600 }} 
                 />
                 <YAxis 
+                  yAxisId="left"
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: isDarkMode ? '#94A3B8' : '#64748B', fontSize: 11 }}
                   allowDecimals={false}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: isDarkMode ? '#38BDF8' : '#0284C7', fontSize: 10 }}
+                  tickFormatter={(val) => val.toFixed(2).replace('.', ',')}
                 />
                 <Tooltip 
                   content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className={`p-3 rounded-xl shadow-xl text-xs border ${
+                        <div className={`p-3.5 rounded-2xl shadow-2xl text-xs border ${
                           isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
                         }`}>
-                          <div className="font-bold text-slate-400 mb-1.5 flex items-center justify-between gap-2">
+                          <div className="font-bold text-slate-400 mb-2 flex items-center justify-between gap-3 border-b border-slate-700/60 pb-1.5">
                             <span>Bulan: {label} {selectedYear}</span>
                             {selectedMonth === data.monthCode && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500 text-white font-bold">Terpilih</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500 text-white font-extrabold">Terpilih</span>
                             )}
                           </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between gap-4 font-bold text-blue-600 dark:text-blue-400">
-                              <span>Trip SUTM:</span>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-4 font-extrabold text-blue-500 dark:text-blue-400">
+                              <span>⚡ Trip:</span>
                               <span>{data.trips} Kejadian</span>
                             </div>
-                            <div className="flex items-center justify-between gap-4 text-sky-500 font-bold">
-                              <span>SAIDI Real:</span>
-                              <span>{data.saidiReal.toFixed(3)} Jam/Plg</span>
+                            <div className="flex items-center justify-between gap-4 text-cyan-500 font-extrabold">
+                              <span>⏳ SAIDI Real:</span>
+                              <span>{formatDecimalComma(data.saidiReal, 3)} Jam/Plg <span className="text-[10px] opacity-75">(desimal koma)</span></span>
                             </div>
-                            <div className="flex items-center justify-between gap-4 text-amber-500 font-bold">
-                              <span>ENS Loss:</span>
-                              <span>{data.ensLoss.toLocaleString('id-ID')} kWh</span>
+                            <div className="flex items-center justify-between gap-4 text-emerald-500 font-extrabold">
+                              <span>🔄 SAIFI Real:</span>
+                              <span>{formatDecimalComma(data.saifiReal, 3)} Kali/Plg <span className="text-[10px] opacity-75">(desimal koma)</span></span>
                             </div>
                           </div>
-                          <div className="mt-2 pt-1.5 border-t border-slate-700 text-[10px] text-blue-400 font-semibold">
-                            Klik untuk memfilter dashboard
+                          <div className="mt-2.5 pt-1.5 border-t border-slate-700/60 text-[10px] text-slate-400 font-medium">
+                            💡 Angka SAIDI/SAIFI menggunakan koma (,) sebagai desimal. Klik untuk filter.
                           </div>
                         </div>
                       );
@@ -1053,7 +1093,7 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
                     return null;
                   }}
                 />
-                <Bar dataKey="trips" radius={[6, 6, 0, 0]} maxBarSize={36} className="cursor-pointer">
+                <Bar yAxisId="left" dataKey="trips" radius={[6, 6, 0, 0]} maxBarSize={32} className="cursor-pointer">
                   {monthlyTripChartData.map((entry, index) => {
                     const isCurrentSelected = selectedMonth === entry.monthCode;
                     return (
@@ -1072,7 +1112,38 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
                     );
                   })}
                 </Bar>
-              </BarChart>
+                <Line 
+                  yAxisId="left" 
+                  type="monotone" 
+                  dataKey="trips" 
+                  name="Tren Trip" 
+                  stroke="#6366f1" 
+                  strokeWidth={2.5} 
+                  dot={{ r: 4, fill: '#6366f1', strokeWidth: 2 }} 
+                  activeDot={{ r: 6, fill: '#818cf8' }} 
+                />
+                <Line 
+                  yAxisId="right" 
+                  type="monotone" 
+                  dataKey="saidiReal" 
+                  name="SAIDI Real (Jam/Plg)" 
+                  stroke="#38bdf8" 
+                  strokeWidth={3} 
+                  dot={{ r: 4, fill: '#38bdf8', strokeWidth: 2 }} 
+                  activeDot={{ r: 6, fill: '#00e5ff' }} 
+                />
+                <Line 
+                  yAxisId="right" 
+                  type="monotone" 
+                  dataKey="saifiReal" 
+                  name="SAIFI Real (Kali/Plg)" 
+                  stroke="#10b981" 
+                  strokeWidth={2.5} 
+                  strokeDasharray="4 4"
+                  dot={{ r: 3.5, fill: '#10b981', strokeWidth: 1.5 }} 
+                  activeDot={{ r: 5, fill: '#34d399' }} 
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
