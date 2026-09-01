@@ -137,7 +137,11 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
     if (sortBy === 'ens-desc') {
       return (b.ensKwh || 0) - (a.ensKwh || 0);
     }
-    return 0;
+
+    // Default: Urutkan berdasarkan Tanggal & Waktu Trip (Terbaru di atas)
+    const dateTimeA = `${a.tripDate || '1970-01-01'} ${a.tripTime || '00:00'}`;
+    const dateTimeB = `${b.tripDate || '1970-01-01'} ${b.tripTime || '00:00'}`;
+    return dateTimeB.localeCompare(dateTimeA);
   });
 
   const isFilterActive = selectedFeeder !== 'ALL' || selectedMonth !== 'ALL' || selectedYear !== 'ALL' || searchTerm !== '' || selectedRelay !== 'ALL' || sortBy !== 'ALL';
@@ -293,7 +297,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
               value={sortBy}
               onChange={(val) => setSortBy(val as any)}
               options={[
-                { value: 'ALL', label: 'Semua' },
+                { value: 'ALL', label: '📅 Tanggal & Waktu Trip' },
                 { value: 'duration-desc', label: '⏳ Durasi Terpanjang' },
                 { value: 'saidi-desc', label: '📊 SAIDI Tertinggi' },
                 { value: 'saifi-desc', label: '⚡ SAIFI Tertinggi' },
@@ -345,7 +349,7 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
             <thead className="bg-[#091122] border-b border-slate-800 text-slate-400 uppercase font-bold text-[10px] tracking-wider">
               <tr>
                 <th className="p-3.5 text-center w-12">NO</th>
-                <th className="p-3.5 text-center">ID & Feeder</th>
+                <th className="p-3.5 text-center">Penyulang / Feeder</th>
                 <th className="p-3.5 text-center">Jam Trip & Masuk</th>
                 <th className="p-3.5 text-center">Arus Beban & Gangguan</th>
                 <th className="p-3.5 text-center">Estimasi Jarak AI</th>
@@ -389,7 +393,6 @@ export const TripLogsView: React.FC<TripLogsViewProps> = ({
                           <span className="w-2 h-2 rounded-full bg-rose-500 inline-block animate-pulse" />
                           {trip.feederName}
                         </div>
-                        <div className="text-[10px] text-slate-400 font-normal">{trip.id}</div>
                       </td>
 
                       {/* Waktu & Durasi */}

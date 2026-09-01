@@ -1,6 +1,6 @@
 {
-  "name": "Perang Padam Baguala - Sistem Keandalan 20kV",
-  "description": "Dashboard Monitoring Kinerja & Keandalan Penyulang 20kV, SAIDI/SAIFI, Inspeksi, dan Analytics PLN ULP Baguala",
+  "name": "Dashboard Kinerja Teknik - PLN ULP Baguala",
+  "description": "Dashboard Monitoring Kinerja Teknik & Keandalan Penyulang 20kV, SAIDI/SAIFI, Inspeksi, dan Analytics PLN ULP Baguala",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

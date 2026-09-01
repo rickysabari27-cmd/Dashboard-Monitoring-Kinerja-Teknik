@@ -34,23 +34,23 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
       const target = payload[1]?.value;
       return (
         <div className={`p-3 rounded-xl shadow-xl text-xs border ${
-          isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+          isDarkMode ? 'bg-zinc-950 border-zinc-800 text-zinc-100' : 'bg-white border-zinc-200 text-zinc-800'
         }`}>
-          <div className="font-bold text-slate-400 mb-1.5">Bulan: {label} {selectedYear}</div>
+          <div className="font-bold text-zinc-400 mb-1.5">Bulan: {label} {selectedYear}</div>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-4">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block" />
+                <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" />
                 <span>SAIDI Realisasi:</span>
               </span>
-              <span className="font-bold text-blue-600 dark:text-cyan-400">{real?.toFixed(3)} Jam/Plg</span>
+              <span className="font-bold text-emerald-500 dark:text-emerald-400">{real?.toFixed(3)} Jam/Plg</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded bg-slate-300 dark:bg-slate-600 inline-block" />
+                <span className="w-2.5 h-2.5 rounded bg-zinc-400 dark:bg-zinc-700 inline-block" />
                 <span>SAIDI Target:</span>
               </span>
-              <span className="font-medium text-slate-500">{target?.toFixed(3)} Jam/Plg</span>
+              <span className="font-medium text-zinc-500">{target?.toFixed(3)} Jam/Plg</span>
             </div>
           </div>
         </div>
@@ -62,22 +62,22 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
   return (
     <div className="space-y-4">
       {/* Main Section Banner */}
-      <div className={`p-6 rounded-[32px] border transition-all ${
-        isDarkMode ? 'bg-slate-900/40 border-slate-800/60' : 'bg-white border-slate-200 shadow-xs'
+      <div className={`p-6 rounded-[28px] border transition-all ${
+        isDarkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200 shadow-xs'
       }`}>
         
         {/* Header Title */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600/15 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-                <TrendingUp className="w-4 h-4 text-indigo-400" />
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
               </div>
-              <h3 className="font-semibold text-base text-white">
+              <h3 className="font-semibold text-base text-zinc-900 dark:text-white">
                 Visualisasi Trend Kinerja SAIDI, SAIFI & Energi Tidak Tersalurkan (ENS)
               </h3>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               Perbandingan target kumulatif vs realisasi bulanan serta estimasi dampak finansial PLN ULP Baguala
             </p>
           </div>
@@ -87,8 +87,8 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
               onClick={() => setSelectedYear('2026')}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 selectedYear === '2026'
-                  ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)]'
-                  : 'bg-slate-900/60 text-slate-400 hover:bg-slate-800 border border-slate-700/60'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                  : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
               Tahun 2026
@@ -97,8 +97,8 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
               onClick={() => setSelectedYear('2025')}
               className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 selectedYear === '2025'
-                  ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)]'
-                  : 'bg-slate-900/60 text-slate-400 hover:bg-slate-800 border border-slate-700/60'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                  : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
               Tahun 2025
@@ -112,12 +112,12 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
           {/* SAIDI Real vs Target Bar Chart (2 cols) */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-                <BarChart2 className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <BarChart2 className="w-3.5 h-3.5 text-emerald-500" />
                 GRAFIK BATANG SAIDI & SAIFI BULANAN (REAL VS TARGET)
               </span>
 
-              <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <CheckCircle className="w-3 h-3" />
                 Batas Aman Target (&lt;0.200 Jam/Plg)
               </span>
@@ -129,32 +129,32 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
                   <CartesianGrid 
                     strokeDasharray="3 3" 
                     vertical={false} 
-                    stroke={isDarkMode ? '#1E293B' : '#E2E8F0'} 
+                    stroke={isDarkMode ? '#27272a' : '#e4e4e7'} 
                   />
                   <XAxis 
                     dataKey="month" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: isDarkMode ? '#64748B' : '#64748B', fontSize: 11 }} 
+                    tick={{ fill: isDarkMode ? '#a1a1aa' : '#71717a', fontSize: 11 }} 
                   />
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fill: isDarkMode ? '#64748B' : '#64748B', fontSize: 11 }} 
+                    tick={{ fill: isDarkMode ? '#a1a1aa' : '#71717a', fontSize: 11 }} 
                   />
                   <Tooltip content={<CustomSaidiTooltip />} />
-                  <Bar dataKey="saidiTarget" fill={isDarkMode ? '#1E293B' : '#E2E8F0'} radius={[4, 4, 0, 0]} name="Target" />
-                  <Bar dataKey="saidiReal" fill="#4F46E5" radius={[4, 4, 0, 0]} name="Realisasi" />
+                  <Bar dataKey="saidiTarget" fill={isDarkMode ? '#3f3f46' : '#d4d4d8'} radius={[4, 4, 0, 0]} name="Target" />
+                  <Bar dataKey="saidiReal" fill="#10b981" radius={[4, 4, 0, 0]} name="Realisasi" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Feeder Trip Contribution Donut Chart (1 col) */}
-          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/60 flex flex-col justify-between">
+          <div className="p-5 rounded-2xl bg-zinc-950 border border-zinc-800 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-2 flex items-center gap-1.5">
-                <PieIcon className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 block mb-2 flex items-center gap-1.5">
+                <PieIcon className="w-3.5 h-3.5 text-emerald-500" />
                 KONTRIBUSI GANGGUAN FEEDER
               </span>
 
@@ -179,28 +179,28 @@ export const SaidiSaifiChart: React.FC<SaidiSaifiChartProps> = ({
                       formatter={(val: any) => [`${val}%`, 'Kontribusi']}
                       contentStyle={{
                         borderRadius: '12px',
-                        background: '#0F172A',
-                        borderColor: '#334155',
+                        background: '#09090b',
+                        borderColor: '#27272a',
                         fontSize: '12px',
-                        color: '#F8FAFC'
+                        color: '#f8fafc'
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-xs font-semibold text-slate-500">Total</span>
-                  <span className="text-lg font-light text-white">6 Trips</span>
+                  <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Total</span>
+                  <span className="text-lg font-light text-zinc-900 dark:text-white">6 Trips</span>
                 </div>
               </div>
             </div>
 
             {/* Custom Legend Grid */}
-            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-800/80 text-xs">
+            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-zinc-800 text-xs">
               {feederContributions.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800/60">
+                <div key={idx} className="flex items-center justify-between bg-black px-2.5 py-1.5 rounded-xl border border-zinc-800">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="font-semibold text-slate-300 text-[11px] truncate">{item.feederName}</span>
+                    <span className="font-semibold text-zinc-300 text-[11px] truncate">{item.feederName}</span>
                   </div>
                   <span className="font-bold text-white text-[11px] ml-1">{item.percentage}%</span>
                 </div>

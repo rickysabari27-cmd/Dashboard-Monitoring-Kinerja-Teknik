@@ -2,24 +2,29 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @import "leaflet/dist/leaflet.css";
 
+body {
+  background-color: #000000;
+  color: #f8fafc;
+}
+
 .leaflet-tooltip.ge-label-tooltip {
-  background: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(0, 0, 0, 0.25) !important;
-  color: #000000 !important;
+  background: rgba(0, 0, 0, 0.95) !important;
+  border: 1px solid rgba(16, 185, 129, 0.5) !important;
+  color: #10b981 !important;
   font-weight: 800;
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
   white-space: nowrap;
 }
 .leaflet-tooltip.ge-label-tooltip::before {
-  border-top-color: rgba(255, 255, 255, 0.96) !important;
+  border-top-color: rgba(0, 0, 0, 0.95) !important;
 }
 
-/* Ensure all native select options have dark navy background and bright high-contrast text */
+/* Ensure all native select options have dark black/green background and bright high-contrast text */
 select option {
-  background-color: #0c162d !important;
+  background-color: #09090b !important;
   color: #f8fafc !important;
   font-weight: 600;
   padding: 8px 12px;
@@ -29,7 +34,8 @@ select option:hover,
 select option:focus,
 select option:active,
 select option:checked {
-  background-color: #1e293b !important;
+  background-color: #022c22 !important;
   color: #34d399 !important;
 }
+
 

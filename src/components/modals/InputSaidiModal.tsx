@@ -68,10 +68,10 @@ export const InputSaidiModal: React.FC<InputSaidiModalProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-blue-600 dark:text-cyan-400">
-                Input SAIDI / SAIFI & Target KPI
+                Input Kinerja KPI (Target vs Realisasi ULP)
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Input & sesuaikan target manual serta realisasi SAIDI SAIFI ULP
+                Input & sesuaikan Target KPI, Realisasi KPI UP3, serta Realisasi ULP Baguala
               </p>
             </div>
           </div>

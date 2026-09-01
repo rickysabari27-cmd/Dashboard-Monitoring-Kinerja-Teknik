@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'spk' as ViewMode, label: 'Surat Perintah Kerja (SPK)', icon: FileText, badge: null },
     { id: 'google_sheet_sync' as ViewMode, label: 'Google Sheet & Apps Script', icon: FileSpreadsheet, badge: 'Apps Script' },
     { id: 'master_data' as ViewMode, label: 'Master Data', icon: Database, badge: '5 Data', hasSub: true },
-    { id: 'saidi_saifi' as ViewMode, label: 'Kinerja SAIDI / SAIFI', icon: BarChart2, badge: null },
+    { id: 'saidi_saifi' as ViewMode, label: 'Kinerja KPI', icon: BarChart2, badge: 'Target vs ULP' },
     { id: 'users' as ViewMode, label: 'Kelola User & Hak Akses', icon: Users, badge: null, locked: false },
   ];
 
@@ -74,29 +74,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
         w-64 sm:w-72 lg:w-64 h-screen lg:h-screen
         transition-transform duration-300 ease-in-out my-0
         ${isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        bg-[#0B132B] text-slate-300
-        flex flex-col shrink-0 overflow-hidden p-3.5 sm:p-4 border-r border-slate-800/80
+        bg-black text-zinc-300
+        flex flex-col shrink-0 overflow-hidden p-3.5 sm:p-4 border-r border-zinc-800
       `}>
         {/* Mobile Close Button */}
         <div className="p-2 flex items-center justify-between lg:hidden mb-2">
-          <div className="font-bold text-xs tracking-wider text-slate-300 uppercase flex items-center justify-between w-full">
+          <div className="font-bold text-xs tracking-wider text-zinc-300 uppercase flex items-center justify-between w-full">
             <span>MENU SYSTEM</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
           </div>
           <button 
             onClick={() => setIsOpenMobile(false)}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 ml-2"
+            className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Section Header / Title as in Screenshot 1 */}
-        <div className="hidden lg:flex items-center justify-between px-3 py-3 mb-3">
-          <span className="text-[12px] font-extrabold tracking-wider text-slate-200 uppercase">
+        {/* Section Header / Title */}
+        <div className="hidden lg:flex items-center justify-between px-3 py-3 mb-3 border-b border-zinc-900">
+          <span className="text-[12px] font-extrabold tracking-wider text-zinc-200 uppercase">
             MENU SYSTEM
           </span>
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
         </div>
 
         {/* Navigation List */}
@@ -118,14 +118,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`
                   w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group cursor-pointer
                   ${item.locked 
-                    ? 'opacity-40 cursor-not-allowed text-slate-500' 
+                    ? 'opacity-40 cursor-not-allowed text-zinc-500' 
                     : isActive 
-                      ? 'bg-blue-600 text-white font-extrabold shadow-md shadow-blue-600/30' 
-                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'}
+                      ? 'bg-emerald-600 text-white font-extrabold shadow-md shadow-emerald-600/30' 
+                      : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'}
                 `}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : item.locked ? 'text-slate-600' : 'text-slate-400 group-hover:text-blue-400'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : item.locked ? 'text-zinc-600' : 'text-zinc-400 group-hover:text-emerald-400'}`} />
                   <span className="truncate text-left">{item.label}</span>
                 </div>
 
@@ -133,19 +133,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {item.badge && (
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isActive 
-                        ? 'bg-blue-800/80 text-white border border-blue-400/40' 
-                        : item.badge.includes('WA') || item.badge.includes('Apps')
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-blue-900/60 text-blue-300 border border-blue-700/50'
+                        ? 'bg-emerald-800/80 text-white border border-emerald-400/40' 
+                        : 'bg-zinc-900 text-emerald-400 border border-emerald-500/30'
                     }`}>
                       {item.badge}
                     </span>
                   )}
                   {item.hasSub && (
-                    <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <ChevronRight className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
                   )}
                   {item.locked && (
-                    <Lock className="w-3.5 h-3.5 text-slate-500" />
+                    <Lock className="w-3.5 h-3.5 text-zinc-500" />
                   )}
                 </div>
               </button>
@@ -154,21 +152,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Footer info in sidebar with User Session & Logout */}
-        <div className="mt-auto pt-3 border-t border-slate-800/80 space-y-2">
+        <div className="mt-auto pt-3 border-t border-zinc-800 space-y-2">
           {currentUser ? (
-            <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2">
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-blue-600 border border-blue-400 flex items-center justify-center shrink-0 font-bold text-xs text-white">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 border border-emerald-400 flex items-center justify-center shrink-0 font-bold text-xs text-white">
                   {currentUser.name.charAt(0)}
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-black text-white truncate">{currentUser.name}</span>
-                  <span className="text-[10px] text-blue-400 font-bold truncate">{currentUser.role}</span>
+                  <span className="text-[10px] text-emerald-400 font-bold truncate">{currentUser.role}</span>
                 </div>
               </div>
               <button
                 onClick={onLogout}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/15 transition-colors shrink-0 cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/15 transition-colors shrink-0 cursor-pointer"
                 title="Logout dari Sistem"
               >
                 <LogOut className="w-4 h-4" />
@@ -184,7 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
-          <div className="flex items-center justify-between px-1 text-[10px] text-slate-400">
+          <div className="flex items-center justify-between px-1 text-[10px] text-zinc-400">
             <span className="font-semibold">PLN ULP Baguala</span>
             <span className="font-bold text-emerald-400">v2.4 Online</span>
           </div>

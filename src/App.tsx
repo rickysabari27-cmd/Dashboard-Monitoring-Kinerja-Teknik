@@ -70,7 +70,7 @@ import { WhatsAppModal } from './components/modals/WhatsAppModal';
 import { Menu, Sparkles, CheckCircle2, SlidersHorizontal, ChevronRight } from 'lucide-react';
 
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [isOpenMobileSidebar, setIsOpenMobileSidebar] = useState(false);
 
@@ -646,7 +646,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-200 font-sans ${
-      isDarkMode ? 'dark bg-[#020617] text-slate-100' : 'bg-slate-100/70 text-slate-900'
+      isDarkMode ? 'dark bg-[#070c19] text-slate-100' : 'bg-[#090e1a] text-slate-100'
     }`}>
       
       {/* Toast Notification */}

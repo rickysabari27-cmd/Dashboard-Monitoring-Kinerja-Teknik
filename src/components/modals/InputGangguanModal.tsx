@@ -665,7 +665,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                {tripToEdit ? `Edit Data Gangguan Feeder (${tripToEdit.id})` : 'Form Input Gangguan Feeder 20kV & Kalkulasi SAIDI/SAIFI'}
+                {tripToEdit ? `Edit Data Gangguan Feeder ${tripToEdit.feederName}` : 'Form Input Gangguan Feeder 20kV & Kalkulasi SAIDI/SAIFI'}
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                   {tripToEdit ? 'Edit Mode' : 'Manual Input'}
                 </span>

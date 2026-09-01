@@ -95,11 +95,18 @@ export interface MonthlyTripData {
 export interface MonthlySaidiSaifiData {
   year?: number;
   month: string;
-  saidiReal: number; // Jam/Plg
-  saidiTarget: number;
-  saifiReal: number; // Kali/Plg
-  saifiTarget: number;
-  ensLossJuta: number; // Rp Juta
+  saidiReal: number; // Jam/Plg (Realisasi ULP Baguala)
+  saidiTarget: number; // Jam/Plg (Target KPI)
+  saidiUp3?: number; // Jam/Plg (Realisasi KPI UP3)
+  saifiReal: number; // Kali/Plg (Realisasi ULP Baguala)
+  saifiTarget: number; // Kali/Plg (Target KPI)
+  saifiUp3?: number; // Kali/Plg (Realisasi KPI UP3)
+  ensLossJuta: number; // Rp Juta (Realisasi ULP Baguala)
+  ensTargetJuta?: number; // Rp Juta (Target KPI)
+  ensUp3Juta?: number; // Rp Juta (Realisasi KPI UP3)
+  responseTimeUlp?: number; // Menit (Realisasi ULP Baguala)
+  responseTimeTarget?: number; // Menit (Target KPI)
+  responseTimeUp3?: number; // Menit (Realisasi KPI UP3)
 }
 
 export interface FeederContribution {
