@@ -138,102 +138,21 @@ export default function App() {
     });
     const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
     const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => {
-      // Build canonical map of 27 ULP Baguala feeders from INITIAL_MASTER_FEEDERS
-      const feederMap = new Map<string, MasterFeeder>();
-      INITIAL_MASTER_FEEDERS.forEach(init => {
-        const key = init.feederName.trim().toLowerCase();
-        feederMap.set(key, { ...init });
-      });
-
-      const seenKeys = new Set<string>();
+      const seenIds = new Set<string>();
+      const cleanData: MasterFeeder[] = [];
 
       data.forEach(item => {
         if (!item.feederName) {
           if (item.id) deleteDocument('master_feeders', item.id);
           return;
         }
-
-        const key = item.feederName.trim().toLowerCase();
-        const codeKey = item.feederCode ? item.feederCode.trim().toLowerCase() : '';
-
-        let canonicalKey = '';
-        if (feederMap.has(key)) {
-          canonicalKey = key;
-        } else {
-          for (const [k, v] of feederMap.entries()) {
-            if (v.feederCode.toLowerCase() === codeKey) {
-              canonicalKey = k;
-              break;
-            }
-          }
-        }
-
-        if (canonicalKey) {
-          const canonicalItem = feederMap.get(canonicalKey)!;
-          // Delete duplicate Firestore/localStorage records if already seen or old ID format
-          if (seenKeys.has(canonicalKey) || (item.id !== canonicalItem.id && item.id.startsWith('MF-0'))) {
-            if (item.id) deleteDocument('master_feeders', item.id);
-          } else {
-            seenKeys.add(canonicalKey);
-            feederMap.set(canonicalKey, {
-              ...canonicalItem,
-              ...item,
-              id: item.id || canonicalItem.id,
-              feederName: item.feederName || canonicalItem.feederName,
-              feederCode: item.feederCode || canonicalItem.feederCode,
-              operationalStatus: item.operationalStatus || canonicalItem.operationalStatus
-            });
-          }
-        } else {
-          // Keep custom feeders added by users
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            feederMap.set(key, item);
-          }
+        if (item.id && !seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          cleanData.push(item);
         }
       });
 
-      const processedData = Array.from(feederMap.values()).map(item => {
-        let updated = { ...item };
-        let needsSave = false;
-
-        const matchingGds = (masterGarduDistribusi || []).filter(g => 
-          g.feederName && g.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
-        );
-        const matchingSecs = (masterSections || []).filter(s =>
-          s.feederName && s.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
-        );
-
-        if (matchingSecs.length > 0) {
-          const realCustSec = matchingSecs.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
-          if (realCustSec > 0 && item.customerCount !== realCustSec) {
-            updated.customerCount = realCustSec;
-            needsSave = true;
-          }
-        } else if (matchingGds.length > 0) {
-          const realCust = matchingGds.reduce((sum, g) => sum + (Number(g.customerCount) || 0), 0);
-          const realKva = matchingGds.reduce((sum, g) => sum + (Number(g.capacityKva) || 0), 0);
-          if (item.garduCount !== matchingGds.length) {
-            updated.garduCount = matchingGds.length;
-            needsSave = true;
-          }
-          if (realKva > 0 && item.capacityKva !== realKva) {
-            updated.capacityKva = realKva;
-            needsSave = true;
-          }
-          if (realCust > 0 && (!item.customerCount || item.customerCount === 0 || realCust > item.customerCount)) {
-            updated.customerCount = realCust;
-            needsSave = true;
-          }
-        }
-
-        if (needsSave) {
-          saveDocument('master_feeders', updated, updated.id);
-        }
-        return updated;
-      });
-
-      setMasterFeeders(processedData);
+      setMasterFeeders(cleanData);
     });
     const unsubSections = syncCollection<MasterSection>('master_sections', INITIAL_MASTER_SECTIONS, (data) => setMasterSections(data));
     const unsubGh = syncCollection<MasterGarduHubung>('master_gardu_hubung', INITIAL_MASTER_GH, (data) => setMasterGarduHubung(data));

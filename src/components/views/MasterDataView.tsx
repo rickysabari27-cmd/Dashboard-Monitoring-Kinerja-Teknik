@@ -353,10 +353,10 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     const calcGardu = matchingGds.length > 0 ? matchingGds.length : (secGarduSum > 0 ? secGarduSum : (feeder.garduCount || 0));
     const calcCust = totalSecCust > 0 ? totalSecCust : (feeder.customerCount || 0);
 
-    setFKha((feeder.capacityKva || feeder.khaAmpere) ? (feeder.capacityKva || feeder.khaAmpere) : calcKva);
-    setFLength(feeder.lengthKms ? feeder.lengthKms : calcLength);
-    setFGarduCount(feeder.garduCount ? feeder.garduCount : calcGardu);
-    setFCust(feeder.customerCount ? feeder.customerCount : calcCust);
+    setFKha(feeder.capacityKva || feeder.khaAmpere || (calcKva > 0 ? calcKva : ''));
+    setFLength(feeder.lengthKms !== undefined && feeder.lengthKms !== null && feeder.lengthKms > 0 ? feeder.lengthKms : (calcLength > 0 ? calcLength : ''));
+    setFGarduCount(feeder.garduCount !== undefined && feeder.garduCount !== null && feeder.garduCount > 0 ? feeder.garduCount : (calcGardu > 0 ? calcGardu : ''));
+    setFCust(feeder.customerCount !== undefined && feeder.customerCount !== null && feeder.customerCount > 0 ? feeder.customerCount : (calcCust > 0 ? calcCust : ''));
     setFConfig(feeder.configuration || 'Looping');
   };
 
@@ -693,7 +693,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
               <div className="text-xl font-black text-blue-700 dark:text-blue-400">
-                {masterFeeders.reduce((acc, f) => acc + (f.lengthKms || 0), 0).toFixed(1)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">KMS</span>
+                {masterFeeders.reduce((acc, f) => {
+                  const matchingSecs = masterSections.filter(s => s.feederName && matchFeederName(s.feederName, f.feederName));
+                  const secLenSum = matchingSecs.reduce((sAcc, s) => sAcc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0);
+                  const len = (f.lengthKms !== undefined && f.lengthKms !== null && f.lengthKms > 0) ? f.lengthKms : secLenSum;
+                  return acc + (len || 0);
+                }, 0).toFixed(1)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">KMS</span>
               </div>
             </div>
 
@@ -729,7 +734,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 </div>
               </div>
               <div className="text-xl font-black text-amber-700 dark:text-amber-400">
-                {masterFeeders.reduce((acc, f) => acc + (f.customerCount || 0), 0).toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Plg</span>
+                {masterFeeders.reduce((acc, f) => {
+                  const matchingSecs = masterSections.filter(s => s.feederName && matchFeederName(s.feederName, f.feederName));
+                  const secCustSum = matchingSecs.reduce((sAcc, s) => sAcc + (Number(s.customerCount) || 0), 0);
+                  const cust = (f.customerCount !== undefined && f.customerCount !== null && f.customerCount > 0) ? f.customerCount : secCustSum;
+                  return acc + (cust || 0);
+                }, 0).toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Plg</span>
               </div>
             </div>
           </div>
@@ -814,21 +824,24 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       const totalKvaGds = matchingGds.reduce((acc, g) => acc + (g.capacityKva || 0), 0);
                       const hasSecs = matchingSections.length > 0;
                       const totalSecCust = matchingSections.reduce((acc, s) => acc + (Number(s.customerCount) || 0), 0);
+                      const secLengthSum = matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0);
+                      const secGarduSum = matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0);
                       
-                      const realGardu = matchingGds.length > 0 
-                        ? matchingGds.length 
-                        : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0) : (feeder.garduCount ?? 0));
+                      const realGardu = (feeder.garduCount !== undefined && feeder.garduCount !== null && feeder.garduCount > 0)
+                        ? feeder.garduCount
+                        : (matchingGds.length > 0 ? matchingGds.length : (secGarduSum > 0 ? secGarduSum : 0));
                       
-                      const realLength = hasSecs 
-                        ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1))
-                        : (feeder.lengthKms ?? 0);
+                      const realLength = (feeder.lengthKms !== undefined && feeder.lengthKms !== null && feeder.lengthKms > 0)
+                        ? feeder.lengthKms
+                        : (secLengthSum > 0 ? Number(secLengthSum.toFixed(1)) : 0);
                       
-                      const realKvaGardu = matchingGds.length > 0 
-                        ? totalKvaGds 
-                        : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0);
-                      const realCust = hasSecs
-                        ? totalSecCust
-                        : (feeder.customerCount ?? 0);
+                      const realKvaGardu = (feeder.capacityKva || feeder.khaAmpere || 0) > 0
+                        ? (feeder.capacityKva || feeder.khaAmpere)
+                        : (matchingGds.length > 0 ? totalKvaGds : 0);
+                      
+                      const realCust = (feeder.customerCount !== undefined && feeder.customerCount !== null && feeder.customerCount > 0)
+                        ? feeder.customerCount
+                        : (totalSecCust > 0 ? totalSecCust : 0);
 
                       // Synchronized Feeder Reliability Metrics (SAIDI, SAIFI, ENS)
                       const feederTrips = (trips || []).filter(t => matchFeederName(t.feederName, feeder.feederName));
