@@ -744,6 +744,7 @@ export default function App() {
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
+        masterFeeders={masterFeeders}
       />
 
       <div className="max-w-[1700px] mx-auto flex">
