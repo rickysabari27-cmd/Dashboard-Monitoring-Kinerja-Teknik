@@ -17,7 +17,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   isDarkMode,
   usersList
 }) => {
-  const [username, setUsername] = useState<string>('9218042PLN');
+  const [username, setUsername] = useState<string>('8812345Z');
   const [password, setPassword] = useState<string>('123456');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);

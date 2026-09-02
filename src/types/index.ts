@@ -515,6 +515,23 @@ export interface UserAccess {
   lastActive: string;
 }
 
+export interface AdminApprovalEmail {
+  id: string;
+  userId: string;
+  userNik: string;
+  userName: string;
+  userEmail: string;
+  userPhone?: string;
+  userRole: UserAccess['role'];
+  userUnitName: string;
+  requestedAt: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  subject: string;
+  message: string;
+  processedAt?: string;
+  processedBy?: string;
+}
+
 export interface ImportedFeederFile {
   id: string;
   name: string;

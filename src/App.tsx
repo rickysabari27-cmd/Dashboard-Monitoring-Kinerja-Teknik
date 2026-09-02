@@ -42,6 +42,7 @@ import {
   INITIAL_PB_PD_DATA
 } from './data/mockData';
 import { syncCollection, saveDocument, deleteDocument } from './services/firebaseSync';
+import { isAdminRole, canUserEditView } from './utils/permissionUtils';
 
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -62,8 +63,8 @@ import { UserManagementView } from './components/views/UserManagementView';
 import { PbPdMonitoringView } from './components/views/PbPdMonitoringView';
 import { LoginPage } from './components/views/LoginPage';
 import { WhatsAppDispatchView } from './components/views/WhatsAppDispatchView';
-import { GoogleSheetIntegrationView } from './components/views/GoogleSheetIntegrationView';
 import { GangguanGoogleSheetIntegration } from './components/views/GangguanGoogleSheetIntegration';
+import { GoogleSheetIntegrationView } from './components/views/GoogleSheetIntegrationView';
 
 import { InputGangguanModal } from './components/modals/InputGangguanModal';
 import { InputSaidiModal } from './components/modals/InputSaidiModal';
@@ -137,24 +138,65 @@ export default function App() {
     });
     const unsubGardu = syncCollection<GarduMeasurement>('gardu_measurements', INITIAL_GARDU_MEASUREMENTS, (data) => setGarduMeasurements(data));
     const unsubFeeders = syncCollection<MasterFeeder>('master_feeders', INITIAL_MASTER_FEEDERS, (data) => {
-      // Clean up Halong if present in Firestore
+      // Build canonical map of 27 ULP Baguala feeders from INITIAL_MASTER_FEEDERS
+      const feederMap = new Map<string, MasterFeeder>();
+      INITIAL_MASTER_FEEDERS.forEach(init => {
+        const key = init.feederName.trim().toLowerCase();
+        feederMap.set(key, { ...init });
+      });
+
+      const seenKeys = new Set<string>();
+
       data.forEach(item => {
-        if (item.feederCode === 'HLG' || item.feederName.toLowerCase() === 'halong' || item.id === 'MF-HLG') {
-          deleteDocument('master_feeders', item.id);
+        if (!item.feederName) {
+          if (item.id) deleteDocument('master_feeders', item.id);
+          return;
+        }
+
+        const key = item.feederName.trim().toLowerCase();
+        const codeKey = item.feederCode ? item.feederCode.trim().toLowerCase() : '';
+
+        let canonicalKey = '';
+        if (feederMap.has(key)) {
+          canonicalKey = key;
+        } else {
+          for (const [k, v] of feederMap.entries()) {
+            if (v.feederCode.toLowerCase() === codeKey) {
+              canonicalKey = k;
+              break;
+            }
+          }
+        }
+
+        if (canonicalKey) {
+          const canonicalItem = feederMap.get(canonicalKey)!;
+          // Delete duplicate Firestore/localStorage records if already seen or old ID format
+          if (seenKeys.has(canonicalKey) || (item.id !== canonicalItem.id && item.id.startsWith('MF-0'))) {
+            if (item.id) deleteDocument('master_feeders', item.id);
+          } else {
+            seenKeys.add(canonicalKey);
+            feederMap.set(canonicalKey, {
+              ...canonicalItem,
+              ...item,
+              id: item.id || canonicalItem.id,
+              feederName: item.feederName || canonicalItem.feederName,
+              feederCode: item.feederCode || canonicalItem.feederCode,
+              operationalStatus: item.operationalStatus || canonicalItem.operationalStatus
+            });
+          }
+        } else {
+          // Keep custom feeders added by users
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            feederMap.set(key, item);
+          }
         }
       });
 
-      const filtered = data.filter(item => 
-        item.feederCode !== 'HLG' && 
-        item.feederName.toLowerCase() !== 'halong' && 
-        item.id !== 'MF-HLG'
-      );
-
-      const processedData = filtered.map(item => {
+      const processedData = Array.from(feederMap.values()).map(item => {
         let updated = { ...item };
         let needsSave = false;
 
-        // Sync with masterSections if matching items exist, without overwriting full feeder customer count with incomplete gardus
         const matchingGds = (masterGarduDistribusi || []).filter(g => 
           g.feederName && g.feederName.trim().toLowerCase() === item.feederName.trim().toLowerCase()
         );
@@ -164,7 +206,7 @@ export default function App() {
 
         if (matchingSecs.length > 0) {
           const realCustSec = matchingSecs.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
-          if (item.customerCount !== realCustSec && realCustSec > 0) {
+          if (realCustSec > 0 && item.customerCount !== realCustSec) {
             updated.customerCount = realCustSec;
             needsSave = true;
           }
@@ -175,35 +217,20 @@ export default function App() {
             updated.garduCount = matchingGds.length;
             needsSave = true;
           }
-          if (item.capacityKva !== realKva && realKva > 0) {
+          if (realKva > 0 && item.capacityKva !== realKva) {
             updated.capacityKva = realKva;
             needsSave = true;
           }
-          // Only update customer count if realCust is larger than current or current is 0
-          if ((!item.customerCount || item.customerCount === 0 || realCust > item.customerCount) && realCust > 0) {
+          if (realCust > 0 && (!item.customerCount || item.customerCount === 0 || realCust > item.customerCount)) {
             updated.customerCount = realCust;
-            needsSave = true;
-          }
-        } else {
-          // If customerCount is missing or zero, check INITIAL_MASTER_FEEDERS fallback
-          const initMatch = INITIAL_MASTER_FEEDERS.find(f => f.feederName.toLowerCase() === item.feederName.toLowerCase());
-          if (initMatch && initMatch.customerCount && (!item.customerCount || item.customerCount === 0)) {
-            updated.customerCount = initMatch.customerCount;
             needsSave = true;
           }
         }
 
         if (needsSave) {
-          saveDocument('master_feeders', updated);
+          saveDocument('master_feeders', updated, updated.id);
         }
         return updated;
-      });
-
-      INITIAL_MASTER_FEEDERS.forEach(init => {
-        if (!processedData.some(d => d.feederName.toLowerCase() === init.feederName.toLowerCase() || d.feederCode.toLowerCase() === init.feederCode.toLowerCase())) {
-          saveDocument('master_feeders', init);
-          processedData.push(init);
-        }
       });
 
       setMasterFeeders(processedData);
@@ -499,9 +526,9 @@ export default function App() {
         const updatedFeeder: MasterFeeder = {
           ...parentFeeder,
           garduCount: matchingGds.length,
-          capacityKva: totalKva,
-          khaAmpere: totalKva,
-          customerCount: totalCust
+          capacityKva: totalKva > 0 ? totalKva : parentFeeder.capacityKva,
+          khaAmpere: totalKva > 0 ? totalKva : parentFeeder.khaAmpere,
+          customerCount: totalCust > 0 ? totalCust : parentFeeder.customerCount
         };
         setMasterFeeders(prev => prev.map(f => f.id === parentFeeder.id ? updatedFeeder : f));
         saveDocument('master_feeders', updatedFeeder, parentFeeder.id);
@@ -527,9 +554,9 @@ export default function App() {
         const updatedFeeder: MasterFeeder = {
           ...parentFeeder,
           garduCount: remainingGds.length,
-          capacityKva: totalKva,
-          khaAmpere: totalKva,
-          customerCount: totalCust
+          capacityKva: totalKva > 0 ? totalKva : parentFeeder.capacityKva,
+          khaAmpere: totalKva > 0 ? totalKva : parentFeeder.khaAmpere,
+          customerCount: totalCust > 0 ? totalCust : parentFeeder.customerCount
         };
         setMasterFeeders(prev => prev.map(f => f.id === parentFeeder.id ? updatedFeeder : f));
         saveDocument('master_feeders', updatedFeeder, parentFeeder.id);
@@ -666,9 +693,17 @@ export default function App() {
   };
 
   const handleSaveUser = (newUser: UserAccess) => {
-    setUsers([newUser, ...users]);
+    setUsers(prev => {
+      const idx = prev.findIndex(u => u.id === newUser.id || u.nik === newUser.nik);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newUser;
+        return updated;
+      }
+      return [newUser, ...prev];
+    });
     saveDocument('users_access', newUser, newUser.id);
-    showToast(`User ${newUser.name} (${newUser.role}) berhasil diberikan akses ke Firebase!`);
+    showToast(`User ${newUser.name} (${newUser.role}) berhasil disimpan!`);
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -907,6 +942,7 @@ export default function App() {
               onSaveSpk={handleSaveSpk}
               onDeleteSpk={handleDeleteSpk}
               onClearSpks={handleClearSpks}
+              currentUser={currentUser}
             />
           )}
 
@@ -916,6 +952,7 @@ export default function App() {
               data={monthlySaidiData}
               onOpenInputSaidi={() => setIsSaidiModalOpen(true)}
               onUpdateSaidiRow={handleUpdateSaidiRow}
+              currentUser={currentUser}
             />
           )}
 

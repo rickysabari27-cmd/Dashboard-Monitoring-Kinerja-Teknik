@@ -17,6 +17,7 @@ import {
   ApdTool,
   Vehicle,
   UserAccess,
+  AdminApprovalEmail,
   WhatsAppContact,
   WhatsAppMessage,
   PbPdRegistration
@@ -423,6 +424,146 @@ export const INITIAL_MASTER_FEEDERS: MasterFeeder[] = [
     garduCount: 18,
     customerCount: 3340,
     configuration: 'Looping'
+  },
+  {
+    id: 'MF-SUL',
+    feederCode: 'SUL',
+    feederName: 'Suli',
+    substationName: 'GI Passo',
+    garduHubung: 'GH Baguala',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 12.4,
+    garduCount: 16,
+    customerCount: 2950,
+    configuration: 'Looping'
+  },
+  {
+    id: 'MF-HNT',
+    feederCode: 'HNT',
+    feederName: 'Hunuth',
+    substationName: 'GI Passo',
+    garduHubung: 'GH Baguala',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 11.2,
+    garduCount: 14,
+    customerCount: 2810,
+    configuration: 'Radial'
+  },
+  {
+    id: 'MF-LHA',
+    feederCode: 'LHA',
+    feederName: 'Laha',
+    substationName: 'GI Hative Besar',
+    garduHubung: 'GH Bandara',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 14.8,
+    garduCount: 17,
+    customerCount: 3120,
+    configuration: 'Looping'
+  },
+  {
+    id: 'MF-HLG',
+    feederCode: 'HLG',
+    feederName: 'Halong',
+    substationName: 'GI Passo',
+    garduHubung: 'GH Hative Kecil',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 9.6,
+    garduCount: 12,
+    customerCount: 2450,
+    configuration: 'Radial'
+  },
+  {
+    id: 'MF-HTV',
+    feederCode: 'HTV',
+    feederName: 'Hative',
+    substationName: 'GI Hative Besar',
+    garduHubung: 'GH Wayame',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 10.8,
+    garduCount: 15,
+    customerCount: 2980,
+    configuration: 'Looping'
+  },
+  {
+    id: 'MF-PKA',
+    feederCode: 'PKA',
+    feederName: 'Pokka',
+    substationName: 'GI Hative Besar',
+    garduHubung: 'GH Box Pantai Poka',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 8.5,
+    garduCount: 11,
+    customerCount: 2300,
+    configuration: 'Radial'
+  },
+  {
+    id: 'MF-NNA',
+    feederCode: 'NNA',
+    feederName: 'Nania',
+    substationName: 'GIS Passo',
+    garduHubung: 'GH Baguala',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 13.1,
+    garduCount: 16,
+    customerCount: 3050,
+    configuration: 'Looping'
+  },
+  {
+    id: 'MF-DPT',
+    feederCode: 'DPT',
+    feederName: 'Durian Patah',
+    substationName: 'GIS Passo',
+    garduHubung: 'GH Baguala',
+    status: 'Percabangan',
+    operationalStatus: 'Operasi',
+    khaAmpere: 600,
+    lengthKms: 7.9,
+    garduCount: 10,
+    customerCount: 2180,
+    configuration: 'Radial'
+  },
+  {
+    id: 'MF-NTP',
+    feederCode: 'NTP',
+    feederName: 'Natsepa',
+    substationName: 'GI Passo',
+    garduHubung: 'GH Baguala',
+    status: 'Percabangan',
+    operationalStatus: 'Tidak Operasi',
+    khaAmpere: 600,
+    lengthKms: 15.0,
+    garduCount: 18,
+    customerCount: 3200,
+    configuration: 'Standby Interkoneksi'
+  },
+  {
+    id: 'MF-LNG',
+    feederCode: 'LNG',
+    feederName: 'Liang',
+    substationName: 'GI Passo',
+    garduHubung: 'GH Baguala',
+    status: 'Percabangan',
+    operationalStatus: 'Tidak Operasi',
+    khaAmpere: 600,
+    lengthKms: 18.2,
+    garduCount: 20,
+    customerCount: 3800,
+    configuration: 'Standby Interkoneksi'
   }
 ];
 
@@ -1302,8 +1443,12 @@ export const INITIAL_USERS: UserAccess[] = [
   { id: 'USR-01', nik: '9218042PLN', name: 'M. Ricky Sabary', role: 'Team Leader', unitName: 'PLN ULP Baguala', email: 'rickysabari27@gmail.com', phone: '081234567890', status: 'Aktif', lastActive: 'Hari ini 12:45' },
   { id: 'USR-02', nik: '9512088PLN', name: 'Joni Doe', role: 'Team Leader', unitName: 'PLN ULP Baguala', email: 'joni.doe@pln.co.id', phone: '081298765432', status: 'Aktif', lastActive: 'Hari ini 11:30' },
   { id: 'USR-03', nik: '9820011PLN', name: 'Tim Yantek Passo', role: 'Koordinator Yantek', unitName: 'Posko Passo', email: 'yantek.passo@pln.co.id', phone: '085211223344', status: 'Aktif', lastActive: 'Hari ini 10:15' },
-  { id: 'USR-04', nik: '9715022PLN', name: 'Ahmad Staff Teknik', role: 'Staff Teknik', unitName: 'PLN ULP Baguala', email: 'ahmad.teknik@pln.co.id', phone: '081399887766', status: 'Aktif', lastActive: 'Hari ini 09:00' }
+  { id: 'USR-04', nik: '9715022PLN', name: 'Ahmad Staff Teknik', role: 'Staff Teknik', unitName: 'PLN ULP Baguala', email: 'ahmad.teknik@pln.co.id', phone: '081399887766', status: 'Aktif', lastActive: 'Hari ini 09:00' },
+  { id: 'USR-05', nik: '9900112PLN', name: 'Admin ULP Baguala', role: 'Admin', unitName: 'PLN ULP Baguala', email: 'admin.baguala@pln.co.id', phone: '081122334455', status: 'Aktif', lastActive: 'Hari ini 13:00' },
+  { id: 'USR-06', nik: '9920088PLN', name: 'Budi Santoso', role: 'Staff Teknik', unitName: 'PLN ULP Baguala', email: 'budi.santoso@pln.co.id', phone: '081233445566', status: 'Aktif', lastActive: 'Hari ini 14:00' }
 ];
+
+export const INITIAL_APPROVAL_EMAILS: AdminApprovalEmail[] = [];
 
 export const INITIAL_WHATSAPP_CONTACTS: WhatsAppContact[] = [
   {

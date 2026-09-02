@@ -6,8 +6,7 @@ import {
   LogIn, 
   AlertCircle, 
   Eye, 
-  EyeOff,
-  Lock
+  EyeOff
 } from 'lucide-react';
 import { UserAccess } from '../../types';
 import garduIndukImg from '../../assets/images/gardu_induk_pln_1786415424800.jpg';
@@ -37,7 +36,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const trimmedPassword = password.trim();
 
     if (!trimmedUsername || !trimmedPassword) {
-      setErrorMsg('Username dan Password wajib diisi.');
+      setErrorMsg('Username / NIP dan Password wajib diisi.');
       return;
     }
 
@@ -58,9 +57,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           setErrorMsg('Akun ini sedang Non-Aktif. Hubungi Supervisor.');
           return;
         }
+
         onLoginSuccess(matchedUser);
       } else {
-        // Fallback for user entry
+        // Fallback demo user
         const fallbackUser: UserAccess = {
           id: `USR-${Date.now()}`,
           nik: trimmedUsername.toUpperCase(),
@@ -87,16 +87,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center filter contrast-110 brightness-90 animate-fadeIn"
         />
-        {/* Soft atmospheric gradient tint so Gardu Induk substation is clearly visible */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/40 to-slate-950/80" />
         <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px]" />
       </div>
 
-      {/* CENTERED CLEAN LOGIN CARD */}
-      <div className="relative z-10 w-full max-w-md">
+      {/* CENTERED CARD */}
+      <div className="relative z-10 w-full max-w-md my-6">
         
         {/* BRANDING HEADER */}
-        <div className="flex flex-col items-center text-center mb-6 space-y-2">
+        <div className="flex flex-col items-center text-center mb-5 space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 via-amber-500 to-blue-600 p-0.5 shadow-2xl shadow-amber-500/40">
             <div className="w-full h-full bg-slate-950/90 rounded-[14px] flex items-center justify-center backdrop-blur-md">
               <Zap className="w-8 h-8 text-amber-400 fill-amber-400" />
@@ -112,16 +111,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
         </div>
 
-        {/* LOGIN FORM CARD */}
-        <div className="rounded-3xl bg-slate-900/85 border border-slate-700/60 shadow-2xl shadow-slate-950/90 backdrop-blur-md p-8 space-y-6">
+        {/* MAIN CARD CONTAINER */}
+        <div className="rounded-3xl bg-slate-900/90 border border-slate-700/60 shadow-2xl shadow-slate-950/90 backdrop-blur-md p-6 sm:p-7 space-y-5">
           
-          <div className="text-center space-y-1">
-            <h2 className="text-lg font-extrabold text-white flex items-center justify-center gap-2">
-              <Lock className="w-5 h-5 text-cyan-400" />
-              <span>Login System</span>
-            </h2>
-          </div>
-
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             
             {errorMsg && (
@@ -135,7 +127,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Username</span>
+                <span>Username / NIP / Email</span>
               </label>
               <input 
                 type="text"
@@ -143,8 +135,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 autoFocus
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Masukkan Username..."
-                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm font-semibold placeholder-slate-400 focus:outline-hidden focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+                placeholder="Masukkan Username atau NIP..."
+                className="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm font-semibold placeholder-slate-500 focus:outline-hidden focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
               />
             </div>
 
@@ -161,12 +153,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan Password..."
-                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm font-semibold placeholder-slate-400 focus:outline-hidden focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm font-semibold placeholder-slate-500 focus:outline-hidden focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -184,10 +176,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               ) : (
                 <>
                   <LogIn className="w-4 h-4" />
-                  <span>Masuk</span>
+                  <span>MASUK AKUN</span>
                 </>
               )}
             </button>
+
+            {/* DEMO ACCOUNTS QUICK LOGIN */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-2 text-xs">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block text-center">
+                Pilih Akun Pengujian Cepat:
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setUsername('8812345Z'); setPassword('123456'); }}
+                  className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all cursor-pointer"
+                >
+                  <span className="font-extrabold text-blue-400 block truncate">M. Ricky Sabary</span>
+                  <span className="text-[10px] text-slate-400">Team Leader</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUsername('ADMIN01'); setPassword('123456'); }}
+                  className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all cursor-pointer"
+                >
+                  <span className="font-extrabold text-cyan-400 block truncate">User Admin</span>
+                  <span className="text-[10px] text-slate-400">Admin (SPK & Gangguan)</span>
+                </button>
+              </div>
+            </div>
 
           </form>
 

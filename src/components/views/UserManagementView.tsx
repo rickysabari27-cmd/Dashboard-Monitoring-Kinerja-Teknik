@@ -19,7 +19,8 @@ import {
   X, 
   RefreshCw,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 
 interface UserManagementViewProps {
@@ -299,7 +300,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <th className="p-3">Jabatan</th>
                 <th className="p-3">Unit</th>
                 <th className="p-3">Email</th>
-                <th className="p-3">Nomor HP</th>
+                <th className="p-3">Status Persetujuan</th>
                 <th className="p-3">Terakhir Aktif</th>
                 <th className="p-3 text-center">Aksi Management</th>
               </tr>
@@ -327,7 +328,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                             {u.name.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-extrabold text-slate-900 dark:text-white">
+                            <div className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
                               <span>{u.name}</span>
                             </div>
                             <div className="text-[10px] font-bold text-slate-400">
@@ -354,9 +355,19 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                         {u.email}
                       </td>
 
-                      {/* Nomor HP */}
-                      <td className="p-3 text-slate-700 dark:text-slate-300 font-semibold">
-                        {u.phone || '-'}
+                      {/* Status Persetujuan */}
+                      <td className="p-3">
+                        {u.status === 'Aktif' || !u.status ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Aktif</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Non-Aktif</span>
+                          </span>
+                        )}
                       </td>
 
                       {/* Last Active */}
@@ -526,6 +537,22 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
                   }`}
                 />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">
+                  Status Akun & Persetujuan
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as UserAccess['status'])}
+                  className={`w-full p-2.5 rounded-xl border font-extrabold ${
+                    isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-900'
+                  }`}
+                >
+                  <option value="Aktif">Aktif (Dapat Login & Akses System)</option>
+                  <option value="Non-Aktif">Non-Aktif (Akses Dibatasi)</option>
+                </select>
               </div>
 
               <div>

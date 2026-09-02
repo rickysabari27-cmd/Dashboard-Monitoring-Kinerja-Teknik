@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CustomSelect } from '../CustomSelect';
-import { MonthlySaidiSaifiData } from '../../types';
+import { MonthlySaidiSaifiData, UserAccess } from '../../types';
+import { isAdminRole } from '../../utils/permissionUtils';
 import { 
   BarChart, 
   Bar, 
@@ -48,6 +49,7 @@ interface SaidiSaifiDetailViewProps {
   data: MonthlySaidiSaifiData[];
   onOpenInputSaidi: () => void;
   onUpdateSaidiRow?: (updatedRow: MonthlySaidiSaifiData) => void;
+  currentUser?: UserAccess | null;
 }
 
 const MONTH_ORDER = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -218,8 +220,10 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
   isDarkMode,
   data,
   onOpenInputSaidi,
-  onUpdateSaidiRow
+  onUpdateSaidiRow,
+  currentUser
 }) => {
+  const isReadOnly = currentUser ? (currentUser.role === 'Admin Yantek' || currentUser.role === 'Admin' || isAdminRole(currentUser)) : false;
   // Filters & Display Unit Mode
   const [selectedYear, setSelectedYear] = useState<number>(() => CURRENT_APP_YEAR);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>('ALL');
@@ -619,14 +623,16 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button 
-            onClick={handleResetAllData}
-            className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer print:hidden"
-            title="Hapus / Kosongkan semua data Target & Realisasi KPI untuk input manual"
-          >
-            <RotateCcw className="w-4 h-4 text-rose-400" />
-            <span>Kosongkan Data Target & Realisasi</span>
-          </button>
+          {!isReadOnly && (
+            <button 
+              onClick={handleResetAllData}
+              className="px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer print:hidden"
+              title="Hapus / Kosongkan semua data Target & Realisasi KPI untuk input manual"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-400" />
+              <span>Kosongkan Data Target & Realisasi</span>
+            </button>
+          )}
 
           <button 
             onClick={handlePrint}
@@ -636,13 +642,15 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
             <span>Cetak PDF</span>
           </button>
 
-          <button 
-            onClick={onOpenInputSaidi}
-            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-emerald-950/50 flex items-center gap-2 active:scale-95 transition-all cursor-pointer print:hidden"
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>+ Form Input Target & Realisasi KPI</span>
-          </button>
+          {!isReadOnly && (
+            <button 
+              onClick={onOpenInputSaidi}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-emerald-950/50 flex items-center gap-2 active:scale-95 transition-all cursor-pointer print:hidden"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>+ Form Input Target & Realisasi KPI</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1317,13 +1325,15 @@ export const SaidiSaifiDetailView: React.FC<SaidiSaifiDetailViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button 
-              onClick={onOpenInputSaidi}
-              className="text-xs font-extrabold text-white flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-3.5 py-1.5 rounded-xl shadow-md cursor-pointer"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Input Target & Realisasi</span>
-            </button>
+            {!isReadOnly && (
+              <button 
+                onClick={onOpenInputSaidi}
+                className="text-xs font-extrabold text-white flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-3.5 py-1.5 rounded-xl shadow-md cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Input Target & Realisasi</span>
+              </button>
+            )}
 
             {/* Period Selector Tabs for Matriks Kinerja */}
             <div className="flex items-center gap-1 bg-[#070c19] p-1 rounded-xl border border-[#1c2942] text-xs font-bold">

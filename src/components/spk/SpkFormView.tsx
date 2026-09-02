@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import html2canvas from 'html2canvas-pro';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
-import { SpkTask } from '../../types';
+import { SpkTask, UserAccess } from '../../types';
+import { canUserApproveSpk } from '../../utils/permissionUtils';
 import { 
   Printer, 
   Plus, 
@@ -36,6 +37,7 @@ interface SpkFormViewProps {
   onSaveSpk?: (spk: SpkTask) => void;
   onDeleteSpk?: (spkId: string) => void;
   onClearSpks?: () => void;
+  currentUser?: UserAccess | null;
 }
 
 export interface SpkFormData {
@@ -453,10 +455,14 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
   spkList = [],
   onSaveSpk,
   onDeleteSpk,
-  onClearSpks
+  onClearSpks,
+  currentUser
 }) => {
   // Mode State: 'monitoring' by default per user request
   const [currentMode, setCurrentMode] = useState<'monitoring' | 'editor'>('monitoring');
+
+  // Check if logged-in user has approval privileges (Manager, Team Leader, Admin, Admin Yantek)
+  const canApprove = canUserApproveSpk(currentUser);
 
   // List of SPK Records (Initialized clean per user request to recreate SPKs)
   const [allSpks, setAllSpks] = useState<SpkFormData[]>(() => {
@@ -762,6 +768,10 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
   };
 
   const handleToggleApproveManager = () => {
+    if (!canApprove) {
+      showToast('❌ Akses Ditolak: Hanya pengguna dengan Peran Manager, Team Leader, atau Admin yang dapat menyetujui (Approve) SPK ini!');
+      return;
+    }
     const nowStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
     setFormData(prev => {
       const nextApproved = !Boolean(prev.isApprovedManager);
@@ -2216,8 +2226,15 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
 
               {/* Section 5: Pejabat Penandatangan & Persetujuan */}
               <div className="space-y-3 pt-3 border-t border-slate-800">
-                <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                  5. Pejabat Penandatangan & Persetujuan
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                    5. Pejabat Penandatangan & Persetujuan
+                  </div>
+                  {!canApprove && (
+                    <span className="text-[10px] font-extrabold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/30">
+                      Khusus Peran Manager, Team Leader & Admin
+                    </span>
+                  )}
                 </div>
 
                 {/* Manager Approval Control */}
@@ -2229,6 +2246,7 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                       ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                       : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
                   }`}
+                  title={canApprove ? "Klik untuk menyetujui / membatalkan persetujuan SPK" : "Akses Terkunci: Hanya pengguna dengan peran Manager, Team Leader, atau Admin yang dapat menyetujui"}
                 >
                   <div className="flex items-center gap-2.5">
                     <div className={`p-2 rounded-lg ${Boolean(formData.isApprovedManager) ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
@@ -2239,7 +2257,9 @@ export const SpkFormView: React.FC<SpkFormViewProps> = ({
                         {Boolean(formData.isApprovedManager) ? 'MANAGER: APPROVED (QR CODE)' : 'MANAGER: PENDING APPROVAL'}
                       </div>
                       <div className="text-[10px] font-medium text-slate-400">
-                        Persetujuan Manager ULP (Scan QR Code: &quot;Approve&quot;)
+                        {canApprove 
+                          ? 'Persetujuan Manager ULP (Scan QR Code: "Approve")' 
+                          : 'Persetujuan hanya dapat dilakukan oleh akun dengan Peran Manager, Team Leader, atau Admin'}
                       </div>
                     </div>
                   </div>

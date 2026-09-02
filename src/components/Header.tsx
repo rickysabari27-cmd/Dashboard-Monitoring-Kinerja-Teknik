@@ -8,7 +8,8 @@ import {
   Activity,
   LogOut,
   LogIn,
-  Clock
+  Clock,
+  Mail
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -39,13 +40,15 @@ export const Header: React.FC<HeaderProps> = ({
 
   const activeFeederCount = masterFeeders.length > 0 
     ? masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length 
-    : 16;
-  const totalFeederCount = masterFeeders.length > 0 ? masterFeeders.length : 17;
+    : 24;
+  const totalFeederCount = masterFeeders.length > 0 ? masterFeeders.length : 27;
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setLastUpdated(now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIT');
+      const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastUpdated(`${dateStr} ${timeStr} WIT`);
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -102,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{activeFeederCount} Penyulang Aktif</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/30 flex items-center gap-1">
               <Clock className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-              <span>Terupdate {lastUpdated}</span>
+              <span>{lastUpdated}</span>
             </span>
           </div>
 

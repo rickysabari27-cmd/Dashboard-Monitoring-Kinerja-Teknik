@@ -265,6 +265,7 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
   // Master Assets Stats
   const assetStats = useMemo(() => {
     const totalFeeders = masterFeeders.length;
+    const activeFeeders = masterFeeders.filter(f => (f.operationalStatus || 'Operasi') === 'Operasi').length;
     const totalLengthKm = masterFeeders.reduce((acc, f) => acc + (f.lengthKm || 0), 0);
     const totalCustomers = masterFeeders.reduce((acc, f) => acc + (f.totalCustomers || 0), 0) || defaultTotalUlp;
     const totalPowerMva = masterFeeders.reduce((acc, f) => acc + (f.capacityMva || 0), 0);
@@ -284,6 +285,7 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
 
     return {
       totalFeeders,
+      activeFeeders,
       totalLengthKm,
       totalCustomers,
       totalPowerMva,
@@ -813,7 +815,7 @@ export const MainDashboardView: React.FC<MainDashboardViewProps> = ({
           </div>
 
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-transform">
-            <span>{assetStats.totalFeeders} Penyulang Aktif</span>
+            <span>{assetStats.activeFeeders} Penyulang Aktif</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </div>
         </div>

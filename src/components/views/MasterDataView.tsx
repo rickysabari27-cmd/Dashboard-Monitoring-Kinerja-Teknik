@@ -42,7 +42,8 @@ import {
   Sparkles,
   Waves,
   Cpu,
-  Check
+  Check,
+  Users
 } from 'lucide-react';
 
 export type MasterDataSubTab = 
@@ -344,10 +345,18 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
     );
     const totalKvaGds = matchingGds.reduce((acc, g) => acc + (Number(g.capacityKva) || 0), 0);
 
-    setFKha(matchingGds.length > 0 ? totalKvaGds : ((feeder as any).capacityKva ?? feeder.khaAmpere ?? 0));
-    setFLength(hasSecs ? Number(matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0).toFixed(1)) : (feeder.lengthKms ?? 0));
-    setFGarduCount(matchingGds.length > 0 ? matchingGds.length : (hasSecs ? matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0) : (feeder.garduCount ?? 0)));
-    setFCust(hasSecs ? totalSecCust : (feeder.customerCount ?? 0));
+    const secLenSum = matchingSections.reduce((acc, s) => acc + (s.lengthKms || 0) + (s.hasFcoBranch ? (s.fcoLengthKms || 0) : 0), 0);
+    const secGarduSum = matchingSections.reduce((acc, s) => acc + (s.garduCount || 0), 0);
+
+    const calcKva = totalKvaGds > 0 ? totalKvaGds : (feeder.capacityKva || feeder.khaAmpere || 0);
+    const calcLength = secLenSum > 0 ? Number(secLenSum.toFixed(1)) : (feeder.lengthKms || 0);
+    const calcGardu = matchingGds.length > 0 ? matchingGds.length : (secGarduSum > 0 ? secGarduSum : (feeder.garduCount || 0));
+    const calcCust = totalSecCust > 0 ? totalSecCust : (feeder.customerCount || 0);
+
+    setFKha((feeder.capacityKva || feeder.khaAmpere) ? (feeder.capacityKva || feeder.khaAmpere) : calcKva);
+    setFLength(feeder.lengthKms ? feeder.lengthKms : calcLength);
+    setFGarduCount(feeder.garduCount ? feeder.garduCount : calcGardu);
+    setFCust(feeder.customerCount ? feeder.customerCount : calcCust);
     setFConfig(feeder.configuration || 'Looping');
   };
 
@@ -662,7 +671,7 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
       {/* ========================================================================= */}
       {activeTab === 'penyulang' && (
         <div className="space-y-4">
-          {/* KPI Summary Cards */}
+          {/* Master Data Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
@@ -678,49 +687,49 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
 
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Gangguan</span>
-                <div className="p-1.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
-                  <Zap className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-xl font-black text-rose-700 dark:text-rose-400">
-                {systemSaidiSaifiEns.totalTripsCount} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Trip</span>
-              </div>
-            </div>
-
-            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">SAIDI ULP</span>
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Panjang</span>
                 <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                  <Activity className="w-4 h-4" />
+                  <Route className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-xl font-black text-blue-700 dark:text-blue-400">
-                {systemSaidiSaifiEns.totalSaidiHours.toFixed(3)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Jam/Plg</span>
+                {masterFeeders.reduce((acc, f) => acc + (f.lengthKms || 0), 0).toFixed(1)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">KMS</span>
               </div>
             </div>
 
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">SAIFI ULP</span>
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Gardu</span>
                 <div className="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
-                  <Activity className="w-4 h-4" />
+                  <Building2 className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-xl font-black text-cyan-700 dark:text-cyan-400">
-                {systemSaidiSaifiEns.totalSaifiCount.toFixed(3)} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Kali/Plg</span>
+                {masterGarduDistribusi.length} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Unit</span>
               </div>
             </div>
 
             <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">ENS Loss ULP</span>
-                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Kapasitas</span>
+                <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                   <Gauge className="w-4 h-4" />
                 </div>
               </div>
+              <div className="text-xl font-black text-emerald-700 dark:text-emerald-400">
+                {masterGarduDistribusi.reduce((acc, g) => acc + (g.capacityKva || 0), 0).toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">kVA</span>
+              </div>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50/90 border-slate-300 shadow-xs'}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Total Pelanggan</span>
+                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
               <div className="text-xl font-black text-amber-700 dark:text-amber-400">
-                {systemSaidiSaifiEns.totalEnsKwh.toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">kWh</span>
+                {masterFeeders.reduce((acc, f) => acc + (f.customerCount || 0), 0).toLocaleString('id-ID')} <span className="text-xs font-bold text-slate-700 dark:text-slate-400">Plg</span>
               </div>
             </div>
           </div>
@@ -744,14 +753,14 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                 setFeederToEdit(null);
                 setFCode('');
                 setFName('');
-                setFGi('-');
+                setFGi('GI Passo');
                 setFGh('-');
                 setFStatus('Utama');
                 setFOpStatus('Operasi');
-                setFKha(0);
-                setFLength(0);
-                setFGarduCount(0);
-                setFCust(0);
+                setFKha('');
+                setFLength('');
+                setFGarduCount('');
+                setFCust('');
                 setFConfig('Looping');
                 setIsAddFeederOpen(true);
               }}
@@ -779,10 +788,6 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu (BH)</th>
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Gardu (KVA)</th>
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Pelanggan</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-rose-300 font-black">Trip</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-blue-300 font-black">SAIDI (Jam)</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-cyan-300 font-black">SAIFI (Kali)</th>
-                    <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80 text-amber-300 font-black">ENS (kWh)</th>
                     <th className="px-1.5 py-2.5 text-center border-r border-slate-800/80">Konfigurasi</th>
                     <th className="px-1.5 py-2.5 text-center w-16">Aksi</th>
                   </tr>
@@ -880,24 +885,6 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                           </td>
                           <td className="px-1.5 py-2 text-center font-bold text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
                             {realCust}
-                          </td>
-                          <td className="px-1.5 py-2 text-center border-r border-slate-200 dark:border-slate-800/80">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                              tripCount > 3 ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' :
-                              tripCount > 0 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
-                              'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            }`}>
-                              {tripCount} x
-                            </span>
-                          </td>
-                          <td className="px-1.5 py-2 text-center font-black text-blue-600 dark:text-blue-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
-                            {feederSaidi.toFixed(3)}
-                          </td>
-                          <td className="px-1.5 py-2 text-center font-black text-cyan-600 dark:text-cyan-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
-                            {feederSaifi.toFixed(3)}
-                          </td>
-                          <td className="px-1.5 py-2 text-center font-black text-amber-600 dark:text-amber-400 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">
-                            {feederEns.toLocaleString('id-ID')}
                           </td>
                           <td className="px-1.5 py-2 text-center font-medium text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800/80 text-[11px]">{feeder.configuration || 'Looping'}</td>
                           <td className="px-1 py-2 text-center">
@@ -2642,43 +2629,6 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
               </button>
             </div>
             <form onSubmit={handleSaveFeeder} className="space-y-4 text-xs">
-              {fName && (
-                (() => {
-                  const fTrips = (trips || []).filter(t => matchFeederName(t.feederName, fName));
-                  const count = fTrips.length;
-                  const saidi = fTrips.reduce((acc, t) => acc + (t.saidiHours ?? ((( (t.durationMinutes || 0) / 60 ) * (t.affectedCustomers || 0)) / (t.totalUlpCustomers || defaultTotalUlp))), 0);
-                  const saifi = fTrips.reduce((acc, t) => acc + (t.saifiCount ?? ((t.affectedCustomers || 0) / (t.totalUlpCustomers || defaultTotalUlp))), 0);
-                  const ens = fTrips.reduce((acc, t) => acc + (t.ensKwh || 0), 0);
-
-                  return (
-                    <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-white space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] font-black text-indigo-300">
-                        <span className="flex items-center gap-1.5">
-                          <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>Kinerja Keandalan (Tersinkron Realtime)</span>
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                          {count} Trip Gangguan
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800 text-[10px]">
-                        <div>
-                          <div className="text-slate-400">SAIDI:</div>
-                          <div className="text-blue-400 font-extrabold">{saidi.toFixed(3)} Jam/Plg</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">SAIFI:</div>
-                          <div className="text-cyan-400 font-extrabold">{saifi.toFixed(3)} Kali/Plg</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">ENS Loss:</div>
-                          <div className="text-amber-400 font-extrabold">{ens.toLocaleString('id-ID')} kWh</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()
-              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
