@@ -127,7 +127,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Username / NIP / Email</span>
+                <span>Username / NIP</span>
               </label>
               <input 
                 type="text"
@@ -180,32 +180,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </>
               )}
             </button>
-
-            {/* DEMO ACCOUNTS QUICK LOGIN */}
-            <div className="pt-3 border-t border-slate-800/80 space-y-2 text-xs">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block text-center">
-                Pilih Akun Pengujian Cepat:
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setUsername('8812345Z'); setPassword('123456'); }}
-                  className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all cursor-pointer"
-                >
-                  <span className="font-extrabold text-blue-400 block truncate">M. Ricky Sabary</span>
-                  <span className="text-[10px] text-slate-400">Team Leader</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setUsername('ADMIN01'); setPassword('123456'); }}
-                  className="p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800 border border-slate-800 text-left transition-all cursor-pointer"
-                >
-                  <span className="font-extrabold text-cyan-400 block truncate">User Admin</span>
-                  <span className="text-[10px] text-slate-400">Admin (SPK & Gangguan)</span>
-                </button>
-              </div>
-            </div>
-
           </form>
 
         </div>

@@ -145,11 +145,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
           )}
 
-          {/* User / NIK / Email */}
+          {/* User / NIK */}
           <div>
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-blue-500" />
-              <span>Username / NIP / ID Petugas / Email</span>
+              <span>Username / NIP</span>
             </label>
             <div className="relative">
               <input 
@@ -157,7 +157,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Contoh: 9218042PLN atau email@pln.co.id"
+                placeholder="Contoh: 9218042PLN atau Username"
                 className={`w-full pl-3.5 pr-4 py-2.5 rounded-xl border text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
                   isDarkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
                 }`}
