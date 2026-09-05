@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ViewMode, BranchDevice, MasterFeeder, MasterSection, MasterPemutus, getSectionBranches, getDownstreamCoveredSections } from '../../types';
+import { resolveFeederSupply } from '../../utils/feederSupplyResolver';
 import { 
   X, 
   Zap, 
@@ -685,11 +686,11 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Relay Dominan</label>
+                  <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">Relay Proteksi</label>
                   <select value={tripRelay} onChange={(e) => setTripRelay(e.target.value)} className="w-full p-2.5 rounded-xl border font-bold bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
-                    <option value="GFR / OCR">GFR / OCR (Tanah & Arus Lebih)</option>
                     <option value="GFR">GFR (Ground Fault Relay)</option>
                     <option value="OCR">OCR (Over Current Relay)</option>
+                    <option value="GFR / OCR">GFR & OCR (Tanah & Arus Lebih)</option>
                     <option value="UVR">UVR (Under Voltage Relay)</option>
                     <option value="OVR">OVR (Over Voltage Relay)</option>
                     <option value="UFR">UFR (Under Frequency Relay)</option>
@@ -1090,10 +1091,19 @@ export const UniversalInputModal: React.FC<UniversalInputModalProps> = ({
                   <select 
                     value={mSecFeeder} 
                     onChange={(e) => {
-                      setMSecFeeder(e.target.value);
+                      const selFeeder = e.target.value;
+                      setMSecFeeder(selFeeder);
                       setMSecPemutusId('');
                       setMSecPemutusCode('');
                       setMSecPemutusType('');
+                      if (selFeeder) {
+                        const supplyRes = resolveFeederSupply(selFeeder, masterFeeders, masterSections);
+                        if (supplyRes.isBranch && supplyRes.recommendedGh) {
+                          setMSecSubstation(supplyRes.recommendedGh);
+                        } else if (supplyRes.defaultGi) {
+                          setMSecSubstation(supplyRes.defaultGi);
+                        }
+                      }
                     }} 
                     className="w-full p-2.5 rounded-xl border font-bold bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-cyan-500"
                   >

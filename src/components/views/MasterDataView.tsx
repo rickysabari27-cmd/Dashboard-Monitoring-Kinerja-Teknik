@@ -10,6 +10,7 @@ import {
   getSectionBranches,
   getDownstreamCoveredSections
 } from '../../types';
+import { resolveFeederSupply } from '../../utils/feederSupplyResolver';
 import { 
   Database, 
   Search, 
@@ -2884,12 +2885,12 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({
                       setSecFeeder(val);
                       if (!sectionToEdit) {
                         setSecCode(val ? generateSectionCode(val) : '');
-                        const fObj = masterFeeders.find(f => f.feederName.toLowerCase() === val.toLowerCase());
-                        if (fObj) {
-                          if (fObj.garduHubung && fObj.garduHubung !== '-') {
-                            setSecSubstation(fObj.garduHubung);
-                          } else if (fObj.substationName && fObj.substationName !== '-') {
-                            setSecSubstation(fObj.substationName);
+                        if (val) {
+                          const supplyRes = resolveFeederSupply(val, masterFeeders, masterSections, masterGarduHubung);
+                          if (supplyRes.isBranch && supplyRes.recommendedGh) {
+                            setSecSubstation(supplyRes.recommendedGh);
+                          } else if (supplyRes.defaultGi) {
+                            setSecSubstation(supplyRes.defaultGi);
                           }
                         }
                       }

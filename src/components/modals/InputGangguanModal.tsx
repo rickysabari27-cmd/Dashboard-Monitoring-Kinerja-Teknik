@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { FeederTrip, MasterFeeder, MasterSection, MasterGarduHubung, getDownstreamCoveredSections } from '../../types';
+import { resolveFeederSupply } from '../../utils/feederSupplyResolver';
 import { 
   X, 
   Zap, 
@@ -63,32 +64,46 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       ? masterFeeders.map(f => {
           const secList = (masterSections || []).filter(s => s.feederName && s.feederName.trim().toLowerCase() === f.feederName.trim().toLowerCase());
           const totalSecCust = secList.reduce((sum, s) => sum + (Number(s.customerCount) || 0), 0);
-          const sec = secList[0];
-          const secSupply = sec?.substationOrGh;
-          const gh = f.garduHubung && f.garduHubung !== '-' ? f.garduHubung : (secSupply && secSupply !== '-' && secSupply.startsWith('GH') ? secSupply : null);
-          const sub = (secSupply && secSupply !== '-' && secSupply !== 'GI/GH') ? secSupply : (gh ? gh : (f.substationName || 'GI Passo (20kV)'));
+          const supplyResolution = resolveFeederSupply(f.feederName, masterFeeders, masterSections, masterGarduHubung);
+          
           return { 
             name: f.feederName, 
             cust: secList.length > 0 ? totalSecCust : (Number(f.customerCount) || 0),
-            substation: sub,
-            garduHubung: gh,
+            substation: supplyResolution.defaultGi || f.substationName || 'GI Passo (20kV)',
+            garduHubung: supplyResolution.recommendedGh,
             lengthKm: f.lengthKms || 15
           };
         })
-      : Object.keys(DEFAULT_FEEDER_MAP).map(k => ({ 
-          name: k, 
-          cust: DEFAULT_FEEDER_MAP[k],
-          substation: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : 'GI Passo (20kV)'),
-          garduHubung: k === 'ALLANG' ? 'GH Bandara' : (k === 'LATERI 1' ? 'GH Baguala' : null),
-          lengthKm: 15
-        }));
+      : Object.keys(DEFAULT_FEEDER_MAP).map(k => {
+          const supplyResolution = resolveFeederSupply(k, [], [], []);
+          return { 
+            name: k, 
+            cust: DEFAULT_FEEDER_MAP[k],
+            substation: supplyResolution.defaultGi,
+            garduHubung: supplyResolution.recommendedGh,
+            lengthKm: 15
+          };
+        });
     return [...list].sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true, sensitivity: 'base' }));
-  }, [masterFeeders, masterSections]);
+  }, [masterFeeders, masterSections, masterGarduHubung]);
 
-  // Available GHs list
-  const availableGHList = masterGarduHubung.length > 0
-    ? masterGarduHubung.map(g => g.ghName)
-    : ['GH Bandara', 'GH Baguala', 'GH Wayame', 'GH Poka'];
+  // Available GHs list (deduplicated and sorted)
+  const availableGHList = useMemo(() => {
+    const defaultGHs = [
+      'GH Baguala', 
+      'GH Bandara', 
+      'GH Wayame', 
+      'GH Hative Kecil', 
+      'GH Box Pantai Galala', 
+      'GH Box Pantai Poka', 
+      'GH Aston', 
+      'GH Area', 
+      'GH Poka'
+    ];
+    const fromMaster = (masterGarduHubung || []).map(g => g.ghName).filter(Boolean);
+    const combined = Array.from(new Set([...fromMaster, ...defaultGHs]));
+    return combined.sort((a, b) => a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' }));
+  }, [masterGarduHubung]);
 
   // Master total customers sum across all feeders
   const masterTotalCustomers = useMemo(() => {
@@ -105,12 +120,17 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
   const [tripTime, setTripTime] = useState('');
   const [recoveryTime, setRecoveryTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(0);
-  const [relayType, setRelayType] = useState<'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR' | 'UFR'>('GFR / OCR');
+  const [relayType, setRelayType] = useState<'GFR' | 'OCR' | 'GFR / OCR' | 'UVR' | 'OVR' | 'UFR'>('GFR');
   const [tripScope, setTripScope] = useState<'UTAMA' | 'PERCABANGAN'>('UTAMA');
   
+  // Current Feeder Supply Resolution (Auto-Calculated)
+  const currentFeederSupply = useMemo(() => {
+    return resolveFeederSupply(feederName, masterFeeders, masterSections, masterGarduHubung);
+  }, [feederName, masterFeeders, masterSections, masterGarduHubung]);
+
   // Supply Source & Section / Branch Selection State
   const [supplySourceType, setSupplySourceType] = useState<'GI' | 'GH' | 'PERCABANGAN'>('GI');
-  const [selectedGhName, setSelectedGhName] = useState<string>('GH Bandara');
+  const [selectedGhName, setSelectedGhName] = useState<string>('GH Baguala');
   const [selectedSectionKey, setSelectedSectionKey] = useState<string>('');
   const [selectedBranchKey, setSelectedBranchKey] = useState<string>('');
 
@@ -254,16 +274,22 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
         setRelayType(tripToEdit.relayType || 'GFR / OCR');
         setTripScope(tripToEdit.tripScope || 'UTAMA');
         
+        const supplyRes = resolveFeederSupply(fName, masterFeeders, masterSections, masterGarduHubung);
+
         // Supply Source
         if (tripToEdit.supplySourceType) {
           setSupplySourceType(tripToEdit.supplySourceType === 'SECTION' ? 'PERCABANGAN' : tripToEdit.supplySourceType);
         } else if (tripToEdit.tripScope === 'PERCABANGAN') {
           setSupplySourceType('GH');
         } else {
-          setSupplySourceType('GI');
+          setSupplySourceType(supplyRes.sourceType);
         }
 
-        setSelectedGhName(tripToEdit.supplySourceName && tripToEdit.supplySourceName.startsWith('GH') ? tripToEdit.supplySourceName : 'GH Bandara');
+        setSelectedGhName(
+          tripToEdit.supplySourceName && tripToEdit.supplySourceName.startsWith('GH') 
+            ? tripToEdit.supplySourceName 
+            : supplyRes.recommendedGh
+        );
         setSelectedSectionKey(tripToEdit.sectionId || '');
         setSelectedBranchKey(tripToEdit.branchId || tripToEdit.branchName || '');
 
@@ -281,26 +307,19 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
       } else {
         const defaultFeeder = availableFeeders[0]?.name || '';
         const found = availableFeeders.find(f => f.name === defaultFeeder);
+        const supplyRes = resolveFeederSupply(defaultFeeder, masterFeeders, masterSections, masterGarduHubung);
+
         setFeederName(defaultFeeder);
         setTripDate(new Date().toISOString().split('T')[0]);
         setTripTime('');
         setRecoveryTime('');
         setDurationMinutes(0);
-        setRelayType('GFR / OCR');
+        setRelayType('GFR');
         
-        let initialSourceType: 'GI' | 'GH' | 'PERCABANGAN' = 'GI';
-        // Default supply source based on feeder GH info
-        if (found?.garduHubung) {
-          setTripScope('PERCABANGAN');
-          initialSourceType = 'GH';
-          setSupplySourceType('GH');
-          setSelectedGhName(found.garduHubung);
-        } else {
-          setTripScope('UTAMA');
-          initialSourceType = 'GI';
-          setSupplySourceType('GI');
-          setSelectedGhName('GH Bandara');
-        }
+        // Auto default supply source and GH based on feeder topology
+        setSelectedGhName(supplyRes.recommendedGh);
+        setSupplySourceType(supplyRes.sourceType);
+        setTripScope(supplyRes.isBranch ? 'PERCABANGAN' : 'UTAMA');
 
         setSelectedSectionKey('');
         setSelectedBranchKey('');
@@ -365,23 +384,19 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
     }
   }, [tripTime, recoveryTime]);
 
-  // Auto set default affected customers & GH if user selects a feeder
+  // Auto set default affected customers & automatically synchronize GH when user selects a feeder
   const handleFeederChange = (name: string) => {
     setFeederName(name);
-    const foundFeeder = availableFeeders.find(f => f.name === name);
-    let newSourceType: 'GI' | 'GH' | 'PERCABANGAN' = supplySourceType;
-    if (foundFeeder) {
-      if (foundFeeder.garduHubung) {
-        setSelectedGhName(foundFeeder.garduHubung);
-        newSourceType = 'GH';
-        setSupplySourceType('GH');
-        setTripScope('PERCABANGAN');
-      } else {
-        newSourceType = 'GI';
-        setSupplySourceType('GI');
-        setTripScope('UTAMA');
-      }
-    }
+    const supplyRes = resolveFeederSupply(name, masterFeeders, masterSections, masterGarduHubung);
+    
+    // Automatically adjust the connected Gardu Hubung (GH) for this Feeder
+    setSelectedGhName(supplyRes.recommendedGh);
+
+    // Auto set supply source & scope based on feeder topology
+    const newSourceType: 'GI' | 'GH' | 'PERCABANGAN' = supplyRes.sourceType;
+    setSupplySourceType(newSourceType);
+    setTripScope(supplyRes.isBranch ? 'PERCABANGAN' : 'UTAMA');
+    
     setSelectedSectionKey('');
     setSelectedBranchKey('');
 
@@ -716,7 +731,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   ) : (
                     availableFeeders.map(f => (
                       <option key={f.name} value={f.name}>
-                        {f.name} ({f.cust.toLocaleString('id-ID')} Plg) {f.garduHubung ? `• Supply: ${f.garduHubung}` : ''}
+                        {f.name} ({f.cust.toLocaleString('id-ID')} Plg)
                       </option>
                     ))
                   )}
@@ -725,7 +740,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
 
               <div>
                 <label className="font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Relay Dominan Trip
+                  Relay Proteksi
                 </label>
                 <select 
                   value={relayType}
@@ -734,9 +749,9 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                     isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
                   }`}
                 >
-                  <option value="GFR / OCR">GFR / OCR (Tanah & Arus Lebih)</option>
                   <option value="GFR">GFR (Ground Fault Relay)</option>
                   <option value="OCR">OCR (Over Current Relay)</option>
+                  <option value="GFR / OCR">GFR & OCR (Tanah & Arus Lebih)</option>
                   <option value="UVR">UVR (Under Voltage Relay)</option>
                   <option value="OVR">OVR (Over Voltage Relay)</option>
                   <option value="UFR">UFR (Under Frequency Relay)</option>
@@ -874,8 +889,8 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                       Pangkal Feeder
                     </span>
                   </div>
-                  <span className={`text-[10px] mt-1 ${supplySourceType === 'GI' ? 'text-purple-100' : 'text-slate-400'}`}>
-                    GI Passo / GI Hative
+                  <span className={`text-[10px] mt-1 font-semibold truncate ${supplySourceType === 'GI' ? 'text-purple-100' : 'text-slate-400'}`}>
+                    {currentFeederSupply.defaultGi || 'GI Passo'}
                   </span>
                 </button>
 
@@ -885,6 +900,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                   onClick={() => {
                     setSupplySourceType('GH');
                     setTripScope('PERCABANGAN');
+                    setSelectedGhName(currentFeederSupply.recommendedGh);
                     syncCustomerCountFromMaster(feederName, 'GH', selectedSectionKey);
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
@@ -906,8 +922,8 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                       Penyuplai GH
                     </span>
                   </div>
-                  <span className={`text-[10px] mt-1 ${supplySourceType === 'GH' ? 'text-amber-100' : 'text-slate-400'}`}>
-                    GH Bandara, GH Baguala, dll
+                  <span className={`text-[10px] mt-1 font-semibold truncate ${supplySourceType === 'GH' ? 'text-amber-100' : 'text-slate-400'}`}>
+                    {currentFeederSupply.recommendedGh || 'GH Baguala'}
                   </span>
                 </button>
 
@@ -958,8 +974,8 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                     <Radio className="w-3.5 h-3.5 text-amber-500" />
                     Pilih Gardu Hubung (GH) yang Menyuplai Section Penyulang Ini:
                   </label>
-                  <span className="text-[10px] text-slate-400">
-                    Estimasi jarak akan dihitung dari pangkal GH terpilih
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                    {currentFeederSupply.recommendedGh ? `${currentFeederSupply.recommendedGh} (Feeder ${feederName})` : ''}
                   </span>
                 </div>
                 <select
@@ -971,7 +987,7 @@ export const InputGangguanModal: React.FC<InputGangguanModalProps> = ({
                 >
                   {availableGHList.map(gh => (
                     <option key={gh} value={gh}>
-                      {gh}
+                      {gh} {gh === currentFeederSupply.recommendedGh ? `(Feeder ${feederName})` : ''}
                     </option>
                   ))}
                 </select>
